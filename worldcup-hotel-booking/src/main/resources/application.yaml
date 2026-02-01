@@ -1,0 +1,19 @@
+spring:
+  application:
+    name: worldcup-hotel-booking
+  profiles:
+    active: local
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/worldcup_hotel_booking
+
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        show_sql: true
+        format_sql: true
+    open-in-view: false
