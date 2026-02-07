@@ -31,7 +31,7 @@ public class BookingMapper {
 
         dto.setCheckInDate(booking.getCheckInDate());
         dto.setCheckOutDate(booking.getCheckOutDate());
-        dto.setTotalPrice(BigDecimal.valueOf(booking.getTotalPrice()));
+        dto.setTotalPrice(booking.getTotalPrice());
         dto.setStatus(booking.getStatus());
         return dto;
     }

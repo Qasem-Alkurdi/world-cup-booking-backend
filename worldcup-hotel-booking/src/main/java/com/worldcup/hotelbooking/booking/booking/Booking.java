@@ -9,16 +9,18 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.UUID;
 
 @Data
 @Entity
 public class Booking {
 @Id @GeneratedValue private Long id;
-@NotNull
+    @Column(nullable = false, unique = true)
 private String bookingReference;
 
 private int matchId;
@@ -32,7 +34,7 @@ private int numberOfAdults;
 private int numberOfChildren;
 
 @NotNull
-private double totalPrice;
+private BigDecimal totalPrice;
 
 @NotNull
 private String status="PENDING";
@@ -55,12 +57,11 @@ private LocalDate cancelledAt;
     private Hotel hotel;
 
     @OneToMany(mappedBy = "booking", cascade = CascadeType.ALL)
-    @JsonManagedReference
     private List<BookingRoom> bookingRooms = new ArrayList<>();
 
 
-Booking(String bookingReference, int matchId, LocalDate checkInDate,LocalDate checkOutDate, int numberOfGuests, int numberOfAdults, int numberOfChildren, double totalPrice, String status, User user, Hotel hotel) {
-    this.bookingReference = bookingReference;
+Booking( int matchId, LocalDate checkInDate,LocalDate checkOutDate, int numberOfGuests, int numberOfAdults, int numberOfChildren, BigDecimal totalPrice, String status, User user, Hotel hotel) {
+
     this.matchId = matchId;
     this.checkInDate = checkInDate;
     this.checkOutDate = checkOutDate;
@@ -87,6 +88,17 @@ public void removeBookingRoom(BookingRoom bookingRoom) {
 
     public Booking() {
 
+    }
+
+    @PrePersist
+    protected void onCreate() {
+        createdAt = LocalDate.now();
+        bookingReference = generateReference();
+
+    }
+
+    private String generateReference() {
+        return "WC2026-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
     }
 
 

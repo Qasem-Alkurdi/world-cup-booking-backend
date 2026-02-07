@@ -8,4 +8,5 @@ import java.math.BigDecimal;
 public class BookingRoomRequestDto {
     private int numberOfRooms;
     private long roomTypeId;
+
 }

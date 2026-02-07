@@ -13,15 +13,17 @@ import java.util.List;
     @Data
     public class BookingRequestDto {
 
-        @NotNull(message = "Hotel ID cannot be null")
+        @NotBlank(message = "Hotel ID cannot be null")
         private Long hotelId;
+        @NotBlank(message = "User ID cannot be null")
+        private long userId;
 
         private Long matchId;
 
-        @NotNull(message = "Check-in date cannot be null")
+        @NotBlank(message = "Check-in date cannot be null")
         private LocalDate checkInDate;
 
-        @NotNull(message = "Check-out date cannot be null")
+        @NotBlank(message = "Check-out date cannot be null")
         private LocalDate checkOutDate;
 
         @Min(1)

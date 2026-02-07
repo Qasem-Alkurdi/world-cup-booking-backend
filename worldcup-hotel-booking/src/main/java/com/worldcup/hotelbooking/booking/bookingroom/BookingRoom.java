@@ -12,10 +12,13 @@ import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.Min;
 import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 
 @Entity
-@Data
+@Getter
+@Setter
 @Table(
     name = "booking_rooms",
     indexes = {
@@ -51,6 +54,8 @@ public class BookingRoom {
     @JoinColumn(name = "room_type_id", nullable = false)
     @JsonBackReference
     private RoomType roomType;
+
+    
 
     public BookingRoom() {}
 
