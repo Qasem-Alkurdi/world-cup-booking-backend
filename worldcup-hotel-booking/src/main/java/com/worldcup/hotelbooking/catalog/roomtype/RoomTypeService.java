@@ -1,4 +1,4 @@
-package com.worldcup.hotelbooking.catalog.roomtype.dto;
+package com.worldcup.hotelbooking.catalog.roomtype;
 
 public class RoomTypeService {
 }

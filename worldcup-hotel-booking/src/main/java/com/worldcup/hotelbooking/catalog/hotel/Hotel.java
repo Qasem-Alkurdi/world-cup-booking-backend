@@ -1,18 +1,23 @@
 package com.worldcup.hotelbooking.catalog.hotel;
 
-import com.worldcup.hotelbooking.user.user.AppUser;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.worldcup.hotelbooking.booking.booking.Booking;
 import com.worldcup.hotelbooking.user.user.AppUser;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import lombok.Getter;
+import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
-import org.hibernate.validator.constraints.Length;
 import org.locationtech.jts.geom.Point;
 
 import java.time.OffsetDateTime;
+import java.util.List;
 
+@Setter
+@Getter
 @Entity
 @Table(
         name = "hotel",
@@ -32,6 +37,9 @@ public class Hotel {
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
     @JoinColumn(name = "owner_id", nullable = false)
     private AppUser owner;
+    @OneToMany(mappedBy = "hotel")
+    @JsonManagedReference
+    private List<Booking> bookings;
 
     @NotBlank
     @Column(nullable = false)
@@ -137,4 +145,13 @@ public class Hotel {
     private OffsetDateTime deletedAt;
 
     // --- getters/setters/constructors ---
+    public void addBooking(Booking booking) {
+        this.bookings.add(booking);
+        booking.setHotel(this);
+    }
+
+    public void removeBooking(Booking booking) {
+        this.bookings.remove(booking);
+        booking.setHotel(null);
+    }
 }
