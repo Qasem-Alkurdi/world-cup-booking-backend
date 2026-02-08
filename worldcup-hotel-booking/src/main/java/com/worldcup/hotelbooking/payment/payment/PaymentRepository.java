@@ -1,4 +1,7 @@
 package com.worldcup.hotelbooking.payment.payment;
 
-public interface PaymentRepository {
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface PaymentRepository extends JpaRepository<Payment, Long> {
+
 }

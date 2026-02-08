@@ -1,4 +1,4 @@
-package com.worldcup.hotelbooking.user.user;
+package com.worldcup.hotelbooking.catalog.hotel;
 
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.worldcup.hotelbooking.booking.booking.Booking;
@@ -12,23 +12,23 @@ import java.util.List;
 
 @Entity
 @Data
-public class User {
-
-    @Id @GeneratedValue
+public class Hotel {
+    @Id
+    @GeneratedValue
     private Long id;
-    private String name;
 
-    @OneToMany(mappedBy = "user")
+
+    @OneToMany(mappedBy = "hotel")
     @JsonManagedReference
     private List<Booking> bookings;
 
     public void addBooking(Booking booking) {
         this.bookings.add(booking);
-        booking.setUser(this);
+        booking.setHotel(this);
     }
 
     public void removeBooking(Booking booking) {
         this.bookings.remove(booking);
-        booking.setUser(null);
+        booking.setHotel(null);
     }
 }

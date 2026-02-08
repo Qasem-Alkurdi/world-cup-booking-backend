@@ -1,4 +1,10 @@
 package com.worldcup.hotelbooking.catalog.hotel;
 
-public interface HotelRepository {
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import java.util.Optional;
+
+public interface HotelRepository extends JpaRepository<Hotel, Long> {
+
+
 }

@@ -1,4 +1,6 @@
 package com.worldcup.hotelbooking.catalog.roomtype;
 
-public interface RoomTypeRepository {
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface RoomTypeRepository extends JpaRepository<RoomType, Long> {
 }
