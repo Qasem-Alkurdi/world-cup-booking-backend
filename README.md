@@ -90,8 +90,8 @@ com.worldcup.hotelbooking
 │       ├── NotificationService.java
 │       └── dto
 │
-├── user
-│   └── user
+├── appUser
+│   └── appUser
 │       ├── User.java
 │       ├── UserRepository.java
 │       ├── UserService.java
@@ -215,9 +215,9 @@ Responsible for notifications and audit log:
 
 ---
 
-### 6) `user/`
+### 6) `appUser/`
 
-Responsible for user management:
+Responsible for appUser management:
 
 - User CRUD
 - Roles/permissions integration (if/when added)
@@ -225,7 +225,7 @@ Responsible for user management:
 
 **Sub-feature**
 
-- `user/`: User domain + endpoints + DTOs
+- `appUser/`: User domain + endpoints + DTOs
 
 ---
 
@@ -278,7 +278,7 @@ This structure is already close to a microservices split:
 - `booking/**` → `booking-service`
 - `payment/**` → `payment-service`
 - `notification/**` → `notification-service`
-- `user/**` → `user-service`
+- `appUser/**` → `appUser-service`
 
 When splitting:
 

@@ -5,8 +5,8 @@ import com.worldcup.hotelbooking.booking.bookingroom.BookingRoomRepository;
 import com.worldcup.hotelbooking.catalog.hotel.HotelRepository;
 import com.worldcup.hotelbooking.catalog.hotel.exceptions.HotelNotFoundException;
 import com.worldcup.hotelbooking.catalog.roomtype.RoomTypeRepository;
-import com.worldcup.hotelbooking.user.user.UserNotFoundException;
-import com.worldcup.hotelbooking.user.user.UserRepository;
+import com.worldcup.hotelbooking.user.user.AppUserNotFoundException;
+import com.worldcup.hotelbooking.user.user.AppUserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,13 +18,13 @@ import java.util.List;
 @Transactional
 public class BookingServiceImp implements BookingService {
     private final BookingRepository bookingRepository;
-    private final UserRepository userRepository;
+    private final AppUserRepository appUserRepository;
     private final HotelRepository hotelRepository;
     private final RoomTypeRepository roomTypeRepository;
     private final BookingRoomRepository bookingRoomRepository;
 
-    BookingServiceImp(BookingRepository bookingRepository, UserRepository userRepository, HotelRepository hotelRepository, RoomTypeRepository roomTypeRepository, BookingRoomRepository bookingRoomRepository) {
-        this.userRepository = userRepository;
+    BookingServiceImp(BookingRepository bookingRepository, AppUserRepository appUserRepository, HotelRepository hotelRepository, RoomTypeRepository roomTypeRepository, BookingRoomRepository bookingRoomRepository) {
+        this.appUserRepository = appUserRepository;
         this.hotelRepository = hotelRepository;
         this.bookingRepository = bookingRepository;
         this.roomTypeRepository = roomTypeRepository;
@@ -38,27 +38,27 @@ public class BookingServiceImp implements BookingService {
     }
 
     @Transactional(readOnly = true)
-    public List<Booking> getUserBookings(Long userId, String status) {
-        if (!userRepository.existsById(userId)) {
-            throw new UserNotFoundException(userId);
+    public List<Booking> getUserBookings(Long userId, Booking.BookingStatus status) {
+        if (!appUserRepository.existsById(userId)) {
+            throw new AppUserNotFoundException("User not found with id: " + userId);
         }
-        return bookingRepository.findByUserIdAndStatus(userId, status);
+        return bookingRepository.findByAppUser_IdAndStatus(userId, status);
     }
 
     @Transactional(readOnly = true)
     public List<Booking> getUserBookings(Long userId) {
-        if (!userRepository.existsById(userId)) {
-            throw new UserNotFoundException(userId);
+        if (!appUserRepository.existsById(userId)) {
+            throw new AppUserNotFoundException("User not found with id: " + userId);
         }
-        return bookingRepository.findByUserId(userId);
+        return bookingRepository.findByAppUser_Id(userId);
     }
 
     @Transactional(readOnly = true)
-    public List<Booking> getHotelBookings(Long hotelId, String status) {
+    public List<Booking> getHotelBookings(Long hotelId, Booking.BookingStatus status) {
         if (!hotelRepository.existsById(hotelId)) {
             throw new HotelNotFoundException(hotelId);
         }
-        return bookingRepository.findByHotelIdAndStatus(hotelId, status);
+        return bookingRepository.findByHotel_IdAndStatus(hotelId, status);
     }
 
     @Transactional(readOnly = true)
@@ -66,7 +66,7 @@ public class BookingServiceImp implements BookingService {
         if (!hotelRepository.existsById(hotelId)) {
             throw new HotelNotFoundException(hotelId);
         }
-        return bookingRepository.findByHotelId(hotelId);
+        return bookingRepository.findByHotel_Id(hotelId);
     }
 
     /// //////////////////////////////////////////////////////////
@@ -77,7 +77,7 @@ public class BookingServiceImp implements BookingService {
 //to run all the code in this method as a single transaction and to prevent dirty reads, non-repeatable reads, and phantom reads, ensuring data integrity during the booking process.
     public Booking createBooking(Booking booking) {
         booking.setTotalPrice(calculateTotalPrice(booking, booking.getCheckInDate(), booking.getCheckOutDate()));
-        booking.setStatus("PENDING");
+        booking.setStatus(Booking.BookingStatus.PENDING);
         if (booking.getCheckOutDate().isBefore(booking.getCheckInDate())) {
             throw new IllegalArgumentException("Check-out date cannot be before check-in date");
         }
@@ -94,7 +94,7 @@ public class BookingServiceImp implements BookingService {
         }
 
         booking.getHotel().getBookings().add(booking);
-        booking.getUser().getBookings().add(booking);
+        booking.getAppUser().getBookings().add(booking);
         return bookingRepository.save(booking);
     }
 
@@ -109,8 +109,16 @@ public class BookingServiceImp implements BookingService {
 
     public boolean checkAvailability(Long roomTypeId, java.time.LocalDate checkIn, java.time.LocalDate checkOut, int rooms) {
         int bookedRooms = bookingRoomRepository.countBookedRooms(roomTypeId, checkIn, checkOut);
-        int availableRooms = roomTypeRepository.findById(roomTypeId).orElseThrow(() -> new IllegalArgumentException("Room type not found with id: " + roomTypeId)).getNumberOfRooms() - bookedRooms;
-        return availableRooms >= rooms;
+        int availableRooms =
+                roomTypeRepository.findById(roomTypeId)
+                        .orElseThrow(() -> new IllegalArgumentException("Room type not found with id: " + roomTypeId))
+                        .getTotalRooms()
+                        - bookedRooms;
+
+        if (availableRooms < rooms) {
+            return false;
+        }
+        return true;
     }
 
     public boolean isNumberOfGuestsValid(Booking booking) {
@@ -126,13 +134,13 @@ public class BookingServiceImp implements BookingService {
     @Override
     public Booking cancelBooking(Long Id, String reason) {
         Booking booking = bookingRepository.findById(Id).orElseThrow(() -> new BookingNotFoundException("Booking not found with id: " + Id));
-        if (booking.getStatus().equals("CANCELLED")) {
+        if (booking.getStatus() == Booking.BookingStatus.CONFIRMED) {
             throw new IllegalStateException("Booking is already cancelled");
         }
-        booking.setStatus("CANCELLED");
+        booking.setStatus(Booking.BookingStatus.CANCELLED);
         booking.setCancelReason(reason);
-        booking.setCancelledAt(java.time.LocalDate.now());
-        booking.setCancelledBy(booking.getUser().getName());
+        booking.setCancelledAt(java.time.LocalDateTime.now());
+        booking.setCancelledBy(booking.getAppUser().getName());
         return bookingRepository.save(booking);
     }
 
@@ -145,10 +153,19 @@ public class BookingServiceImp implements BookingService {
         if (booking.getStatus().equals("CANCELLED")) {
             throw new IllegalStateException("Cancelled booking cannot be confirmed");
         }
-        booking.setStatus("CONFIRMED");
-        booking.setConfirmedAt(java.time.LocalDate.now());
+        booking.setStatus(Booking.BookingStatus.CONFIRMED);
+        booking.setConfirmedAt(java.time.LocalDateTime.now());
         return bookingRepository.save(booking);
     }
 
+    public void addBookingRoom(BookingRoom bookingRoom) {
+        Booking booking = bookingRoom.getBooking();
+        booking.getBookingRooms().add(bookingRoom);
+        bookingRoom.setBooking(booking);
+    }
+
+    public Booking findBookingByReference(String bookingReference) {
+        return bookingRepository.findByBookingReference(bookingReference).orElseThrow(() -> new BookingNotFoundException("Booking not found with reference: " + bookingReference));
+    }
 
 }

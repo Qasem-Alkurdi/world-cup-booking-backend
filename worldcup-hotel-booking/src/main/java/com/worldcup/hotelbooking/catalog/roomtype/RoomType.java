@@ -53,10 +53,25 @@ public class RoomType {
     @Column(columnDefinition = "TEXT")
     private String description;
 
+    /* ---------- Capacity ---------- */
+
     @NotNull
-    @Min(1)
-    @Column(name = "max_guests", nullable = false)
-    private Integer maxGuests;
+    @Min(0)
+    @Column(name = "max_adults", nullable = false)
+    private Integer maxAdults;
+
+    @NotNull
+    @Min(0)
+    @Column(name = "max_children", nullable = false)
+    private Integer maxChildren;
+
+    /* ---------- Optional: keep if you still need it for search/filtering ----------
+    // If you want an aggregated field, compute it dynamically instead of storing:
+    @Transient
+    public int getMaxGuests() {
+        return (maxAdults == null ? 0 : maxAdults) + (maxChildren == null ? 0 : maxChildren);
+    }
+    ----------------------------------------------------------------------------- */
 
     @Column(name = "room_size_sqm", precision = 6, scale = 2)
     private BigDecimal roomSizeSqm;

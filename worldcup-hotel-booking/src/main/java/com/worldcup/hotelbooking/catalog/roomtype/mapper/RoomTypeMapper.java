@@ -10,72 +10,75 @@ public class RoomTypeMapper {
     public static RoomType fromCreate(CreateRoomTypeRequestDto dto) {
         RoomType rt = new RoomType();
 
-        rt.setName(dto.name());
-        rt.setDescription(dto.description());
-        rt.setMaxGuests(dto.maxGuests());
-        rt.setRoomSizeSqm(dto.roomSizeSqm());
-        rt.setBasePrice(dto.basePrice());
+        rt.setName(dto.getName());
+        rt.setDescription(dto.getDescription());
 
-        // currency default
-        if (dto.currency() != null && !dto.currency().isBlank()) {
-            rt.setCurrency(dto.currency());
-        } else {
-            rt.setCurrency("USD");
-        }
+        rt.setMaxAdults(dto.getMaxAdults());
+        rt.setMaxChildren(dto.getMaxChildren());
 
-        rt.setTotalRooms(dto.totalRooms());
+        rt.setRoomSizeSqm(dto.getRoomSizeSqm());
+        rt.setBasePrice(dto.getBasePrice());
 
-        // amenities (Boolean -> boolean default false when null)
-        rt.setHasPrivateBathroom(Boolean.TRUE.equals(dto.hasPrivateBathroom()));
-        rt.setHasAirConditioning(Boolean.TRUE.equals(dto.hasAirConditioning()));
-        rt.setHasHeating(Boolean.TRUE.equals(dto.hasHeating()));
-        rt.setHasBalcony(Boolean.TRUE.equals(dto.hasBalcony()));
-        rt.setHasTv(Boolean.TRUE.equals(dto.hasTv()));
-        rt.setHasMinibar(Boolean.TRUE.equals(dto.hasMinibar()));
-        rt.setHasSafe(Boolean.TRUE.equals(dto.hasSafe()));
-        rt.setHasHairdryer(Boolean.TRUE.equals(dto.hasHairdryer()));
-        rt.setHasWorkDesk(Boolean.TRUE.equals(dto.hasWorkDesk()));
-        rt.setHasSoundproofing(Boolean.TRUE.equals(dto.hasSoundproofing()));
-        rt.setHasCoffeeMachine(Boolean.TRUE.equals(dto.hasCoffeeMachine()));
+        // default currency
+        String currency = dto.getCurrency();
+        rt.setCurrency(currency != null && !currency.isBlank() ? currency : "USD");
+
+        rt.setTotalRooms(dto.getTotalRooms());
+
+        // amenities: null -> false
+        rt.setHasPrivateBathroom(Boolean.TRUE.equals(dto.getHasPrivateBathroom()));
+        rt.setHasAirConditioning(Boolean.TRUE.equals(dto.getHasAirConditioning()));
+        rt.setHasHeating(Boolean.TRUE.equals(dto.getHasHeating()));
+        rt.setHasBalcony(Boolean.TRUE.equals(dto.getHasBalcony()));
+        rt.setHasTv(Boolean.TRUE.equals(dto.getHasTv()));
+        rt.setHasMinibar(Boolean.TRUE.equals(dto.getHasMinibar()));
+        rt.setHasSafe(Boolean.TRUE.equals(dto.getHasSafe()));
+        rt.setHasHairdryer(Boolean.TRUE.equals(dto.getHasHairdryer()));
+        rt.setHasWorkDesk(Boolean.TRUE.equals(dto.getHasWorkDesk()));
+        rt.setHasSoundproofing(Boolean.TRUE.equals(dto.getHasSoundproofing()));
+        rt.setHasCoffeeMachine(Boolean.TRUE.equals(dto.getHasCoffeeMachine()));
 
         return rt;
     }
 
-    public static RoomType fromReplace(ReplaceRoomTypeRequestDto dto) {
-        RoomType rt = new RoomType();
+    // PUT/Replace: طبّق على existing (لا تعمل new)
+    public static void applyReplace(RoomType rt, ReplaceRoomTypeRequestDto dto) {
+        rt.setName(dto.getName());
+        rt.setDescription(dto.getDescription());
 
-        rt.setName(dto.name());
-        rt.setDescription(dto.description());
-        rt.setMaxGuests(dto.maxGuests());
-        rt.setRoomSizeSqm(dto.roomSizeSqm());
-        rt.setBasePrice(dto.basePrice());
-        rt.setCurrency(dto.currency());
-        rt.setTotalRooms(dto.totalRooms());
+        rt.setMaxAdults(dto.getMaxAdults());
+        rt.setMaxChildren(dto.getMaxChildren());
 
-        rt.setHasPrivateBathroom(dto.hasPrivateBathroom());
-        rt.setHasAirConditioning(dto.hasAirConditioning());
-        rt.setHasHeating(dto.hasHeating());
-        rt.setHasBalcony(dto.hasBalcony());
-        rt.setHasTv(dto.hasTv());
-        rt.setHasMinibar(dto.hasMinibar());
-        rt.setHasSafe(dto.hasSafe());
-        rt.setHasHairdryer(dto.hasHairdryer());
-        rt.setHasWorkDesk(dto.hasWorkDesk());
-        rt.setHasSoundproofing(dto.hasSoundproofing());
-        rt.setHasCoffeeMachine(dto.hasCoffeeMachine());
+        rt.setRoomSizeSqm(dto.getRoomSizeSqm());
+        rt.setBasePrice(dto.getBasePrice());
+        rt.setCurrency(dto.getCurrency());
+        rt.setTotalRooms(dto.getTotalRooms());
 
-        return rt;
+        // Replace DTO amenities كلها NotNull
+        rt.setHasPrivateBathroom(dto.getHasPrivateBathroom());
+        rt.setHasAirConditioning(dto.getHasAirConditioning());
+        rt.setHasHeating(dto.getHasHeating());
+        rt.setHasBalcony(dto.getHasBalcony());
+        rt.setHasTv(dto.getHasTv());
+        rt.setHasMinibar(dto.getHasMinibar());
+        rt.setHasSafe(dto.getHasSafe());
+        rt.setHasHairdryer(dto.getHasHairdryer());
+        rt.setHasWorkDesk(dto.getHasWorkDesk());
+        rt.setHasSoundproofing(dto.getHasSoundproofing());
+        rt.setHasCoffeeMachine(dto.getHasCoffeeMachine());
     }
 
     public static RoomTypeResponseDto toResponse(RoomType rt) {
         return new RoomTypeResponseDto(
                 rt.getId(),
-                rt.getHotel() != null ? rt.getHotel().getId() : null,
+                rt.getHotel().getId(),
 
                 rt.getName(),
                 rt.getDescription(),
 
-                rt.getMaxGuests(),
+                rt.getMaxAdults(),
+                rt.getMaxChildren(),
+
                 rt.getRoomSizeSqm(),
 
                 rt.getBasePrice(),

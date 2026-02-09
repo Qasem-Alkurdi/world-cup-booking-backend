@@ -62,10 +62,10 @@ public class RoomTypeController {
             @PathVariable Long id,
             @Valid @RequestBody ReplaceRoomTypeRequestDto body
     ) {
-        RoomType incoming = RoomTypeMapper.fromReplace(body);
-        RoomType updated = service.replace(hotelId, id, incoming);
+        RoomType updated = service.replace(hotelId, id, body);
         return ResponseEntity.ok(RoomTypeMapper.toResponse(updated));
     }
+
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long hotelId, @PathVariable Long id) {

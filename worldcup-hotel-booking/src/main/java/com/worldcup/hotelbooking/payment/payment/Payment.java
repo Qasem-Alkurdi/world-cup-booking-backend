@@ -39,12 +39,13 @@ public class Payment {
     @Column(name = "currency")
     private String currency = "USD";
 
-    @NotNull
-    @Column(name = "payment_method", length = 30, nullable = false)
-    private String paymentMethod;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private PaymentMethod paymentMethod;
 
-    @Column(name = "status", length = 20)
-    private String status = "PENDING";
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private PaymentStatus status = PaymentStatus.PENDING;
 
     @Column(name = "refund_amount", precision = 10, scale = 2)
     private BigDecimal refundAmount = BigDecimal.ZERO;
@@ -70,7 +71,7 @@ public class Payment {
     public Payment() {}
 
     public Payment(Booking booking, String transactionReference, BigDecimal amount,
-                   String paymentMethod, String status, BigDecimal refundAmount, String refundReason,
+                   PaymentMethod paymentMethod, PaymentStatus status, BigDecimal refundAmount, String refundReason,
                    String failureReason, LocalDateTime paidAt, LocalDateTime refundedAt) {
         this.booking = booking;
         this.transactionReference = transactionReference;
@@ -88,4 +89,23 @@ public class Payment {
     @JoinColumn(name = "booking_id", nullable = false)
     private Booking booking;
 
+
+    public enum PaymentStatus {
+
+        PENDING,        // Payment created but not processed
+        COMPLETED,      // Payment successful
+        FAILED,         // Payment failed
+        CANCELLED,      // Payment cancelled by user/system
+        REFUNDED        // Money refunded
+
+    }
+
+    public enum PaymentMethod {
+
+        CREDIT_CARD,
+        DEBIT_CARD,
+        PAYPAL,
+        CASH
+
+    }
 }

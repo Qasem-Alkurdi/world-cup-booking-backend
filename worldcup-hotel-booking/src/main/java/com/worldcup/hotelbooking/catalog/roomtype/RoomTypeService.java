@@ -1,5 +1,8 @@
 package com.worldcup.hotelbooking.catalog.roomtype;
 
+import com.worldcup.hotelbooking.catalog.roomtype.dto.ReplaceRoomTypeRequestDto;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.util.List;
 
 public interface RoomTypeService {
@@ -22,7 +25,10 @@ public interface RoomTypeService {
     /**
      * Replace (PUT) a room type completely
      */
-    RoomType replace(Long hotelId, Long roomTypeId, RoomType roomType);
+
+
+    @Transactional
+    RoomType replace(Long hotelId, Long roomTypeId, ReplaceRoomTypeRequestDto dto);
 
     /**
      * Delete a room type

@@ -19,10 +19,12 @@ public class AvailabilityService {
 
     // @GetMapping("/availability/room-type/{id} ?checkIn=2026-06-10 &checkOut=2026-06-12"")
     public boolean checkRoomTypeAvailability(Long roomTypeId, LocalDate checkIn, LocalDate checkOut) {
-        return roomTypeRepository.findById(roomTypeId).orElseThrow(() -> new RoomTypeNotFoundException(roomTypeId)).getNumberOfRooms() - bookingRoomRepository.countBookedRooms(roomTypeId, checkIn, checkOut) > 0;
+        return roomTypeRepository.findById(roomTypeId).orElseThrow(() -> new RoomTypeNotFoundException(roomTypeId)).getTotalRooms() - bookingRoomRepository.countBookedRooms(roomTypeId, checkIn, checkOut) > 0;
     }
 
     public int getAvailableRooms(Long roomTypeId, LocalDate checkIn, LocalDate checkOut) {
-        return roomTypeRepository.findById(roomTypeId).orElseThrow(() -> new RoomTypeNotFoundException("Can not find Room Type With id" + roomTypeId)).getNumberOfRooms() - bookingRoomRepository.countBookedRooms(roomTypeId, checkIn, checkOut);
+        return roomTypeRepository.findById(roomTypeId).orElseThrow(() -> new RoomTypeNotFoundException(roomTypeId)).getTotalRooms() - bookingRoomRepository.countBookedRooms(roomTypeId, checkIn, checkOut);
     }
+
+
 }

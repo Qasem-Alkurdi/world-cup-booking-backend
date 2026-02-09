@@ -3,9 +3,10 @@ package com.worldcup.hotelbooking.catalog.roomtype;
 import com.worldcup.hotelbooking.catalog.hotel.Hotel;
 import com.worldcup.hotelbooking.catalog.hotel.HotelRepository;
 import com.worldcup.hotelbooking.catalog.hotel.exceptions.HotelNotFoundException;
+import com.worldcup.hotelbooking.catalog.roomtype.dto.ReplaceRoomTypeRequestDto;
 import com.worldcup.hotelbooking.catalog.roomtype.exceptions.RoomTypeAlreadyExistsException;
 import com.worldcup.hotelbooking.catalog.roomtype.exceptions.RoomTypeNotFoundException;
-import org.springframework.beans.BeanUtils;
+import com.worldcup.hotelbooking.catalog.roomtype.mapper.RoomTypeMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -75,35 +76,30 @@ public class RoomTypeServiceImpl implements RoomTypeService {
         return roomTypeRepository.save(roomType);
     }
 
+    @Transactional
     @Override
-    public RoomType replace(Long hotelId, Long roomTypeId, RoomType incoming) {
+    public RoomType replace(Long hotelId, Long roomTypeId, ReplaceRoomTypeRequestDto dto) {
         Hotel hotel = getApprovedActiveHotel(hotelId);
 
         RoomType current = getRoomTypeOrThrow(hotelId, roomTypeId);
 
         // لو الاسم تغير، افحص uniqueness
-        String newName = incoming.getName();
+        String newName = dto.getName();
         if (newName != null && !newName.equalsIgnoreCase(current.getName())) {
             if (roomTypeRepository.existsByHotelIdAndNameIgnoreCaseAndHotelNotDeleted(hotelId, newName)) {
                 throw new RoomTypeAlreadyExistsException(hotelId, newName);
             }
         }
 
-        // replace all updatable fields
-        BeanUtils.copyProperties(
-                incoming,
-                current,
-                "id",
-                "hotel",
-                "createdAt",
-                "updatedAt"
-        );
+        // replace all updatable fields (explicit, safe)
+        RoomTypeMapper.applyReplace(current, dto);
 
-        // تأكيد التابع للفندق
+        // تأكيد التابع للفندق (اختياري إذا current أصلاً تابع له، لكنه OK كـ guard)
         current.setHotel(hotel);
 
-        return current;
+        return roomTypeRepository.save(current);
     }
+
 
     @Override
     public void delete(Long hotelId, Long roomTypeId) {

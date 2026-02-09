@@ -14,8 +14,8 @@ public class PaymentResponseDto {
     private BigDecimal amount;
     private String currency;
 
-    private String paymentMethod;
-    private String status;
+    private Payment.PaymentMethod paymentMethod;
+    private Payment.PaymentStatus status;
 
     private String transactionReference;
 

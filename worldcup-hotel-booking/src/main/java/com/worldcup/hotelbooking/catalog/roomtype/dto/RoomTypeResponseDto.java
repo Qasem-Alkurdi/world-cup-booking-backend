@@ -16,7 +16,9 @@ public class RoomTypeResponseDto {
     private final String name;
     private final String description;
 
-    private final Integer maxGuests;
+    private final Integer maxAdults;
+    private final Integer maxChildren;
+
     private final BigDecimal roomSizeSqm;
 
     private final BigDecimal basePrice;
@@ -24,17 +26,17 @@ public class RoomTypeResponseDto {
 
     private final Integer totalRooms;
 
-    private final Boolean hasPrivateBathroom;
-    private final Boolean hasAirConditioning;
-    private final Boolean hasHeating;
-    private final Boolean hasBalcony;
-    private final Boolean hasTv;
-    private final Boolean hasMinibar;
-    private final Boolean hasSafe;
-    private final Boolean hasHairdryer;
-    private final Boolean hasWorkDesk;
-    private final Boolean hasSoundproofing;
-    private final Boolean hasCoffeeMachine;
+    private final boolean hasPrivateBathroom;
+    private final boolean hasAirConditioning;
+    private final boolean hasHeating;
+    private final boolean hasBalcony;
+    private final boolean hasTv;
+    private final boolean hasMinibar;
+    private final boolean hasSafe;
+    private final boolean hasHairdryer;
+    private final boolean hasWorkDesk;
+    private final boolean hasSoundproofing;
+    private final boolean hasCoffeeMachine;
 
     private final OffsetDateTime createdAt;
     private final OffsetDateTime updatedAt;

@@ -7,7 +7,7 @@ import java.time.LocalDate;
 
 public interface BookingRoomRepository extends JpaRepository<BookingRoom, Long> {
     @Query("""
-SELECT SUM(br.numberOfRooms)
+SELECT  COALESCE(SUM(br.numberOfRooms), 0)
 FROM BookingRoom br
 WHERE br.roomType.id = :roomTypeId
 AND br.booking.status <> 'CANCELLED'

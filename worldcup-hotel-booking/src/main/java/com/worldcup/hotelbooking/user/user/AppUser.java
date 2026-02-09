@@ -2,32 +2,33 @@ package com.worldcup.hotelbooking.user.user;
 
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.worldcup.hotelbooking.booking.booking.Booking;
-import jakarta.persistence.*;
-import lombok.Getter;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
+import lombok.Data;
 
 import java.util.List;
 
-@Getter
 @Entity
-@Table(name = "app_user")
+@Data
 public class AppUser {
 
-    @Id
-    @GeneratedValue
+    @Id @GeneratedValue
     private Long id;
     private String name;
-    @OneToMany(mappedBy = "user")
+
+    @OneToMany(mappedBy = "appUser")
     @JsonManagedReference
     private List<Booking> bookings;
 
     public void addBooking(Booking booking) {
         this.bookings.add(booking);
-        booking.setUser(this);
+        booking.setAppUser(this);
     }
 
     public void removeBooking(Booking booking) {
         this.bookings.remove(booking);
-        booking.setUser(null);
+        booking.setAppUser(null);
     }
-
 }

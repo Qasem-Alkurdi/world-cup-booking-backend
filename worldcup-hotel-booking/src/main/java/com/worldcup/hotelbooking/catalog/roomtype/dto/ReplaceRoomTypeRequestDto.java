@@ -19,8 +19,12 @@ public class ReplaceRoomTypeRequestDto {
     private final String description;
 
     @NotNull
-    @Min(1)
-    private final Integer maxGuests;
+    @Min(0)
+    private final Integer maxAdults;
+
+    @NotNull
+    @Min(0)
+    private final Integer maxChildren;
 
     @DecimalMin(value = "0.01")
     private final BigDecimal roomSizeSqm;

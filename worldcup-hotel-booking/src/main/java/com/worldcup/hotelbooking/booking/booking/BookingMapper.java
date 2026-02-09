@@ -1,5 +1,6 @@
 package com.worldcup.hotelbooking.booking.booking;
 
+import com.worldcup.hotelbooking.booking.bookingroom.BookingRoomMapper;
 import com.worldcup.hotelbooking.catalog.hotel.Hotel;
 import com.worldcup.hotelbooking.user.user.AppUser;
 
@@ -7,27 +8,34 @@ public class BookingMapper {
 
     public static Booking toEntity(
             BookingRequestDto dto,
-            AppUser user,
+            AppUser appUser,
             Hotel hotel) {
 
         Booking booking = new Booking();
-        booking.setUser(user);
+        booking.setAppUser(appUser);
         booking.setHotel(hotel);
         booking.setCheckInDate(dto.getCheckInDate());
         booking.setCheckOutDate(dto.getCheckOutDate());
-        booking.setStatus("PENDING");
+        booking.setStatus(Booking.BookingStatus.PENDING);
+        booking.setNumberOfGuests(dto.getNumberOfGuests());
+        booking.setNumberOfAdults(dto.getNumberOfAdults());
+        booking.setNumberOfChildren(dto.getNumberOfChildren());
 
         return booking;
     }
 
     public static BookingResponseDto toDto(Booking booking) {
-        BookingResponseDto dto = new BookingResponseDto();
-        dto.setBookingReference(booking.getBookingReference());
+        BookingResponseDto dto = new BookingResponseDto(
+                booking.getBookingReference(),
+                booking.getStatus(),
+                booking.getCheckInDate(),
+                booking.getCheckOutDate(),
+                booking.getTotalPrice(),
+                booking.getBookingRooms().stream()
+                        .map(BookingRoomMapper::toDto)
+                        .toList()
+        );
 
-        dto.setCheckInDate(booking.getCheckInDate());
-        dto.setCheckOutDate(booking.getCheckOutDate());
-        dto.setTotalPrice(booking.getTotalPrice());
-        dto.setStatus(booking.getStatus());
         return dto;
     }
 

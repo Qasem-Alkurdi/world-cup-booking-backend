@@ -2,22 +2,24 @@ package com.worldcup.hotelbooking.booking.booking;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 
-import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 
 public interface BookingRepository extends JpaRepository<Booking, Long> {
     Optional<Booking> findByBookingReference(String name);
 
-    java.util.List<Booking> findByUserIdAndStatus(Long userId, String status);
+    List<Booking> findByAppUser_IdAndStatus(Long userId, Booking.BookingStatus status);
 
-    java.util.List<Booking> findByUserId(Long userId);
+    List<Booking> findByAppUser_Id(Long userId);
 
-    java.util.List<Booking> findByHotelIdAndStatus(Long hotelId, String status);
+    List<Booking> findByHotel_IdAndStatus(Long hotelId, Booking.BookingStatus status);
 
-    java.util.List<Booking> findByHotelId(Long hotelId);
+    java.util.List<Booking> findByHotel_Id(Long hotelId);
 
-    boolean existsByHotelIdAndStatusIn(
+    boolean existsByHotel_IdAndStatusIn(
             Long hotelId,
-            Collection<String> statuses
+            List<Booking.BookingStatus> statuses
     );
+
+    //  Booking findByBookingReference(String bookingReference);
 }

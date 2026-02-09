@@ -14,6 +14,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.OffsetDateTime;
 import java.util.List;
 
+import static com.worldcup.hotelbooking.booking.booking.Booking.BookingStatus.CONFIRMED;
+import static com.worldcup.hotelbooking.booking.booking.Booking.BookingStatus.PENDING;
 import static com.worldcup.hotelbooking.catalog.hotel.HotelStatus.APPROVED;
 
 @Service
@@ -118,7 +120,7 @@ public class HotelService implements HotelServiceInterface {
         Hotel hotel = repository.findByIdAndStatusAndIsDeletedFalse(id, APPROVED)
                 .orElseThrow(() -> new HotelNotFoundException(id));
 
-        if (bookingRepository.existsByHotelIdAndStatusIn(id, List.of("PENDING", "CONFIRMED"))) {
+        if (bookingRepository.existsByHotel_IdAndStatusIn(id, List.of(PENDING, CONFIRMED))) {
             throw new DeleteConflictException(id);
         }
 

@@ -19,8 +19,12 @@ public class CreateRoomTypeRequestDto {
     private final String description;
 
     @NotNull
-    @Min(1)
-    private final Integer maxGuests;
+    @Min(0)
+    private final Integer maxAdults;
+
+    @NotNull
+    @Min(0)
+    private final Integer maxChildren;
 
     // room_size_sqm can be null, but if provided must be > 0
     @DecimalMin(value = "0.01")
@@ -37,7 +41,7 @@ public class CreateRoomTypeRequestDto {
     @Min(0)
     private final Integer totalRooms;
 
-    // amenities
+    // amenities (optional in create)
     private final Boolean hasPrivateBathroom;
     private final Boolean hasAirConditioning;
     private final Boolean hasHeating;
