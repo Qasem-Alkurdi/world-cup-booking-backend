@@ -37,7 +37,7 @@ public class HotelController {
             UriComponentsBuilder uriBuilder
     ) {
         Hotel entity = HotelMapper.fromCreate(body);
-        Hotel saved = service.create(entity, body.ownerId());
+        Hotel saved = service.create(entity, body.getOwnerId());
 
         URI location = uriBuilder.path("/hotels/{id}").buildAndExpand(saved.getId()).toUri();
         return ResponseEntity.created(location).body(HotelMapper.toResponse(saved));

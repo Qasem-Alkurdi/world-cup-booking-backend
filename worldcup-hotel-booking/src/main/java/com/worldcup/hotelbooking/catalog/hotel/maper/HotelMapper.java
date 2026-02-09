@@ -20,31 +20,31 @@ public class HotelMapper {
 
     public static Hotel fromCreate(CreateHotelRequestDto dto) {
         Hotel h = new Hotel();
-        h.setName(dto.name());
-        h.setDescription(dto.description());
-        h.setContactEmail(dto.contactEmail());
-        h.setContactPhone(dto.contactPhone());
-        h.setCountry(dto.country());
-        h.setCity(dto.city());
-        h.setAddressLine(dto.addressLine());
-        h.setLocation(point(dto.latitude(), dto.longitude()));
+        h.setName(dto.getName());
+        h.setDescription(dto.getDescription());
+        h.setContactEmail(dto.getContactEmail());
+        h.setContactPhone(dto.getContactPhone());
+        h.setCountry(dto.getCountry());
+        h.setCity(dto.getCity());
+        h.setAddressLine(dto.getAddressLine());
+        h.setLocation(point(dto.getLatitude(), dto.getLongitude()));
 
         // amenities (Boolean -> boolean with default false when null)
-        h.setHasWifi(Boolean.TRUE.equals(dto.hasWifi()));
-        h.setHasParking(Boolean.TRUE.equals(dto.hasParking()));
-        h.setHasBreakfast(Boolean.TRUE.equals(dto.hasBreakfast()));
-        h.setHasAirConditioning(Boolean.TRUE.equals(dto.hasAirConditioning()));
-        h.setHasHeating(Boolean.TRUE.equals(dto.hasHeating()));
-        h.setHasElevator(Boolean.TRUE.equals(dto.hasElevator()));
-        h.setHasRestaurant(Boolean.TRUE.equals(dto.hasRestaurant()));
-        h.setHasRoomService(Boolean.TRUE.equals(dto.hasRoomService()));
-        h.setHasGym(Boolean.TRUE.equals(dto.hasGym()));
-        h.setHasPool(Boolean.TRUE.equals(dto.hasPool()));
-        h.setHasSpa(Boolean.TRUE.equals(dto.hasSpa()));
-        h.setHasLaundry(Boolean.TRUE.equals(dto.hasLaundry()));
-        h.setHasAirportShuttle(Boolean.TRUE.equals(dto.hasAirportShuttle()));
-        h.setHasAccessibleFacilities(Boolean.TRUE.equals(dto.hasAccessibleFacilities()));
-        h.setPetFriendly(Boolean.TRUE.equals(dto.petFriendly()));
+        h.setHasWifi(Boolean.TRUE.equals(dto.getHasWifi()));
+        h.setHasParking(Boolean.TRUE.equals(dto.getHasParking()));
+        h.setHasBreakfast(Boolean.TRUE.equals(dto.getHasBreakfast()));
+        h.setHasAirConditioning(Boolean.TRUE.equals(dto.getHasAirConditioning()));
+        h.setHasHeating(Boolean.TRUE.equals(dto.getHasHeating()));
+        h.setHasElevator(Boolean.TRUE.equals(dto.getHasElevator()));
+        h.setHasRestaurant(Boolean.TRUE.equals(dto.getHasRestaurant()));
+        h.setHasRoomService(Boolean.TRUE.equals(dto.getHasRoomService()));
+        h.setHasGym(Boolean.TRUE.equals(dto.getHasGym()));
+        h.setHasPool(Boolean.TRUE.equals(dto.getHasPool()));
+        h.setHasSpa(Boolean.TRUE.equals(dto.getHasSpa()));
+        h.setHasLaundry(Boolean.TRUE.equals(dto.getHasLaundry()));
+        h.setHasAirportShuttle(Boolean.TRUE.equals(dto.getHasAirportShuttle()));
+        h.setHasAccessibleFacilities(Boolean.TRUE.equals(dto.getHasAccessibleFacilities()));
+        h.setPetFriendly(Boolean.TRUE.equals(dto.getPetFriendly()));
 
         return h;
     }
@@ -56,30 +56,30 @@ public class HotelMapper {
     }
 
     public static void applyReplace(ReplaceHotelRequestDto dto, Hotel h) {
-        h.setName(dto.name());
-        h.setDescription(dto.description());
-        h.setContactEmail(dto.contactEmail());
-        h.setContactPhone(dto.contactPhone());
-        h.setCountry(dto.country());
-        h.setCity(dto.city());
-        h.setAddressLine(dto.addressLine());
-        h.setLocation(point(dto.latitude(), dto.longitude()));
+        h.setName(dto.getName());
+        h.setDescription(dto.getDescription());
+        h.setContactEmail(dto.getContactEmail());
+        h.setContactPhone(dto.getContactPhone());
+        h.setCountry(dto.getCountry());
+        h.setCity(dto.getCity());
+        h.setAddressLine(dto.getAddressLine());
+        h.setLocation(point(dto.getLatitude(), dto.getLongitude()));
 
-        h.setHasWifi(dto.hasWifi());
-        h.setHasParking(dto.hasParking());
-        h.setHasBreakfast(dto.hasBreakfast());
-        h.setHasAirConditioning(dto.hasAirConditioning());
-        h.setHasHeating(dto.hasHeating());
-        h.setHasElevator(dto.hasElevator());
-        h.setHasRestaurant(dto.hasRestaurant());
-        h.setHasRoomService(dto.hasRoomService());
-        h.setHasGym(dto.hasGym());
-        h.setHasPool(dto.hasPool());
-        h.setHasSpa(dto.hasSpa());
-        h.setHasLaundry(dto.hasLaundry());
-        h.setHasAirportShuttle(dto.hasAirportShuttle());
-        h.setHasAccessibleFacilities(dto.hasAccessibleFacilities());
-        h.setPetFriendly(dto.petFriendly());
+        h.setHasWifi(dto.getHasWifi());
+        h.setHasParking(dto.getHasParking());
+        h.setHasBreakfast(dto.getHasBreakfast());
+        h.setHasAirConditioning(dto.getHasAirConditioning());
+        h.setHasHeating(dto.getHasHeating());
+        h.setHasElevator(dto.getHasElevator());
+        h.setHasRestaurant(dto.getHasRestaurant());
+        h.setHasRoomService(dto.getHasRoomService());
+        h.setHasGym(dto.getHasGym());
+        h.setHasPool(dto.getHasPool());
+        h.setHasSpa(dto.getHasSpa());
+        h.setHasLaundry(dto.getHasLaundry());
+        h.setHasAirportShuttle(dto.getHasAirportShuttle());
+        h.setHasAccessibleFacilities(dto.getHasAccessibleFacilities());
+        h.setPetFriendly(dto.getPetFriendly());
     }
 
     public static HotelResponseDto toResponse(Hotel h) {
