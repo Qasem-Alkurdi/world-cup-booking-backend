@@ -5,21 +5,48 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
+import lombok.Getter;
 
 import java.math.BigDecimal;
 
-/**
- * @param roomSizeSqm        room_size_sqm can be null, but if provided must be > 0
- * @param currency           optional; default handled in entity/mapper ("USD")
- * @param hasPrivateBathroom amenities
- */
 @AllArgsConstructor
-public record CreateRoomTypeRequestDto(@NotBlank String name, String description, @NotNull @Min(1) Integer maxGuests,
-                                       @DecimalMin(value = "0.01") BigDecimal roomSizeSqm,
-                                       @NotNull @DecimalMin(value = "0.00") BigDecimal basePrice, String currency,
-                                       @NotNull @Min(0) Integer totalRooms, Boolean hasPrivateBathroom,
-                                       Boolean hasAirConditioning, Boolean hasHeating, Boolean hasBalcony,
-                                       Boolean hasTv, Boolean hasMinibar, Boolean hasSafe, Boolean hasHairdryer,
-                                       Boolean hasWorkDesk, Boolean hasSoundproofing, Boolean hasCoffeeMachine) {
+@Getter
+public class CreateRoomTypeRequestDto {
 
+    @NotBlank
+    private final String name;
+
+    private final String description;
+
+    @NotNull
+    @Min(1)
+    private final Integer maxGuests;
+
+    // room_size_sqm can be null, but if provided must be > 0
+    @DecimalMin(value = "0.01")
+    private final BigDecimal roomSizeSqm;
+
+    @NotNull
+    @DecimalMin(value = "0.00")
+    private final BigDecimal basePrice;
+
+    // optional; default handled in entity/mapper ("USD")
+    private final String currency;
+
+    @NotNull
+    @Min(0)
+    private final Integer totalRooms;
+
+    // amenities
+    private final Boolean hasPrivateBathroom;
+    private final Boolean hasAirConditioning;
+    private final Boolean hasHeating;
+    private final Boolean hasBalcony;
+    private final Boolean hasTv;
+    private final Boolean hasMinibar;
+    private final Boolean hasSafe;
+    private final Boolean hasHairdryer;
+    private final Boolean hasWorkDesk;
+    private final Boolean hasSoundproofing;
+    private final Boolean hasCoffeeMachine;
 }

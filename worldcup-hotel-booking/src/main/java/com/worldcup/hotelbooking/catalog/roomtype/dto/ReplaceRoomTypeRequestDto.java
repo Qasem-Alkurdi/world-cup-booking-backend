@@ -5,21 +5,58 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
+import lombok.Getter;
 
 import java.math.BigDecimal;
 
-/**
- * @param hasPrivateBathroom amenities (PUT => required to avoid accidental resets)
- */
 @AllArgsConstructor
-public record ReplaceRoomTypeRequestDto(@NotBlank String name, String description, @NotNull @Min(1) Integer maxGuests,
-                                        @DecimalMin(value = "0.01") BigDecimal roomSizeSqm,
-                                        @NotNull @DecimalMin(value = "0.00") BigDecimal basePrice,
-                                        @NotBlank String currency, @NotNull @Min(0) Integer totalRooms,
-                                        @NotNull Boolean hasPrivateBathroom, @NotNull Boolean hasAirConditioning,
-                                        @NotNull Boolean hasHeating, @NotNull Boolean hasBalcony,
-                                        @NotNull Boolean hasTv, @NotNull Boolean hasMinibar, @NotNull Boolean hasSafe,
-                                        @NotNull Boolean hasHairdryer, @NotNull Boolean hasWorkDesk,
-                                        @NotNull Boolean hasSoundproofing, @NotNull Boolean hasCoffeeMachine) {
+@Getter
+public class ReplaceRoomTypeRequestDto {
 
+    @NotBlank
+    private final String name;
+
+    private final String description;
+
+    @NotNull
+    @Min(1)
+    private final Integer maxGuests;
+
+    @DecimalMin(value = "0.01")
+    private final BigDecimal roomSizeSqm;
+
+    @NotNull
+    @DecimalMin(value = "0.00")
+    private final BigDecimal basePrice;
+
+    @NotBlank
+    private final String currency;
+
+    @NotNull
+    @Min(0)
+    private final Integer totalRooms;
+
+    // amenities (PUT => required to avoid accidental resets)
+    @NotNull
+    private final Boolean hasPrivateBathroom;
+    @NotNull
+    private final Boolean hasAirConditioning;
+    @NotNull
+    private final Boolean hasHeating;
+    @NotNull
+    private final Boolean hasBalcony;
+    @NotNull
+    private final Boolean hasTv;
+    @NotNull
+    private final Boolean hasMinibar;
+    @NotNull
+    private final Boolean hasSafe;
+    @NotNull
+    private final Boolean hasHairdryer;
+    @NotNull
+    private final Boolean hasWorkDesk;
+    @NotNull
+    private final Boolean hasSoundproofing;
+    @NotNull
+    private final Boolean hasCoffeeMachine;
 }

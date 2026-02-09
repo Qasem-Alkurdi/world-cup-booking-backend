@@ -1,16 +1,41 @@
 package com.worldcup.hotelbooking.catalog.roomtype.dto;
 
 import lombok.AllArgsConstructor;
+import lombok.Getter;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 
 @AllArgsConstructor
-public record RoomTypeResponseDto(Long id, Long hotelId, String name, String description, Integer maxGuests,
-                                  BigDecimal roomSizeSqm, BigDecimal basePrice, String currency, Integer totalRooms,
-                                  Boolean hasPrivateBathroom, Boolean hasAirConditioning, Boolean hasHeating,
-                                  Boolean hasBalcony, Boolean hasTv, Boolean hasMinibar, Boolean hasSafe,
-                                  Boolean hasHairdryer, Boolean hasWorkDesk, Boolean hasSoundproofing,
-                                  Boolean hasCoffeeMachine, OffsetDateTime createdAt, OffsetDateTime updatedAt) {
+@Getter
+public class RoomTypeResponseDto {
 
+    private final Long id;
+    private final Long hotelId;
+
+    private final String name;
+    private final String description;
+
+    private final Integer maxGuests;
+    private final BigDecimal roomSizeSqm;
+
+    private final BigDecimal basePrice;
+    private final String currency;
+
+    private final Integer totalRooms;
+
+    private final Boolean hasPrivateBathroom;
+    private final Boolean hasAirConditioning;
+    private final Boolean hasHeating;
+    private final Boolean hasBalcony;
+    private final Boolean hasTv;
+    private final Boolean hasMinibar;
+    private final Boolean hasSafe;
+    private final Boolean hasHairdryer;
+    private final Boolean hasWorkDesk;
+    private final Boolean hasSoundproofing;
+    private final Boolean hasCoffeeMachine;
+
+    private final OffsetDateTime createdAt;
+    private final OffsetDateTime updatedAt;
 }
