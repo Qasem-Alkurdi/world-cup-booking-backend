@@ -8,21 +8,22 @@ import java.time.LocalDate;
 
 @RestController
 public class AvailabilityController {
-        private final AvailabilityService availabilityService;
+    private final AvailabilityService availabilityService;
 
-        public AvailabilityController(AvailabilityService availabilityService) {
-            this.availabilityService = availabilityService;
-        }
+    public AvailabilityController(AvailabilityService availabilityService) {
+        this.availabilityService = availabilityService;
+    }
 
-        // Implement endpoints for checking room availability here
+    // Implement endpoints for checking room availability here
     @GetMapping("/availability/room-type/{id} ?checkIn=2026-06-10 &checkOut=2026-06-12")
     public boolean checkRoomTypeAvailability(@PathVariable long roomTypeId, LocalDate checkIn, LocalDate checkOut) {
-        return availabilityService.checkRoomTypeAvailability(roomTypeId,checkIn, checkOut);
+        return availabilityService.checkRoomTypeAvailability(roomTypeId, checkIn, checkOut);
     }
-        @GetMapping("/availability/room-type/{id}/available-rooms?checkIn=2026-06-10&checkOut=2026-06-12")
-        public int getAvailableRooms(@PathVariable long roomTypeId, LocalDate checkIn, LocalDate checkOut) {
-            return availabilityService.getAvailableRooms(roomTypeId,checkIn, checkOut);
-        }
+
+    @GetMapping("/availability/room-type/{id}/available-rooms?checkIn=2026-06-10&checkOut=2026-06-12")
+    public int getAvailableRooms(@PathVariable long roomTypeId, LocalDate checkIn, LocalDate checkOut) {
+        return availabilityService.getAvailableRooms(roomTypeId, checkIn, checkOut);
+    }
 //        GetMapping("/availability/hotel/{id}/?checkIn=2026-06-10&checkOut=2026-06-12")
 //        public boolean checkHotelAvailability(@PathVariable long hotelId, LocalDate checkIn, LocalDate checkOut) {
 //            return availabilityService.checkHotelAvailability(hotelId,checkIn, checkOut);

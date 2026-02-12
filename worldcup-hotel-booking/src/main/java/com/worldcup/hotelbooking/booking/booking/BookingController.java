@@ -18,19 +18,19 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/bookings")
 public class BookingController {
-        private final BookingServiceImp bookingService;
-        private final AppUserService appUserService;
-        private final HotelService hotelService;
-        private final RoomTypeService roomTypeService;
+    private final BookingServiceImp bookingService;
+    private final AppUserService appUserService;
+    private final HotelService hotelService;
+    private final RoomTypeService roomTypeService;
 
-        BookingController(BookingServiceImp bookingService, AppUserService appUserService, HotelService hotelService, RoomTypeService roomTypeService) {
-            this.roomTypeService=roomTypeService;
-            this.hotelService = hotelService;
-            this.appUserService = appUserService;
-            this.bookingService = bookingService;
-        }
+    BookingController(BookingServiceImp bookingService, AppUserService appUserService, HotelService hotelService, RoomTypeService roomTypeService) {
+        this.roomTypeService = roomTypeService;
+        this.hotelService = hotelService;
+        this.appUserService = appUserService;
+        this.bookingService = bookingService;
+    }
 
-        //get
+    //get
 
     @GetMapping("/{id}")
     public BookingResponseDto getBookingById(@PathVariable Long id) {
@@ -59,14 +59,19 @@ public class BookingController {
 
     @PostMapping
     public ResponseEntity<BookingResponseDto> createBooking(@Valid @RequestBody BookingRequestDto bookingRequest, UriComponentsBuilder uriBuilder) {
-        Booking booking = BookingMapper.toEntity(bookingRequest, appUserService.getUserById(bookingRequest.getUserId()), hotelService.getHotelById(bookingRequest.getHotelId()));
-        for(BookingRoomRequestDto roomRequest : bookingRequest.getRooms()) {
-            bookingService.addBookingRoom(BookingRoomMapper.toEntity(roomRequest, booking,roomTypeService.getRoomTypeById(roomRequest.getRoomTypeId())));
+        Booking booking = BookingMapper.toEntity(bookingRequest, appUserService.getUserById(bookingRequest.getUserId()), hotelService.findById(bookingRequest.getHotelId()));
+        for (BookingRoomRequestDto roomRequest : bookingRequest.getRooms()) {
+            bookingService.addBookingRoom(
+                    BookingRoomMapper.toEntity(
+                            roomRequest, booking, roomTypeService.findById(bookingRequest.getHotelId(), roomRequest.getRoomTypeId())
+                    )
+            );
         }
+
         Booking createdBooking = bookingService.createBooking(booking);
 
         BookingResponseDto responseDto = BookingMapper.toDto(createdBooking);
-        for(BookingRoom bookingRoom : createdBooking.getBookingRooms()) {
+        for (BookingRoom bookingRoom : createdBooking.getBookingRooms()) {
             responseDto.getRooms().add(BookingRoomMapper.toDto(bookingRoom));
         }
         return ResponseEntity.created(uriBuilder.path("/bookings/{id}").buildAndExpand(createdBooking.getId()).toUri()).body(responseDto);

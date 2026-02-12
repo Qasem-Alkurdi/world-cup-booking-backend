@@ -1,8 +1,7 @@
 package com.worldcup.hotelbooking.booking.bookingroom;
 
-import com.worldcup.hotelbooking.booking.booking.*;
+import com.worldcup.hotelbooking.booking.booking.Booking;
 import com.worldcup.hotelbooking.catalog.roomtype.RoomType;
-import com.worldcup.hotelbooking.catalog.roomtype.RoomTypeRepository;
 
 public class BookingRoomMapper {
     public static BookingRoom toEntity(
@@ -22,7 +21,7 @@ public class BookingRoomMapper {
         BookingRoomResponseDto dto = new BookingRoomResponseDto(
                 entity.getRoomType().getName(),
                 entity.getNumberOfRooms(),
-                entity.getRoomType().getPricePerNight()
+                entity.getRoomType().getBasePrice()
         );
 
         return dto;
