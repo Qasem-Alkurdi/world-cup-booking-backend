@@ -78,6 +78,7 @@ public class HotelService implements HotelServiceInterface {
                 "bookings",
                 "latitude",
                 "longitude"
+                , "photos"
         );
 
         return current;

@@ -1,6 +1,8 @@
 package com.worldcup.hotelbooking.catalog.roomtype;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.worldcup.hotelbooking.catalog.hotel.Hotel;
+import com.worldcup.hotelbooking.catalog.roomtypephoto.RoomTypePhoto;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -13,6 +15,8 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(
@@ -134,4 +138,9 @@ public class RoomType {
     @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
     private OffsetDateTime updatedAt;
+    @OneToMany(mappedBy = "roomType", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("sortOrder ASC, createdAt ASC")
+    @JsonIgnore
+    private List<RoomTypePhoto> photos = new ArrayList<>();
+
 }

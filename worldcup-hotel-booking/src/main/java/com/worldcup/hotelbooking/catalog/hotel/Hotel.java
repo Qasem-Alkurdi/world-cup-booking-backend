@@ -1,7 +1,9 @@
 package com.worldcup.hotelbooking.catalog.hotel;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.worldcup.hotelbooking.booking.booking.Booking;
+import com.worldcup.hotelbooking.catalog.hotelphoto.HotelPhoto;
 import com.worldcup.hotelbooking.user.user.AppUser;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
@@ -14,6 +16,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 import org.locationtech.jts.geom.Point;
 
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Setter
@@ -39,7 +42,7 @@ public class Hotel {
     private AppUser owner;
     @OneToMany(mappedBy = "hotel")
     @JsonManagedReference
-    private List<Booking> bookings;
+    private List<Booking> bookings = new ArrayList<>();
 
     @NotBlank
     @Column(nullable = false)
@@ -143,6 +146,10 @@ public class Hotel {
 
     @Column(name = "deleted_at")
     private OffsetDateTime deletedAt;
+    @OneToMany(mappedBy = "hotel", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("sortOrder ASC, createdAt ASC")
+    @JsonIgnore
+    private List<HotelPhoto> photos = new ArrayList<>();
 
     // --- getters/setters/constructors ---
     public void addBooking(Booking booking) {
@@ -154,4 +161,15 @@ public class Hotel {
         this.bookings.remove(booking);
         booking.setHotel(null);
     }
+
+    public void addPhoto(HotelPhoto photo) {
+        this.photos.add(photo);
+        photo.setHotel(this);
+    }
+
+    public void removePhoto(HotelPhoto photo) {
+        this.photos.remove(photo);
+        photo.setHotel(null);
+    }
+
 }

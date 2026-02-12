@@ -17,3 +17,6 @@ spring:
         show_sql: true
         format_sql: true
     open-in-view: false
+app:
+  storage:
+    public-base-url: http://localhost:8080/uploads

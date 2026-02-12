@@ -1,4 +1,12 @@
 package com.worldcup.hotelbooking.catalog.roomtypephoto;
 
-public interface RoomTypePhotoRepository {
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import java.util.List;
+
+public interface RoomTypePhotoRepository extends JpaRepository<RoomTypePhoto, Long> {
+
+    List<RoomTypePhoto> findByRoomTypeIdOrderBySortOrderAscCreatedAtAsc(Long roomTypeId);
+
+    boolean existsByRoomTypeIdAndId(Long roomTypeId, Long photoId);
 }
