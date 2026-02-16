@@ -1,10 +1,9 @@
 package com.worldcup.hotelbooking.booking.booking;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
-import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.worldcup.hotelbooking.booking.bookingroom.BookingRoom;
 import com.worldcup.hotelbooking.catalog.hotel.Hotel;
-import com.worldcup.hotelbooking.user.user.User;
+import com.worldcup.hotelbooking.user.user.AppUser;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
@@ -12,7 +11,6 @@ import lombok.Data;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
@@ -49,7 +47,7 @@ private LocalDate cancelledAt;
     @ManyToOne()
     @JoinColumn(name = "user_id", nullable = false)
     @JsonBackReference
-    private User user;
+    private AppUser appUser;
 
     @ManyToOne()
     @JoinColumn(name = "hotel_id", nullable = false)
@@ -60,7 +58,7 @@ private LocalDate cancelledAt;
     private List<BookingRoom> bookingRooms = new ArrayList<>();
 
 
-Booking( int matchId, LocalDate checkInDate,LocalDate checkOutDate, int numberOfGuests, int numberOfAdults, int numberOfChildren, BigDecimal totalPrice, String status, User user, Hotel hotel) {
+Booking(int matchId, LocalDate checkInDate, LocalDate checkOutDate, int numberOfGuests, int numberOfAdults, int numberOfChildren, BigDecimal totalPrice, String status, AppUser appUser, Hotel hotel) {
 
     this.matchId = matchId;
     this.checkInDate = checkInDate;
@@ -70,7 +68,7 @@ Booking( int matchId, LocalDate checkInDate,LocalDate checkOutDate, int numberOf
     this.numberOfChildren = numberOfChildren;
     this.totalPrice = totalPrice;
     this.status = status;
-    this.user = user;
+    this.appUser = appUser;
     this.hotel = hotel;
 }
 

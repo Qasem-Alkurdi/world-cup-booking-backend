@@ -1,8 +1,10 @@
 package com.worldcup.hotelbooking.booking.booking;
 
+import com.worldcup.hotelbooking.catalog.hotel.Hotel;
 import com.worldcup.hotelbooking.catalog.hotel.HotelService;
-import com.worldcup.hotelbooking.user.user.UserController;
-import com.worldcup.hotelbooking.user.user.UserService;
+import com.worldcup.hotelbooking.user.user.AppUser;
+import com.worldcup.hotelbooking.user.user.AppUserNotFoundException;
+import com.worldcup.hotelbooking.user.user.AppUserServiceImpl;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -15,12 +17,12 @@ import java.util.stream.Collectors;
 @RequestMapping("/bookings")
 public class BookingController {
         private final BookingService bookingService;
-        private final UserService userService;
+        private final AppUserServiceImpl appUserServiceImpl;
         private final HotelService hotelService;
 
-        BookingController(BookingService bookingService, UserService userService, HotelService hotelService) {
+        BookingController(BookingService bookingService, AppUserServiceImpl appUserServiceImpl, HotelService hotelService) {
             this.hotelService = hotelService;
-            this.userService = userService;
+            this.appUserServiceImpl = appUserServiceImpl;
             this.bookingService = bookingService;
         }
 
@@ -52,12 +54,34 @@ public class BookingController {
     }
 
     @PostMapping
-    public ResponseEntity<BookingResponseDto> createBooking(@Valid @RequestBody BookingRequestDto bookingRequest, UriComponentsBuilder uriBuilder) {
-        Booking booking = BookingMapper.toEntity(bookingRequest, userService.getUserById(bookingRequest.getUserId()), hotelService.getHotelById(bookingRequest.getHotelId()));
+    public ResponseEntity<BookingResponseDto> createBooking(
+            @Valid @RequestBody BookingRequestDto bookingRequest,
+            UriComponentsBuilder uriBuilder) {
+
+
+        AppUser user = appUserServiceImpl.getUserById(bookingRequest.getUserId());
+
+
+
+        Hotel hotel = hotelService.getHotelById(bookingRequest.getHotelId());
+
+
+        Booking booking = BookingMapper.toEntity(bookingRequest, user, hotel);
+
+
         Booking createdBooking = bookingService.createBooking(booking);
+
+
         BookingResponseDto responseDto = BookingMapper.toDto(createdBooking);
-        return ResponseEntity.created(uriBuilder.path("/bookings/{id}").buildAndExpand(createdBooking.getId()).toUri()).body(responseDto);
+
+
+        return ResponseEntity.created(
+                uriBuilder.path("/bookings/{id}")
+                        .buildAndExpand(createdBooking.getId())
+                        .toUri()
+        ).body(responseDto);
     }
+
 
     @PutMapping("/{id}/confirm")
     public ResponseEntity<BookingResponseDto> updateBookingStatus(@PathVariable Long id, @RequestParam String status) {

@@ -5,8 +5,9 @@ import com.worldcup.hotelbooking.booking.bookingroom.BookingRoomRepository;
 import com.worldcup.hotelbooking.catalog.hotel.HotelNotFoundException;
 import com.worldcup.hotelbooking.catalog.hotel.HotelRepository;
 import com.worldcup.hotelbooking.catalog.roomtype.RoomTypeRepository;
-import com.worldcup.hotelbooking.user.user.UserNotFoundException;
-import com.worldcup.hotelbooking.user.user.UserRepository;
+import com.worldcup.hotelbooking.notification.notification.NotificationService;
+import com.worldcup.hotelbooking.user.user.AppUserNotFoundException;
+import com.worldcup.hotelbooking.user.user.AppUserRepository;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.stereotype.Service;
@@ -18,17 +19,19 @@ import java.util.List;
 @Transactional
 public class BookingServiceImp implements BookingService {
     private final BookingRepository bookingRepository;
-    private final UserRepository userRepository;
+    private final AppUserRepository appUserRepository;
     private final HotelRepository hotelRepository;
     private final RoomTypeRepository roomTypeRepository;
     private final BookingRoomRepository bookingRoomRepository;
+    private final NotificationService notificationService;
 
-    BookingServiceImp(BookingRepository bookingRepository, UserRepository userRepository, HotelRepository hotelRepository, RoomTypeRepository roomTypeRepository, BookingRoomRepository bookingRoomRepository) {
-        this.userRepository = userRepository;
+    BookingServiceImp(BookingRepository bookingRepository, AppUserRepository appUserRepository, HotelRepository hotelRepository, RoomTypeRepository roomTypeRepository, BookingRoomRepository bookingRoomRepository,NotificationService notificationService) {
+        this.appUserRepository = appUserRepository;
         this.hotelRepository = hotelRepository;
         this.bookingRepository = bookingRepository;
         this.roomTypeRepository = roomTypeRepository;
         this.bookingRoomRepository = bookingRoomRepository;
+        this.notificationService = notificationService;
     }
     //get
     @Transactional(readOnly = true)
@@ -38,18 +41,18 @@ public class BookingServiceImp implements BookingService {
 
     @Transactional(readOnly = true)
     public List<Booking> getUserBookings(Long userId, String status) {
-        if(!userRepository.existsById(userId)) {
-            throw new UserNotFoundException("User not found with id: " + userId);
+        if(!appUserRepository.existsById(userId)) {
+            throw new AppUserNotFoundException("User not found with id: " + userId);
         }
-        return bookingRepository.findByUserIdAndStatus(userId, status);
+        return bookingRepository.findByAppUserIdAndStatus(userId, status);
     }
 
     @Transactional(readOnly = true)
     public List<Booking> getUserBookings(Long userId) {
-        if(!userRepository.existsById(userId)) {
-            throw new UserNotFoundException("User not found with id: " + userId);
+        if(!appUserRepository.existsById(userId)) {
+            throw new AppUserNotFoundException("User not found with id: " + userId);
         }
-        return bookingRepository.findByUserId(userId);
+        return bookingRepository.findByAppUserId(userId);
     }
 
     @Transactional(readOnly = true)
@@ -92,7 +95,7 @@ public class BookingServiceImp implements BookingService {
             }
 
         booking.getHotel().getBookings().add(booking);
-        booking.getUser().getBookings().add(booking);
+        booking.getAppUser().getBookings().add(booking);
         return bookingRepository.save(booking);
     }
 
@@ -133,8 +136,10 @@ public class BookingServiceImp implements BookingService {
         booking.setStatus("CANCELLED");
         booking.setCancelReason(reason);
         booking.setCancelledAt(java.time.LocalDate.now());
-        booking.setCancelledBy(booking.getUser().getName());
-        return bookingRepository.save(booking);
+        booking.setCancelledBy(booking.getAppUser().getUsername());
+        Booking saved = bookingRepository.save(booking);
+        notificationService.sendBookingCancelledNotification(saved.getAppUser(), saved.getBookingReference(), reason);
+        return saved;
     }
 
     @Override
@@ -148,7 +153,9 @@ public class BookingServiceImp implements BookingService {
         }
         booking.setStatus("CONFIRMED");
         booking.setConfirmedAt(java.time.LocalDate.now());
-        return bookingRepository.save(booking);
+        Booking saved = bookingRepository.save(booking);
+        notificationService.sendBookingConfirmedNotification(saved.getAppUser(), saved.getBookingReference());
+        return saved;
     }
 
 

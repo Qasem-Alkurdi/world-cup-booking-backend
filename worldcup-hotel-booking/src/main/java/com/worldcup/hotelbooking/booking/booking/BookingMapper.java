@@ -1,22 +1,17 @@
 package com.worldcup.hotelbooking.booking.booking;
 
-import com.worldcup.hotelbooking.booking.bookingroom.BookingRoomRequestDto;
 import com.worldcup.hotelbooking.catalog.hotel.Hotel;
-import com.worldcup.hotelbooking.catalog.hotel.HotelRepository;
-import com.worldcup.hotelbooking.user.user.User;
-import com.worldcup.hotelbooking.user.user.UserRepository;
-
-import java.math.BigDecimal;
+import com.worldcup.hotelbooking.user.user.AppUser;
 
 public class BookingMapper {
 
     public static Booking toEntity(
             BookingRequestDto dto,
-            User user,
+            AppUser appUser,
             Hotel hotel) {
 
         Booking booking = new Booking();
-        booking.setUser(user);
+        booking.setAppUser(appUser);
         booking.setHotel(hotel);
         booking.setCheckInDate(dto.getCheckInDate());
         booking.setCheckOutDate(dto.getCheckOutDate());
