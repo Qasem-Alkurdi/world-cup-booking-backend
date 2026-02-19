@@ -17,7 +17,7 @@ public interface BookingService {
    // Booking getBookingByReference(String reference);
 
     // 4. Get user's bookings
-    List<Booking> getUserBookings(Long userId, String status);
+    List<Booking> getUserBookings(Long userId, Booking.BookingStatus status);
     List<Booking> getUserBookings(Long userId);// Overloaded method to get all bookings regardless of status
 
     // 5. Cancel booking
@@ -33,7 +33,7 @@ public interface BookingService {
     BigDecimal calculateTotalPrice(Booking booking, LocalDate checkIn, LocalDate checkOut);
 
     // 9. Get all bookings for a hotel (for hotel staff)
-    List<Booking> getHotelBookings(Long hotelId, String status);
+    List<Booking> getHotelBookings(Long hotelId, Booking.BookingStatus status);
     List<Booking> getHotelBookings(Long hotelId);// Overloaded method to get all bookings regardless of status
 
 }

@@ -4,18 +4,16 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
 import java.util.List;
 import java.util.Optional;
 
 public interface AppUserRepository extends JpaRepository<AppUser, Long> {
-    @EntityGraph(attributePaths = "bookings")
+    @EntityGraph(attributePaths = {"bookings", "roles"})
     Optional<AppUser> findById(Long id);
     Optional<AppUser> findByEmail(String email);
 
     // Add search methods with ignore case for better search
-    @EntityGraph(attributePaths = "bookings")
+    @EntityGraph(attributePaths = {"bookings", "roles"})
     Page<AppUser> findAll(Pageable pageable);
 
     @EntityGraph(attributePaths = "bookings")

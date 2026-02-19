@@ -4,7 +4,7 @@ import com.worldcup.hotelbooking.booking.booking.Booking;
 
 public class PaymentMapper {
 
-    public static Payment toPayment(PaymentRequestDto requestDto, Booking booking) {
+    public static Payment toEntity(PaymentRequestDto requestDto, Booking booking) {
         Payment payment = new Payment();
         payment.setBooking(booking);
         payment.setPaymentMethod(requestDto.getPaymentMethod());
@@ -22,5 +22,6 @@ public class PaymentMapper {
         responseDto.setPaidAt(payment.getPaidAt());
         return responseDto;
     }
+
 
 }

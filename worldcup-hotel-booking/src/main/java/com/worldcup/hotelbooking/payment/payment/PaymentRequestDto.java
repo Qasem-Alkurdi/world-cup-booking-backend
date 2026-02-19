@@ -7,10 +7,10 @@ import lombok.Data;
 @Data
 public class PaymentRequestDto {
 
-    @NotBlank(message = "Booking ID cannot be blank")
+    @NotNull
     private Long bookingId;
 
     @NotBlank(message = "Amount cannot be blank")
-    private String paymentMethod;
+    private Payment.PaymentMethod paymentMethod;
 }
 

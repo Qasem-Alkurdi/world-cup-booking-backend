@@ -1,4 +1,5 @@
 package com.worldcup.hotelbooking.payment.payment;
 
-public class PaymentService {
+public interface PaymentService {
+    Payment CreatePayment(Payment payment);
 }

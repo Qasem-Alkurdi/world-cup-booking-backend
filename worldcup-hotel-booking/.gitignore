@@ -31,3 +31,7 @@ build/
 
 ### VS Code ###
 .vscode/
+# Local Spring Boot config
+application-local.yml
+application-dev.yml
+
