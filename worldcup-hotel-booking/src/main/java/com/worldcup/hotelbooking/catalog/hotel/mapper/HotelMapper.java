@@ -1,4 +1,4 @@
-package com.worldcup.hotelbooking.catalog.hotel.maper;
+package com.worldcup.hotelbooking.catalog.hotel.mapper;
 
 import com.worldcup.hotelbooking.catalog.hotel.Hotel;
 import com.worldcup.hotelbooking.catalog.hotel.dto.CreateHotelRequestDto;

@@ -4,7 +4,7 @@ import com.worldcup.hotelbooking.catalog.hotel.dto.CreateHotelRequestDto;
 import com.worldcup.hotelbooking.catalog.hotel.dto.HotelResponseDto;
 import com.worldcup.hotelbooking.catalog.hotel.dto.ReplaceHotelRequestDto;
 import com.worldcup.hotelbooking.catalog.hotel.dto.UpdateHotelPatchRequest;
-import com.worldcup.hotelbooking.catalog.hotel.maper.HotelMapper;
+import com.worldcup.hotelbooking.catalog.hotel.mapper.HotelMapper;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
