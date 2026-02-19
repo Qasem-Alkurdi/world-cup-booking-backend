@@ -1,16 +1,36 @@
 package com.worldcup.hotelbooking.user.user;
 
-import org.springframework.stereotype.Service;
+import com.worldcup.hotelbooking.booking.booking.BookingResponseDto;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
-@Service
-public class AppUserService {
-    private final AppUserRepository appUserRepository;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
-    AppUserService(AppUserRepository appUserRepository) {
-        this.appUserRepository = appUserRepository;
-    }
+public interface AppUserService {
+    // Original methods
+    AppUser createUser(AppUserRequestDto dto);
 
-    public AppUser getUserById(Long id) {
-        return appUserRepository.findById(id).orElseThrow(() -> new AppUserNotFoundException("User not found with id: " + id));
-    }
+    AppUser getUserById(Long id);
+
+    List<AppUser> getAllUsers();
+
+    Optional<AppUser> getUserByEmail(String email);
+
+    void deleteUser(Long id);
+
+    AppUser updateUser(Long id, AppUserRequestDto dto);
+
+    List<BookingResponseDto> getUserBookings(Long userId);
+
+    // New methods
+    Page<AppUser> getAllUsers(Pageable pageable);
+
+    AppUser saveUser(AppUser user);
+
+    // Add search method to interface
+    List<AppUser> searchUsers(String username, String email);
+
+    AppUser partialUpdateUser(Long id, Map<String, Object> updates);
 }

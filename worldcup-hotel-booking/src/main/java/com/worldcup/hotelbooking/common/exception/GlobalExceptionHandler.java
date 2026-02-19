@@ -7,7 +7,9 @@ import com.worldcup.hotelbooking.catalog.hotel.exceptions.HotelNotFoundException
 import com.worldcup.hotelbooking.catalog.roomtype.exceptions.RoomTypeAlreadyExistsException;
 import com.worldcup.hotelbooking.catalog.roomtype.exceptions.RoomTypeNotFoundException;
 import com.worldcup.hotelbooking.payment.payment.PaymentNotFoundException;
+import com.worldcup.hotelbooking.user.user.AppUserNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -149,4 +151,43 @@ public class GlobalExceptionHandler {
     }
 
 // catalog end
+
+    //user start
+    @ExceptionHandler(AppUserNotFoundException.class)
+    public ResponseEntity<ApiError> handleAppUserNotFound(AppUserNotFoundException ex, HttpServletRequest request) {
+        ApiError body = new ApiError(
+                Instant.now().toString(),
+                404,
+                "Not Found",
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body);
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ApiError> handleDataIntegrityViolation(
+            DataIntegrityViolationException ex,
+            HttpServletRequest request) {
+
+        String message = "Duplicate entry detected.";
+
+        // Check if the violation is about the email column
+        if (ex.getMessage() != null && ex.getMessage().toLowerCase().contains("email")) {
+            message = "Email already registered. Please use a different email address.";
+        } else {
+            // For other integrity violations (if any), you might want a generic message
+            message = "Data integrity violation.";
+        }
+
+        ApiError body = new ApiError(
+                Instant.now().toString(),
+                409,
+                "Conflict",
+                message,
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(body);
+    }
+    //user end
 }
