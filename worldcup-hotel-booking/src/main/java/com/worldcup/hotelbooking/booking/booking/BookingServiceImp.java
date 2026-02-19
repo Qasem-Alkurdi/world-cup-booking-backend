@@ -3,11 +3,15 @@ package com.worldcup.hotelbooking.booking.booking;
 import com.worldcup.hotelbooking.availability_pricing.pricing.EnhancedPricingService;
 import com.worldcup.hotelbooking.booking.bookingroom.BookingRoom;
 import com.worldcup.hotelbooking.booking.bookingroom.BookingRoomRepository;
+import com.worldcup.hotelbooking.booking.cancellation.CancellationPolicyService;
+import com.worldcup.hotelbooking.booking.cancellation.CancellationResult;
 import com.worldcup.hotelbooking.catalog.hotel.HotelRepository;
 import com.worldcup.hotelbooking.catalog.hotel.exceptions.HotelNotFoundException;
 import com.worldcup.hotelbooking.catalog.roomtype.RoomTypeRepository;
 import com.worldcup.hotelbooking.user.user.AppUserNotFoundException;
 import com.worldcup.hotelbooking.user.user.AppUserRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,15 +19,18 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.util.List;
 
+
 @Service
 @Transactional
 public class BookingServiceImp implements BookingService {
+    private static final Logger logger = LoggerFactory.getLogger(BookingServiceImp.class);
     private final BookingRepository bookingRepository;
     private final AppUserRepository appUserRepository;
     private final HotelRepository hotelRepository;
     private final RoomTypeRepository roomTypeRepository;
     private final BookingRoomRepository bookingRoomRepository;
     private final EnhancedPricingService enhancedPricingService;
+    private final CancellationPolicyService cancellationPolicyService;
 
     public BookingServiceImp(
             BookingRepository bookingRepository,
@@ -31,13 +38,15 @@ public class BookingServiceImp implements BookingService {
             HotelRepository hotelRepository,
             RoomTypeRepository roomTypeRepository,
             BookingRoomRepository bookingRoomRepository,
-            EnhancedPricingService enhancedPricingService){
+            EnhancedPricingService enhancedPricingService,
+            CancellationPolicyService cancellationPolicyService){
         this.bookingRepository = bookingRepository;
         this.appUserRepository = appUserRepository;
         this.hotelRepository = hotelRepository;
         this.roomTypeRepository = roomTypeRepository;
         this.bookingRoomRepository = bookingRoomRepository;
         this.enhancedPricingService = enhancedPricingService;
+        this.cancellationPolicyService=cancellationPolicyService;
     }
 
     //get
@@ -144,16 +153,53 @@ public class BookingServiceImp implements BookingService {
     }
 
     @Override
-    public Booking cancelBooking(Long Id, String reason) {
-        Booking booking = bookingRepository.findById(Id).orElseThrow(() -> new BookingNotFoundException("Booking not found with id: " + Id));
-        if (booking.getStatus() == Booking.BookingStatus.CONFIRMED) {
-            throw new IllegalStateException("Booking is already cancelled");
+    @Transactional
+    public Booking cancelBooking(Long id, String reason) {
+        logger.info("Cancelling booking with id: {} for reason: {}", id, reason);
+
+        Booking booking = bookingRepository.findById(id)
+                .orElseThrow(() -> new BookingNotFoundException("Booking not found with id: " + id));
+
+        // CHECK CANCELLATION POLICY
+        CancellationResult cancellationResult = cancellationPolicyService.previewCancellation(booking);
+
+        if (!cancellationResult.isCanCancel()) {
+            throw new IllegalStateException(cancellationResult.getPolicyMessage());
         }
+
+        // Log refund information
+        logger.info("Cancellation approved: Refund ${} ({}%), Fee ${}",
+                cancellationResult.getRefundAmount(),
+                cancellationResult.getRefundPercentage(),
+                cancellationResult.getCancellationFee());
+
+        // Update booking status
         booking.setStatus(Booking.BookingStatus.CANCELLED);
-        booking.setCancelReason(reason);
+        booking.setCancelReason(reason + " | " + cancellationResult.getPolicyMessage());
         booking.setCancelledAt(java.time.LocalDateTime.now());
         booking.setCancelledBy(booking.getAppUser().getName());
-        return bookingRepository.save(booking);
+
+        // You might want to add refund fields to Booking entity:
+        // booking.setRefundAmount(cancellationResult.getRefundAmount());
+        // booking.setCancellationFee(cancellationResult.getCancellationFee());
+
+        Booking cancelled = bookingRepository.save(booking);
+        logger.info("Booking {} cancelled successfully - Refund: ${}",
+                cancelled.getBookingReference(),
+                cancellationResult.getRefundAmount());
+
+        return cancelled;
+    }
+
+    /**
+     * Preview cancellation without actually cancelling
+     * Shows user what refund they would get
+     */
+    public CancellationResult previewCancellation(Long bookingId) {
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new BookingNotFoundException("Booking not found with id: " + bookingId));
+
+        return cancellationPolicyService.previewCancellation(booking);
     }
 
     @Override
