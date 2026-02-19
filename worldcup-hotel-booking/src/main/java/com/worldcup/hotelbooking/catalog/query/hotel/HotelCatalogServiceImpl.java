@@ -26,6 +26,23 @@ public class HotelCatalogServiceImpl implements HotelCatalogService {
     public Page<HotelCatalogResponseDto> search(Pageable pageable, HotelCatalogCriteria criteria) {
         validateSortFields(pageable);
 
+        Specification<Hotel> distanceSpec = null;
+
+        if (criteria.getMinDistanceKm() != null && criteria.getMaxDistanceKm() != null) {
+            distanceSpec = HotelCatalogSpecifications.betweenDistanceKm(
+                    criteria.getLatitude(),
+                    criteria.getLongitude(),
+                    criteria.getMinDistanceKm(),
+                    criteria.getMaxDistanceKm()
+            );
+        } else if (criteria.getMaxDistanceKm() != null) {
+            distanceSpec = HotelCatalogSpecifications.withinDistanceKm(
+                    criteria.getLatitude(),
+                    criteria.getLongitude(),
+                    criteria.getMaxDistanceKm()
+            );
+        }
+
         Specification<Hotel> spec = Specification
                 .where(HotelCatalogSpecifications.notDeleted())
                 .and(HotelCatalogSpecifications.nameContains(criteria.getName()))
@@ -44,6 +61,7 @@ public class HotelCatalogServiceImpl implements HotelCatalogService {
                 .and(HotelCatalogSpecifications.hasLaundry(criteria.getHasLaundry()))
                 .and(HotelCatalogSpecifications.hasAirportShuttle(criteria.getHasAirportShuttle()))
                 .and(HotelCatalogSpecifications.hasAccessibleFacilities(criteria.getHasAccessibleFacilities()))
+                .and(distanceSpec)
                 .and(HotelCatalogSpecifications.petFriendly(criteria.getPetFriendly()));
 
         Page<Hotel> result = hotelRepository.findAll(spec, pageable);
@@ -67,5 +85,6 @@ public class HotelCatalogServiceImpl implements HotelCatalogService {
             }
         }
     }
+
 
 }

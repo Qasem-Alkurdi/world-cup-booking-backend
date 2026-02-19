@@ -1,6 +1,8 @@
 package com.worldcup.hotelbooking.catalog.query.hotel;
 
 import com.worldcup.hotelbooking.catalog.hotel.Hotel;
+import jakarta.persistence.criteria.Expression;
+import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.jpa.domain.Specification;
 
 public class HotelCatalogSpecifications {
@@ -117,5 +119,73 @@ public class HotelCatalogSpecifications {
                 petFriendly == null ? criteriaBuilder.conjunction() :
                         criteriaBuilder.equal(root.get("petFriendly"), petFriendly);
     }
+
+    public static Specification<Hotel> withinDistanceKm(Double lat, Double lon, Double maxKm) {
+        return (root, query, cb) -> {
+            if (lat == null || lon == null || maxKm == null) {
+                return cb.conjunction();
+            }
+            double meters = maxKm * 1000.0;
+
+            // ST_DWithin( location, ST_SetSRID(ST_MakePoint(lon, lat),4326)::geography, meters )
+            return cb.isTrue(cb.function(
+                    "ST_DWithin",
+                    Boolean.class,
+                    root.get("location"),
+                    cb.function(
+                            "ST_SetSRID",
+                            Object.class,
+                            cb.function("ST_MakePoint", Object.class, cb.literal(lon), cb.literal(lat)),
+                            cb.literal(4326)
+                    ),
+                    cb.literal(meters)
+            ));
+        };
+    }
+
+    public static Specification<Hotel> betweenDistanceKm(
+            Double lat, Double lon, Double minKm, Double maxKm) {
+
+        return (root, query, cb) -> {
+
+            if (lat == null || lon == null || minKm == null || maxKm == null) {
+                return cb.conjunction();
+            }
+
+            double minMeters = minKm * 1000.0;
+            double maxMeters = maxKm * 1000.0;
+
+            Expression<Object> point =
+                    cb.function(
+                            "ST_SetSRID",
+                            Object.class,
+                            cb.function("ST_MakePoint", Object.class,
+                                    cb.literal(lon),
+                                    cb.literal(lat)),
+                            cb.literal(4326)
+                    );
+
+            Predicate withinMax =
+                    cb.isTrue(cb.function(
+                            "ST_DWithin",
+                            Boolean.class,
+                            root.get("location"),
+                            point,
+                            cb.literal(maxMeters)
+                    ));
+
+            Predicate outsideMin =
+                    cb.not(cb.isTrue(cb.function(
+                            "ST_DWithin",
+                            Boolean.class,
+                            root.get("location"),
+                            point,
+                            cb.literal(minMeters)
+                    )));
+
+            return cb.and(withinMax, outsideMin);
+        };
+    }
+
 
 }

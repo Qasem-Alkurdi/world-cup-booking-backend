@@ -25,4 +25,9 @@ public class HotelCatalogCriteria {
     private Boolean hasAirportShuttle;
     private Boolean hasAccessibleFacilities;
     private Boolean petFriendly;
+    private Double latitude;
+    private Double longitude;
+    private Double maxDistanceKm;
+    private Double minDistanceKm;
+
 }
