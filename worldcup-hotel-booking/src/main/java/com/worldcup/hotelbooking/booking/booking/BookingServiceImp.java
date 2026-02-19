@@ -1,13 +1,18 @@
 package com.worldcup.hotelbooking.booking.booking;
 
+import com.worldcup.hotelbooking.availability_pricing.availability.AvailabilityService;
 import com.worldcup.hotelbooking.availability_pricing.pricing.EnhancedPricingService;
 import com.worldcup.hotelbooking.booking.bookingroom.BookingRoom;
 import com.worldcup.hotelbooking.booking.bookingroom.BookingRoomRepository;
+import com.worldcup.hotelbooking.booking.cancellation.CancellationPolicyService;
+import com.worldcup.hotelbooking.booking.cancellation.CancellationResult;
 import com.worldcup.hotelbooking.catalog.hotel.HotelRepository;
 import com.worldcup.hotelbooking.catalog.hotel.exceptions.HotelNotFoundException;
 import com.worldcup.hotelbooking.catalog.roomtype.RoomTypeRepository;
 import com.worldcup.hotelbooking.user.user.AppUserNotFoundException;
 import com.worldcup.hotelbooking.user.user.AppUserRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,15 +20,19 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.util.List;
 
+
 @Service
 @Transactional
 public class BookingServiceImp implements BookingService {
+    private static final Logger logger = LoggerFactory.getLogger(BookingServiceImp.class);
     private final BookingRepository bookingRepository;
     private final AppUserRepository appUserRepository;
     private final HotelRepository hotelRepository;
     private final RoomTypeRepository roomTypeRepository;
     private final BookingRoomRepository bookingRoomRepository;
     private final EnhancedPricingService enhancedPricingService;
+    private final CancellationPolicyService cancellationPolicyService;
+    private final AvailabilityService availabilityService;
 
     public BookingServiceImp(
             BookingRepository bookingRepository,
@@ -31,13 +40,17 @@ public class BookingServiceImp implements BookingService {
             HotelRepository hotelRepository,
             RoomTypeRepository roomTypeRepository,
             BookingRoomRepository bookingRoomRepository,
-            EnhancedPricingService enhancedPricingService){
+            EnhancedPricingService enhancedPricingService,
+            CancellationPolicyService cancellationPolicyService,
+            AvailabilityService availabilityService){
         this.bookingRepository = bookingRepository;
         this.appUserRepository = appUserRepository;
         this.hotelRepository = hotelRepository;
         this.roomTypeRepository = roomTypeRepository;
         this.bookingRoomRepository = bookingRoomRepository;
         this.enhancedPricingService = enhancedPricingService;
+        this.cancellationPolicyService=cancellationPolicyService;
+        this.availabilityService=availabilityService;
     }
 
     //get
@@ -93,11 +106,11 @@ public class BookingServiceImp implements BookingService {
         if (booking.getBookingRooms() == null || booking.getBookingRooms().isEmpty()) {
             throw new IllegalArgumentException("At least one room must be booked");
         }
-        if (!isNumberOfGuestsValid(booking)) {
+        if (!availabilityService.isNumberOfGuestsValid(booking)) {
             throw new IllegalArgumentException("Number of guests exceeds room capacity");
         }
         for (BookingRoom room : booking.getBookingRooms()) {
-            if (!checkAvailability(room.getRoomType().getId(), booking.getCheckInDate(), booking.getCheckOutDate(), room.getNumberOfRooms())) {
+            if (!availabilityService.checkAvailability(room.getRoomType().getId(), booking.getCheckInDate(), booking.getCheckOutDate(), room.getNumberOfRooms())) {
                 throw new IllegalArgumentException("Not enough rooms available for room type: " + room.getRoomType().getName());
             }
         }
@@ -119,41 +132,58 @@ public class BookingServiceImp implements BookingService {
         return totalPrice.setScale(2, BigDecimal.ROUND_HALF_UP);
     }
 
-    public boolean checkAvailability(Long roomTypeId, java.time.LocalDate checkIn, java.time.LocalDate checkOut, int rooms) {
-        int bookedRooms = bookingRoomRepository.countBookedRooms(roomTypeId, checkIn, checkOut);
-        int availableRooms =
-                roomTypeRepository.findById(roomTypeId)
-                        .orElseThrow(() -> new IllegalArgumentException("Room type not found with id: " + roomTypeId))
-                        .getTotalRooms()
-                        - bookedRooms;
 
-        if (availableRooms < rooms) {
-            return false;
-        }
-        return true;
-    }
 
-    public boolean isNumberOfGuestsValid(Booking booking) {
-        int numberOfValidAdults = 0;
-        int numberOfValidChildren = 0;
-        for (BookingRoom room : booking.getBookingRooms()) {
-            numberOfValidAdults += room.getRoomType().getMaxAdults() * room.getNumberOfRooms();
-            numberOfValidChildren += room.getRoomType().getMaxChildren() * room.getNumberOfRooms();
-        }
-        return booking.getNumberOfAdults() <= numberOfValidAdults && booking.getNumberOfChildren() <= numberOfValidChildren;
-    }
+
 
     @Override
-    public Booking cancelBooking(Long Id, String reason) {
-        Booking booking = bookingRepository.findById(Id).orElseThrow(() -> new BookingNotFoundException("Booking not found with id: " + Id));
-        if (booking.getStatus() == Booking.BookingStatus.CONFIRMED) {
-            throw new IllegalStateException("Booking is already cancelled");
+    @Transactional
+    public Booking cancelBooking(Long id, String reason) {
+        logger.info("Cancelling booking with id: {} for reason: {}", id, reason);
+
+        Booking booking = bookingRepository.findById(id)
+                .orElseThrow(() -> new BookingNotFoundException("Booking not found with id: " + id));
+
+        // CHECK CANCELLATION POLICY
+        CancellationResult cancellationResult = cancellationPolicyService.previewCancellation(booking);
+
+        if (!cancellationResult.isCanCancel()) {
+            throw new IllegalStateException(cancellationResult.getPolicyMessage());
         }
+
+        // Log refund information
+        logger.info("Cancellation approved: Refund ${} ({}%), Fee ${}",
+                cancellationResult.getRefundAmount(),
+                cancellationResult.getRefundPercentage(),
+                cancellationResult.getCancellationFee());
+
+        // Update booking status
         booking.setStatus(Booking.BookingStatus.CANCELLED);
-        booking.setCancelReason(reason);
+        booking.setCancelReason(reason + " | " + cancellationResult.getPolicyMessage());
         booking.setCancelledAt(java.time.LocalDateTime.now());
         booking.setCancelledBy(booking.getAppUser().getUsername());
-        return bookingRepository.save(booking);
+
+        // You might want to add refund fields to Booking entity:
+        // booking.setRefundAmount(cancellationResult.getRefundAmount());
+        // booking.setCancellationFee(cancellationResult.getCancellationFee());
+
+        Booking cancelled = bookingRepository.save(booking);
+        logger.info("Booking {} cancelled successfully - Refund: ${}",
+                cancelled.getBookingReference(),
+                cancellationResult.getRefundAmount());
+
+        return cancelled;
+    }
+
+    /**
+     * Preview cancellation without actually cancelling
+     * Shows user what refund they would get
+     */
+    public CancellationResult previewCancellation(Long bookingId) {
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new BookingNotFoundException("Booking not found with id: " + bookingId));
+
+        return cancellationPolicyService.previewCancellation(booking);
     }
 
     @Override

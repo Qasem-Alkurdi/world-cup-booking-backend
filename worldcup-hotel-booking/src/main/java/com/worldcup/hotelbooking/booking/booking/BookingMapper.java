@@ -1,6 +1,7 @@
 package com.worldcup.hotelbooking.booking.booking;
 
 import com.worldcup.hotelbooking.booking.bookingroom.BookingRoomMapper;
+import com.worldcup.hotelbooking.booking.cancellation.CancellationResult;
 import com.worldcup.hotelbooking.catalog.hotel.Hotel;
 import com.worldcup.hotelbooking.user.user.AppUser;
 
@@ -37,6 +38,16 @@ public class BookingMapper {
         );
 
         return dto;
+    }
+
+    public static BookingCancellationResponse toCancellationDto(Booking cancelledBooking, CancellationResult policyResult){
+        return new BookingCancellationResponse(
+                BookingMapper.toDto(cancelledBooking),
+                policyResult.getRefundAmount(),
+                policyResult.getCancellationFee(),
+                policyResult.getRefundPercentage(),
+                policyResult.getPolicyMessage()
+        );
     }
 
 }

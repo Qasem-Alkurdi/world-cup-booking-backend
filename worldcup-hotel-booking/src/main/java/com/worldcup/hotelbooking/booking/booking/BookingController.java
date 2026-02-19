@@ -4,11 +4,17 @@ import com.worldcup.hotelbooking.booking.bookingroom.BookingRoom;
 import com.worldcup.hotelbooking.booking.bookingroom.BookingRoomMapper;
 import com.worldcup.hotelbooking.booking.bookingroom.BookingRoomRequestDto;
 import com.worldcup.hotelbooking.booking.bookingroom.BookingRoomResponseDto;
+import com.worldcup.hotelbooking.booking.cancellation.CancellationMapper;
+import com.worldcup.hotelbooking.booking.cancellation.CancellationPolicyResponse;
+import com.worldcup.hotelbooking.booking.cancellation.CancellationPolicyService;
+import com.worldcup.hotelbooking.booking.cancellation.CancellationResult;
 import com.worldcup.hotelbooking.catalog.hotel.HotelService;
 import com.worldcup.hotelbooking.catalog.roomtype.RoomTypeService;
 import com.worldcup.hotelbooking.user.user.AppUserService;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -19,6 +25,7 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/bookings")
 public class BookingController {
+    private static final Logger logger = LoggerFactory.getLogger(BookingController.class);
     private final BookingServiceImp bookingService;
     private final AppUserService appUserService;
     private final HotelService hotelService;
@@ -84,19 +91,47 @@ public class BookingController {
         return ResponseEntity.created(uriBuilder.path("/bookings/{id}").buildAndExpand(createdBooking.getId()).toUri()).body(responseDto);
     }
 
-    @Operation(summary = "Confirm a booking", description = "Confirm a pending booking after successful payment. This will change the booking status to CONFIRMED.")
-    @PutMapping("/{id}/confirm")
-    public ResponseEntity<BookingResponseDto> updateBookingStatus(@PathVariable Long id) {
-        Booking updatedBooking = bookingService.confirmBooking(id);
-        return ResponseEntity.ok(BookingMapper.toDto(updatedBooking));
+    /**
+     * Preview cancellation policy
+     * Shows user what refund they would get WITHOUT actually cancelling
+     *
+     * Example: GET /api/v1/bookings/123/cancellation-policy
+     */
+    @GetMapping("/{id}/cancellation-policy")
+    public ResponseEntity<CancellationPolicyResponse> getCancellationPolicy(@PathVariable Long id) {
+        logger.info("GET request for cancellation policy for booking: {}", id);
+
+        CancellationResult result = (bookingService).previewCancellation(id);
+
+        return ResponseEntity.ok(CancellationMapper.toDto(result));
     }
 
-    @Operation(summary = "Cancel a booking", description = "Cancel a booking by providing the booking ID and a reason for cancellation. This will change the booking status to CANCELLED.")
-    @PutMapping("/{id}/cancel/{reason}")
-    public ResponseEntity<BookingResponseDto> cancelBooking(@PathVariable Long id, @PathVariable String reason) {
-        Booking updatedBooking = bookingService.cancelBooking(id, reason);
-        return ResponseEntity.ok(BookingMapper.toDto(updatedBooking));
+    /**
+     * Updated cancel endpoint - now with policy enforcement
+     *
+     * Example: PUT /api/v1/bookings/123/cancel?reason=Travel+plans+changed
+     */
+    @PutMapping("/{id}/cancel")
+    public ResponseEntity<BookingCancellationResponse> cancelBooking(
+            @PathVariable Long id,
+            @RequestParam String reason) {
+        logger.info("PUT request to cancel booking {} with reason: {}", id, reason);
+
+        if (reason == null || reason.trim().isEmpty()) {
+            throw new IllegalArgumentException("Cancellation reason is required");
+        }
+
+        // Preview policy first to include in response
+        CancellationResult policyResult = (bookingService).previewCancellation(id);
+
+        // Cancel the booking (will throw exception if not allowed)
+        Booking cancelledBooking = bookingService.cancelBooking(id, reason);
+
+        return ResponseEntity.ok(BookingMapper.toCancellationDto(cancelledBooking,policyResult));
     }
+
+
+
 
     @Operation(summary = "Get booking rooms", description = "Retrieve the list of rooms associated with a specific booking by its ID.")
     @GetMapping("/{id}/rooms")
@@ -109,6 +144,8 @@ public class BookingController {
     public BookingResponseDto getBookingByReference(@PathVariable String reference) {
         return BookingMapper.toDto(bookingService.findBookingByReference(reference));
     }
+
+
 
 
 }

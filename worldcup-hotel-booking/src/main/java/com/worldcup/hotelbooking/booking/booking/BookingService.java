@@ -26,8 +26,6 @@ public interface BookingService {
     // 6. Confirm booking (after payment)
     Booking confirmBooking(Long id);
 
-    // 7. Check availability (helper method)
-    boolean checkAvailability(Long roomTypeId, LocalDate checkIn, LocalDate checkOut, int rooms);
 
     // 8. Calculate total price (helper method)
     BigDecimal calculateTotalPrice(Booking booking);
