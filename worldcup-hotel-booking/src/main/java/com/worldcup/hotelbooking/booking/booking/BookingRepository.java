@@ -1,11 +1,12 @@
 package com.worldcup.hotelbooking.booking.booking;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 import java.util.List;
 import java.util.Optional;
 
-public interface BookingRepository extends JpaRepository<Booking, Long> {
+public interface BookingRepository extends JpaRepository<Booking, Long> , JpaSpecificationExecutor<Booking> {
     Optional<Booking> findByBookingReference(String name);
 
     List<Booking> findByAppUser_IdAndStatus(Long userId, Booking.BookingStatus status);

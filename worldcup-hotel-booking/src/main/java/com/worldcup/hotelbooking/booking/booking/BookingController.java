@@ -10,17 +10,27 @@ import com.worldcup.hotelbooking.booking.cancellation.CancellationPolicyService;
 import com.worldcup.hotelbooking.booking.cancellation.CancellationResult;
 import com.worldcup.hotelbooking.catalog.hotel.HotelService;
 import com.worldcup.hotelbooking.catalog.roomtype.RoomTypeService;
+import com.worldcup.hotelbooking.common.enums.BookingStatus;
+import com.worldcup.hotelbooking.common.response.PagedResponse;
 import com.worldcup.hotelbooking.user.user.AppUserService;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.data.web.SortDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
+
+import static java.util.stream.Collectors.toList;
 
 @RestController
 @RequestMapping("/bookings")
@@ -46,28 +56,24 @@ public class BookingController {
         return BookingMapper.toDto(bookingService.getBookingById(id));
     }
 
-    @Operation(summary = "Get user's bookings by status", description = "Retrieve all bookings for a specific user filtered by booking status.")
-    @GetMapping("/user/{userId}/status/{status}")
-    public List<BookingResponseDto> getUserBookingsByStatus(@PathVariable Long userId, @PathVariable Booking.BookingStatus status) {
-        return bookingService.getUserBookings(userId, status).stream().map(BookingMapper::toDto).collect(Collectors.toList());
-    }
+
 
     @Operation(summary = "Get all user's bookings", description = "Retrieve all bookings for a specific user regardless of booking status.")
     @GetMapping("/user/{userId}")
     public List<BookingResponseDto> getUserBookings(@PathVariable Long userId) {
-        return bookingService.getUserBookings(userId).stream().map(BookingMapper::toDto).collect(Collectors.toList());
+        return bookingService.getUserBookings(userId).stream().map(BookingMapper::toDto).collect(toList());
     }
 
     @Operation(summary = "Get hotel bookings by status", description = "Retrieve all bookings for a specific hotel filtered by booking status.")
     @GetMapping("/hotel/{hotelId}/status/{status}")
     public List<BookingResponseDto> getHotelBookingsByStatus(@PathVariable Long hotelId, @PathVariable Booking.BookingStatus status) {
-        return bookingService.getHotelBookings(hotelId, status).stream().map(BookingMapper::toDto).collect(Collectors.toList());
+        return bookingService.getHotelBookings(hotelId, status).stream().map(BookingMapper::toDto).collect(toList());
     }
 
     @Operation(summary = "Get all hotel bookings", description = "Retrieve all bookings for a specific hotel regardless of booking status.")
     @GetMapping("/hotel/{hotelId}")
     public List<BookingResponseDto> getHotelBookings(@PathVariable Long hotelId) {
-        return bookingService.getHotelBookings(hotelId).stream().map(BookingMapper::toDto).collect(Collectors.toList());
+        return bookingService.getHotelBookings(hotelId).stream().map(BookingMapper::toDto).collect(toList());
     }
 
     @Operation(summary = "Create a new booking", description = "Create a new booking with the provided details. The request must include user ID, hotel ID, check-in and check-out dates, and room details.")
@@ -136,7 +142,7 @@ public class BookingController {
     @Operation(summary = "Get booking rooms", description = "Retrieve the list of rooms associated with a specific booking by its ID.")
     @GetMapping("/{id}/rooms")
     public List<BookingRoomResponseDto> getBookingRooms(@PathVariable Long id) {
-        return bookingService.getBookingById(id).getBookingRooms().stream().map(BookingRoomMapper::toDto).collect(Collectors.toList());
+        return bookingService.getBookingById(id).getBookingRooms().stream().map(BookingRoomMapper::toDto).collect(toList());
     }
 
     @Operation(summary = "Get booking by reference", description = "Retrieve a booking using its unique booking reference code. This allows users to find their booking without needing the booking ID.")
@@ -145,6 +151,94 @@ public class BookingController {
         return BookingMapper.toDto(bookingService.findBookingByReference(reference));
     }
 
+
+    @PutMapping("/id")
+    public ResponseEntity<BookingResponseDto> updateBooking(@PathVariable long id,@RequestBody @Valid BookingRequestDto bookingRequest,UriComponentsBuilder uriBuilder){
+        Booking booking = BookingMapper.toEntity(bookingRequest, appUserService.getUserById(bookingRequest.getUserId()), hotelService.findById(bookingRequest.getHotelId()));
+        for (BookingRoomRequestDto roomRequest : bookingRequest.getRooms()) {
+            bookingService.addBookingRoom(
+                    BookingRoomMapper.toEntity(
+                            roomRequest, booking, roomTypeService.findById(bookingRequest.getHotelId(), roomRequest.getRoomTypeId())
+                    )
+            );
+        }
+
+        Booking updated = bookingService.updateExisting(id, booking);
+        BookingResponseDto responseDto = BookingMapper.toDto(updated);
+        for (BookingRoom bookingRoom : updated.getBookingRooms()) {
+            responseDto.getRooms().add(BookingRoomMapper.toDto(bookingRoom));
+        }
+
+        return ResponseEntity.ok(responseDto);
+
+    }
+
+    @GetMapping("/my/history")
+    public ResponseEntity<PagedResponse<BookingResponseDto>> getMyHistory(
+            @RequestParam Long userId,
+            @PageableDefault(size = 10, sort = "id", direction = Sort.Direction.DESC)
+            Pageable pageable
+    ) {
+
+        Page<Booking> page = bookingService.getGuestHistory(userId, pageable);
+
+        List<BookingResponseDto> content = page.getContent()
+                .stream()
+                .map(BookingMapper::toDto)
+                .toList();
+
+        return ResponseEntity.ok(
+                PagedResponse.from(page, content)
+        );
+    }
+
+    @GetMapping("/hotel/{hotelId}/upcoming")
+    public ResponseEntity<PagedResponse<BookingResponseDto>> getUpcoming(
+            @PathVariable Long hotelId,
+            @PageableDefault(size = 10, sort = "checkInDate")
+            Pageable pageable
+    ) {
+
+        Page<Booking> page = bookingService.getHotelUpcomingBookings(hotelId, pageable);
+
+        List<BookingResponseDto> content = page.getContent()
+                .stream()
+                .map(BookingMapper::toDto)
+                .toList();
+
+        return ResponseEntity.ok(
+                PagedResponse.from(page, content)
+        );
+    }
+
+    @GetMapping
+    public PagedResponse<BookingResponseDto> filterBookings(
+            @RequestParam(required = false) Long userId,
+            @RequestParam(required = false) Long hotelId,
+            @RequestParam(required = false) Booking.BookingStatus status,
+            @RequestParam(required = false) LocalDate fromDate,
+            @RequestParam(required = false) LocalDate toDate,
+            @RequestParam(required = false) Double minPrice,
+            @RequestParam(required = false) Double maxPrice,
+            Pageable pageable
+    ){
+        Page<Booking> page = bookingService.filterBookings( userId,
+                hotelId,
+                 status,
+                 fromDate,
+                 toDate,
+                 minPrice,
+                 maxPrice,
+                 pageable);
+
+        List<BookingResponseDto> content = page.getContent()
+                .stream()
+                .map(BookingMapper::toDto)
+                .toList();
+
+        return PagedResponse.from(page,content);
+
+    }
 
 
 
