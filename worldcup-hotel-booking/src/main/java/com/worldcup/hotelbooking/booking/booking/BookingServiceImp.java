@@ -161,7 +161,7 @@ public class BookingServiceImp implements BookingService {
         booking.setStatus(Booking.BookingStatus.CANCELLED);
         booking.setCancelReason(reason + " | " + cancellationResult.getPolicyMessage());
         booking.setCancelledAt(java.time.LocalDateTime.now());
-        booking.setCancelledBy(booking.getAppUser().getName());
+        booking.setCancelledBy(booking.getAppUser().getUsername());
 
         // You might want to add refund fields to Booking entity:
         // booking.setRefundAmount(cancellationResult.getRefundAmount());

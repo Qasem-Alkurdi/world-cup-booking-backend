@@ -5,8 +5,8 @@ import com.worldcup.hotelbooking.catalog.hotel.dto.UpdateHotelPatchRequest;
 import com.worldcup.hotelbooking.catalog.hotel.exceptions.DeleteConflictException;
 import com.worldcup.hotelbooking.catalog.hotel.exceptions.HotelNotFoundException;
 import com.worldcup.hotelbooking.user.user.AppUser;
-import com.worldcup.hotelbooking.user.user.UserNotFoundException;
-import com.worldcup.hotelbooking.user.user.UserRepository;
+import com.worldcup.hotelbooking.user.user.AppUserNotFoundException;
+import com.worldcup.hotelbooking.user.user.AppUserRepository;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,12 +22,12 @@ import static com.worldcup.hotelbooking.catalog.hotel.HotelStatus.APPROVED;
 @Transactional
 public class HotelService implements HotelServiceInterface {
 
-    private final UserRepository userRepository;
+    private final AppUserRepository userRepository;
     private final HotelRepository repository;
     private final BookingRepository bookingRepository;
 
     public HotelService(HotelRepository repository,
-                        UserRepository userRepository,
+                        AppUserRepository userRepository,
                         BookingRepository bookingRepository) {
         this.repository = repository;
         this.userRepository = userRepository;
@@ -50,7 +50,7 @@ public class HotelService implements HotelServiceInterface {
     @Override
     public Hotel create(Hotel hotel, Long ownerId) {
         AppUser owner = userRepository.findById(ownerId)
-                .orElseThrow(() -> new UserNotFoundException(ownerId));
+                .orElseThrow(() -> new AppUserNotFoundException("User not found with id: " + ownerId));
 
         hotel.setOwner(owner);
         hotel.setStatus(APPROVED);
@@ -133,7 +133,7 @@ public class HotelService implements HotelServiceInterface {
     @Override
     public List<Hotel> getMyHotels(Long ownerId) {
         AppUser owner = userRepository.findById(ownerId)
-                .orElseThrow(() -> new UserNotFoundException(ownerId));
+                .orElseThrow(() -> new AppUserNotFoundException("User not found with id: " + ownerId));
 
         return repository.findByOwnerAndStatusAndIsDeletedFalse(owner, APPROVED);
     }
