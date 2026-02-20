@@ -18,6 +18,7 @@ public class HotelCatalogCriteria {
     private Boolean hasHeating;
     private Boolean hasPool;
     private Boolean hasSpa;
+    private Boolean hasElevator;
 
     private Boolean hasRestaurant;
     private Boolean hasRoomService;

@@ -64,7 +64,7 @@ public class HotelCatalogServiceImpl implements HotelCatalogService {
                 .and(HotelCatalogSpecifications.hasAirportShuttle(criteria.getHasAirportShuttle()))
                 .and(HotelCatalogSpecifications.hasAccessibleFacilities(criteria.getHasAccessibleFacilities()))
                 .and(distanceSpec)
-                .and(HotelCatalogSpecifications.petFriendly(criteria.getPetFriendly()));
+                .and(HotelCatalogSpecifications.petFriendly(criteria.getPetFriendly()).and(HotelCatalogSpecifications.hasElevator(criteria.getHasElevator())));
 
         Page<Hotel> result = hotelRepository.findAll(spec, pageable);
 
