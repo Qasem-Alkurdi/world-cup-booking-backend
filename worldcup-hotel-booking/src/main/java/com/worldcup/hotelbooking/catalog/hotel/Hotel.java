@@ -1,9 +1,11 @@
 package com.worldcup.hotelbooking.catalog.hotel;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.worldcup.hotelbooking.booking.booking.Booking;
 import com.worldcup.hotelbooking.catalog.hotelphoto.HotelPhoto;
+import com.worldcup.hotelbooking.catalog.roomtype.RoomType;
 import com.worldcup.hotelbooking.user.user.AppUser;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
@@ -43,6 +45,9 @@ public class Hotel {
     @OneToMany(mappedBy = "hotel")
     @JsonManagedReference
     private List<Booking> bookings = new ArrayList<>();
+    @OneToMany(mappedBy = "hotel")
+    @JsonBackReference
+    private List<RoomType> roomsType=new ArrayList<>();
 
     @NotBlank
     @Column(nullable = false)

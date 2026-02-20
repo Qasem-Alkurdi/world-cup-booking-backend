@@ -77,7 +77,7 @@ public class EnhancedPricingService {
         logger.info("Found {} matches during stay period", matchesDuringStay.size());
 
         // Calculate price by tournament phases
-        return calculatePhasedPrice(booking, hotel, roomType,
+        return calculatePhasedPrice(booking.getCheckInDate(),booking.getCheckOutDate(), hotel, roomType,
                 numberOfRooms, matchesDuringStay);
     }
 
@@ -85,7 +85,8 @@ public class EnhancedPricingService {
      * Calculate price by splitting stay into tournament phases
      */
     private BigDecimal calculatePhasedPrice(
-            Booking booking,
+           LocalDate checkIn,
+            LocalDate checkOut,
             Hotel hotel,
             RoomType roomType,
             int numberOfRooms,
@@ -99,8 +100,8 @@ public class EnhancedPricingService {
         // Calculate price for each phase that overlaps with booking
         for (TournamentPhase phase : phases) {
             // Find overlap between booking and phase
-            LocalDate phaseStart = maxDate(booking.getCheckInDate(), phase.getStartDate());
-            LocalDate phaseEnd = minDate(booking.getCheckOutDate(), phase.getEndDate());
+            LocalDate phaseStart = maxDate(checkIn, phase.getStartDate());
+            LocalDate phaseEnd = minDate(checkOut, phase.getEndDate());
 
             if (!phaseStart.isBefore(phaseEnd)) {
                 continue; // No overlap
@@ -128,7 +129,7 @@ public class EnhancedPricingService {
         }
 
         long totalNights = ChronoUnit.DAYS.between(
-                booking.getCheckInDate(), booking.getCheckOutDate());
+                checkIn, checkOut);
         BigDecimal avgNightlyRate = totalPrice
                 .divide(BigDecimal.valueOf(totalNights * numberOfRooms), 2, RoundingMode.HALF_UP);
 
@@ -445,5 +446,37 @@ public class EnhancedPricingService {
                     totalPrice, averageNightlyRate));
             return sb.toString();
         }
+    }
+    public BigDecimal calculateTotalStayPrice(
+            LocalDate checkIn,
+            LocalDate checkOut,
+            Hotel hotel,
+            RoomType roomType,
+            int numberOfRooms) {
+
+        long totalNights = ChronoUnit.DAYS.between(checkIn, checkOut);
+
+        logger.info("Calculating multi-night price: {} to {} ({} nights)",
+                checkIn, checkOut, totalNights);
+
+        // Get all matches happening during the stay
+        List<Match> matchesDuringStay = matchRepository.findMatchesBetweenDates(
+                checkIn.atStartOfDay(),
+                checkOut.atTime(23, 59, 59)
+        );
+
+        if (matchesDuringStay.isEmpty()) {
+            logger.info("No matches during stay, using base pricing");
+            // No matches during stay, use base price
+            return roomType.getBasePrice()
+                    .multiply(BigDecimal.valueOf(totalNights))
+                    .multiply(BigDecimal.valueOf(numberOfRooms));
+        }
+
+        logger.info("Found {} matches during stay period", matchesDuringStay.size());
+
+        // Calculate price by tournament phases
+        return calculatePhasedPrice(checkIn,checkOut, hotel, roomType,
+                numberOfRooms, matchesDuringStay);
     }
 }

@@ -38,8 +38,11 @@ public class BookingRoom {
     @Column(name = "number_of_rooms", nullable = false)
     private int numberOfRooms;
 
-    @Column(name = "price_per_night", precision = 10, scale = 2, nullable = false)
-    private BigDecimal pricePerNight;
+    @Column(name = "price_per_night_per_room", precision = 10, scale = 2, nullable = false)
+    private BigDecimal basePricePerNightPerRoom;
+
+    @Column(name = "total_price_with_fees", precision = 10, scale = 2, nullable = false)
+    private BigDecimal totalPriceWithFees;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
@@ -59,11 +62,12 @@ public class BookingRoom {
 
     public BookingRoom() {}
 
-    public BookingRoom(Booking booking, RoomType roomType, int numberOfRooms, BigDecimal pricePerNight) {
+    public BookingRoom(Booking booking, RoomType roomType, int numberOfRooms, BigDecimal pricePerNightPerRoom,BigDecimal totalPriceWithFees) {
         this.booking = booking;
         this.roomType = roomType;
         this.numberOfRooms = numberOfRooms;
-        this.pricePerNight = pricePerNight;
+        this.basePricePerNightPerRoom = pricePerNightPerRoom;
+        this.totalPriceWithFees=totalPriceWithFees;
     }
 
 

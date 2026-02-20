@@ -3,6 +3,8 @@ package com.worldcup.hotelbooking.availability_pricing.availability;
 import com.worldcup.hotelbooking.booking.booking.Booking;
 import com.worldcup.hotelbooking.booking.bookingroom.BookingRoom;
 import com.worldcup.hotelbooking.booking.bookingroom.BookingRoomRepository;
+import com.worldcup.hotelbooking.catalog.hotel.Hotel;
+import com.worldcup.hotelbooking.catalog.roomtype.RoomType;
 import com.worldcup.hotelbooking.catalog.roomtype.RoomTypeRepository;
 import com.worldcup.hotelbooking.catalog.roomtype.exceptions.RoomTypeNotFoundException;
 import org.springframework.stereotype.Service;
@@ -49,5 +51,14 @@ public class AvailabilityService {
         return availableRooms >= rooms;
     }
 
+    public boolean checkAvailabilityOfHotel(Hotel hotel,LocalDate checkIn,LocalDate checkout){
+        boolean b=false;
+        for(RoomType roomType:hotel.getRoomsType()){
+            if(checkAvailability(roomType.getId(),checkIn,checkout,1))
+                b=true;
+        }
+        return b;
+    }
 
 }
+

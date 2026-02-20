@@ -13,8 +13,6 @@ public interface BookingService {
     // 3. Get booking by reference
     // Booking getBookingByReference(String reference);
 
-    // 4. Get user's bookings
-    List<Booking> getUserBookings(Long userId, Booking.BookingStatus status);
 
     List<Booking> getUserBookings(Long userId);// Overloaded method to get all bookings regardless of status
 

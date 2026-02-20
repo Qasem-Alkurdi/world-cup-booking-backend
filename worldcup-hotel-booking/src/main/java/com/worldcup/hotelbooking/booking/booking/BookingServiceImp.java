@@ -65,13 +65,7 @@ public class BookingServiceImp implements BookingService {
         return bookingRepository.findById(id).orElseThrow(() -> new BookingNotFoundException("Booking not found with id: " + id));
     }
 
-    @Transactional(readOnly = true)
-    public List<Booking> getUserBookings(Long userId, Booking.BookingStatus status) {
-        if (!appUserRepository.existsById(userId)) {
-            throw new AppUserNotFoundException("User not found with id: " + userId);
-        }
-        return bookingRepository.findByAppUser_IdAndStatus(userId, status);
-    }
+
 
     @Transactional(readOnly = true)
     public List<Booking> getUserBookings(Long userId) {
@@ -133,6 +127,7 @@ public class BookingServiceImp implements BookingService {
         for (BookingRoom room : booking.getBookingRooms()) {
             BigDecimal roomPrice = enhancedPricingService.calculateTotalStayPrice(booking, room.getRoomType().getHotel(), room.getRoomType(), room.getNumberOfRooms());
             totalPrice = totalPrice.add(roomPrice);
+            room.setTotalPriceWithFees(roomPrice);
 
         }
         return totalPrice.setScale(2, RoundingMode.HALF_UP);
@@ -317,17 +312,7 @@ public class BookingServiceImp implements BookingService {
         }
     }
 
-    public Page<Booking> bookingList(
-            Pageable pageable
-    ) {
-        // start with a no-op specification using a conjunction predicate to avoid null
-        Specification<Booking> spec = Specification.where((root, query, criteriaBuilder) -> criteriaBuilder.conjunction());
 
-        Page<Booking> page = bookingRepository.findAll(spec, pageable);
-
-
-        return page;
-    }
 
     public Page<Booking> getGuestHistory(
             Long userId,

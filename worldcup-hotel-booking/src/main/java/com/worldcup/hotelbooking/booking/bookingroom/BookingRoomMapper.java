@@ -21,7 +21,8 @@ public class BookingRoomMapper {
         BookingRoomResponseDto dto = new BookingRoomResponseDto(
                 entity.getRoomType().getName(),
                 entity.getNumberOfRooms(),
-                entity.getRoomType().getBasePrice()
+                entity.getRoomType().getBasePrice(),
+                entity.getTotalPriceWithFees()
         );
 
         return dto;

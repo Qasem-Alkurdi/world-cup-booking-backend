@@ -213,6 +213,7 @@ public class BookingController {
             @RequestParam(required = false) LocalDate toDate,
             @RequestParam(required = false) Double minPrice,
             @RequestParam(required = false) Double maxPrice,
+            @PageableDefault(size = 10, sort = "checkInDate")
             Pageable pageable
     ) {
         Page<Booking> page = bookingService.filterBookings(userId,
