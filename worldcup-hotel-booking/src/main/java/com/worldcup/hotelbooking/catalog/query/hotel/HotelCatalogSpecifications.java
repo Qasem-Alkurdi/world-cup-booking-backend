@@ -1,9 +1,14 @@
 package com.worldcup.hotelbooking.catalog.query.hotel;
 
+import com.worldcup.hotelbooking.booking.booking.Booking;
+import com.worldcup.hotelbooking.booking.bookingroom.BookingRoom;
 import com.worldcup.hotelbooking.catalog.hotel.Hotel;
-import jakarta.persistence.criteria.Expression;
-import jakarta.persistence.criteria.Predicate;
+import com.worldcup.hotelbooking.catalog.query.hotel.exeption.CheckOutBeforeCheckIn;
+import com.worldcup.hotelbooking.catalog.roomtype.RoomType;
+import jakarta.persistence.criteria.*;
 import org.springframework.data.jpa.domain.Specification;
+
+import java.time.LocalDate;
 
 public class HotelCatalogSpecifications {
     public static Specification<Hotel> notDeleted() {
@@ -184,6 +189,65 @@ public class HotelCatalogSpecifications {
                     )));
 
             return cb.and(withinMax, outsideMin);
+        };
+    }
+
+    public static Specification<Hotel> hasAvailability(
+            LocalDate checkIn,
+            LocalDate checkOut) {
+
+        return (root, query, cb) -> {
+            if (checkIn == null || checkOut == null) {
+                return cb.conjunction();
+            }
+            if (!checkIn.isBefore(checkOut)) {
+                throw new CheckOutBeforeCheckIn();
+            }
+            query.distinct(true);
+
+            Join<Hotel, RoomType> roomJoin = root.join("roomsType");
+
+            Subquery<Long> subquery = query.subquery(Long.class);
+            Root<BookingRoom> bookingRoomRoot = subquery.from(BookingRoom.class);
+
+            Join<BookingRoom, Booking> bookingJoin =
+                    bookingRoomRoot.join("booking");
+
+            // SUM(numberOfRooms)
+            Expression<Long> sumExpression =
+                    cb.sum(bookingRoomRoot.get("numberOfRooms"));
+
+            subquery.select(cb.coalesce(sumExpression, 0L));
+
+            // نفس نوع الغرفة
+            Predicate sameRoomType =
+                    cb.equal(bookingRoomRoot.get("roomType"), roomJoin);
+
+            // شرط التداخل الصحيح (checkout exclusive)
+            Predicate overlap =
+                    cb.and(
+                            cb.lessThan(
+                                    bookingJoin.get("checkInDate"), checkOut),
+                            cb.greaterThan(
+                                    bookingJoin.get("checkOutDate"), checkIn)
+                    );
+
+            // فلترة حسب حالة الحجز
+            Predicate statusPredicate =
+                    bookingJoin.get("status").in(
+                            Booking.BookingStatus.CONFIRMED,
+                            Booking.BookingStatus.CHECKED_IN
+                    );
+
+            subquery.where(cb.and(sameRoomType, overlap, statusPredicate));
+
+            Expression<Integer> totalRooms =
+                    roomJoin.get("totalRooms");
+
+            return cb.greaterThan(
+                    totalRooms.as(Long.class),
+                    subquery.getSelection()
+            );
         };
     }
 

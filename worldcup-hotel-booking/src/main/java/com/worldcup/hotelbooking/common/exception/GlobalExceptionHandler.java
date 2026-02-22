@@ -4,6 +4,8 @@ import com.worldcup.hotelbooking.booking.booking.BookingNotFoundException;
 import com.worldcup.hotelbooking.booking.bookingroom.BookingRoomNotFoundException;
 import com.worldcup.hotelbooking.catalog.hotel.exceptions.DeleteConflictException;
 import com.worldcup.hotelbooking.catalog.hotel.exceptions.HotelNotFoundException;
+import com.worldcup.hotelbooking.catalog.query.hotel.exeption.CheckOutBeforeCheckIn;
+import com.worldcup.hotelbooking.catalog.query.hotel.exeption.CheckOutDateAreRequired;
 import com.worldcup.hotelbooking.catalog.roomtype.exceptions.RoomTypeAlreadyExistsException;
 import com.worldcup.hotelbooking.catalog.roomtype.exceptions.RoomTypeNotFoundException;
 import com.worldcup.hotelbooking.payment.payment.PaymentNotFoundException;
@@ -150,7 +152,42 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(body);
     }
 
+    //search start
+    @ExceptionHandler(CheckOutBeforeCheckIn.class)
+    public ResponseEntity<ApiError> handleCheckOutBeforeCheckIn(
+            CheckOutBeforeCheckIn ex,
+            HttpServletRequest request
+    ) {
+        ApiError body = new ApiError(
+                Instant.now().toString(),
+                400,
+                "Bad Request",
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
+    }
+
+    @ExceptionHandler(CheckOutDateAreRequired.class)
+    public ResponseEntity<ApiError> handleCheckOutDateAreRequired(
+            CheckOutDateAreRequired ex,
+            HttpServletRequest request
+    ) {
+        ApiError body = new ApiError(
+                Instant.now().toString(),
+                400,
+                "Bad Request",
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
+    }
+
+
+    //search end
+
 // catalog end
+
 
     //user start
     @ExceptionHandler(AppUserNotFoundException.class)

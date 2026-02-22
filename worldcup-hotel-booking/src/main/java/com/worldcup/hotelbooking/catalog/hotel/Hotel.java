@@ -45,9 +45,9 @@ public class Hotel {
     @OneToMany(mappedBy = "hotel")
     @JsonManagedReference
     private List<Booking> bookings = new ArrayList<>();
-    @OneToMany(mappedBy = "hotel")
+    @OneToMany(mappedBy = "hotel", fetch = FetchType.LAZY)
     @JsonBackReference
-    private List<RoomType> roomsType=new ArrayList<>();
+    private List<RoomType> roomsType = new ArrayList<>();
 
     @NotBlank
     @Column(nullable = false)
@@ -175,6 +175,14 @@ public class Hotel {
     public void removePhoto(HotelPhoto photo) {
         this.photos.remove(photo);
         photo.setHotel(null);
+    }
+
+    public void addRoomType(RoomType roomType) {
+        this.roomsType.add(roomType);
+    }
+
+    public void removeRoomType(RoomType roomType) {
+        this.roomsType.remove(roomType);
     }
 
 }

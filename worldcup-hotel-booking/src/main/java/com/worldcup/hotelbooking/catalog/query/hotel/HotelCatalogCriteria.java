@@ -3,6 +3,9 @@ package com.worldcup.hotelbooking.catalog.query.hotel;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
+
 @Getter
 @Setter
 public class HotelCatalogCriteria {
@@ -30,5 +33,11 @@ public class HotelCatalogCriteria {
     private Double longitude;
     private Double maxDistanceKm;
     private Double minDistanceKm;
+    private LocalDate checkInDate;
+    private LocalDate checkOutDate;
+
+    private BigDecimal minTotalPrice;
+    private BigDecimal maxTotalPrice;
+    private Integer numberOfRooms;
 
 }
