@@ -53,7 +53,7 @@ public class AvailabilityService {
 
     public boolean checkAvailabilityOfHotel(Hotel hotel, LocalDate checkIn, LocalDate checkout) {
         boolean b = false;
-        for (RoomType roomType : hotel.getRoomsType()) {
+        for (RoomType roomType : hotel.getRoomTypes()) {
             if (checkAvailability(roomType.getId(), checkIn, checkout, 1))
                 b = true;
         }

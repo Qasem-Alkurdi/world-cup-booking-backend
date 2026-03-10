@@ -121,7 +121,7 @@ public class HotelCatalogServiceImpl implements HotelCatalogService {
         BigDecimal min = criteria.getMinTotalPrice();
         BigDecimal max = criteria.getMaxTotalPrice();
 
-        for (RoomType roomType : hotel.getRoomsType()) {
+        for (RoomType roomType : hotel.getRoomTypes()) {
             BigDecimal total = enhancedPricingService.calculateTotalStayPrice(
                     checkIn, checkOut, hotel, roomType, numberOfRooms);
             if (priceWithinRange(total, min, max)) {

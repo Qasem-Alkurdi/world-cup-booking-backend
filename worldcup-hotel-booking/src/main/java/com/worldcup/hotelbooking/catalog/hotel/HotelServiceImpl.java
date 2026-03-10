@@ -20,15 +20,15 @@ import static com.worldcup.hotelbooking.catalog.hotel.HotelStatus.APPROVED;
 
 @Service
 @Transactional
-public class HotelService implements HotelServiceInterface {
+public class HotelServiceImpl implements HotelServiceInterface {
 
     private final AppUserRepository userRepository;
     private final HotelRepository repository;
     private final BookingRepository bookingRepository;
 
-    public HotelService(HotelRepository repository,
-                        AppUserRepository userRepository,
-                        BookingRepository bookingRepository) {
+    public HotelServiceImpl(HotelRepository repository,
+                            AppUserRepository userRepository,
+                            BookingRepository bookingRepository) {
         this.repository = repository;
         this.userRepository = userRepository;
         this.bookingRepository = bookingRepository;

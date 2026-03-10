@@ -143,4 +143,13 @@ public class RoomType {
     @JsonIgnore
     private List<RoomTypePhoto> photos = new ArrayList<>();
 
+    public void addPhoto(RoomTypePhoto photo) {
+        this.photos.add(photo);
+        photo.setRoomType(this);
+    }
+
+    public void removePhoto(RoomTypePhoto photo) {
+        this.photos.remove(photo);
+        photo.setRoomType(null);
+    }
 }
