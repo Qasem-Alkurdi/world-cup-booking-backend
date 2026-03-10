@@ -18,24 +18,29 @@ public class HotelPhotoServiceImpl implements HotelPhotoService {
     private final HotelRepository hotelRepository;
 
     @Override
-    public HotelPhoto addPhoto(Long hotelId, String storageKey, String caption, Integer sortOrder) {
+    public HotelPhoto addPhoto(Long hotelId, String storageKey,
+                               String caption, Integer sortOrder) {
         Hotel hotel = hotelRepository.findById(hotelId)
-                .orElseThrow(() -> new EntityNotFoundException("Hotel not found: " + hotelId));
+                .orElseThrow(() -> new EntityNotFoundException("Hotel not found: "
+                        + hotelId));
 
-        HotelPhoto photo = new HotelPhoto(hotel, storageKey, caption, sortOrder);
+        HotelPhoto photo = new HotelPhoto(hotel, storageKey,
+                caption, sortOrder);
         return hotelPhotoRepository.save(photo);
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<HotelPhoto> listPhotos(Long hotelId) {
-        return hotelPhotoRepository.findByHotelIdOrderBySortOrderAscCreatedAtAsc(hotelId);
+        return hotelPhotoRepository
+                .findByHotelIdOrderBySortOrderAscCreatedAtAsc(hotelId);
     }
 
     @Override
     public void deletePhoto(Long hotelId, Long photoId) {
         if (!hotelPhotoRepository.existsByHotelIdAndId(hotelId, photoId)) {
-            throw new EntityNotFoundException("Photo not found for hotelId=" + hotelId + ", photoId=" + photoId);
+            throw new EntityNotFoundException("Photo not found for hotelId="
+                    + hotelId + ", photoId=" + photoId);
         }
         hotelPhotoRepository.deleteById(photoId);
     }

@@ -11,6 +11,7 @@ import com.worldcup.hotelbooking.catalog.roomtype.RoomType;
 import org.springframework.data.domain.*;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -36,6 +37,7 @@ public class HotelCatalogServiceImpl implements HotelCatalogService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Page<HotelCatalogResponseDto> search(Pageable pageable, HotelCatalogCriteria criteria) {
         validateSortFields(pageable);
         validateDistanceCriteria(criteria);
