@@ -2,10 +2,9 @@ package com.worldcup.hotelbooking.availability_pricing.pricing;
 
 import com.worldcup.hotelbooking.availability_pricing.match.Match;
 import com.worldcup.hotelbooking.availability_pricing.match.MatchRepository;
+import com.worldcup.hotelbooking.availability_pricing.stadium.Stadium;
 import com.worldcup.hotelbooking.booking.booking.Booking;
 import com.worldcup.hotelbooking.catalog.hotel.Hotel;
-//import com.worldcup.hotelbooking.catalog.match.Match;
-//import com.worldcup.hotelbooking.catalog.match.MatchRepository;
 import com.worldcup.hotelbooking.catalog.roomtype.RoomType;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -77,7 +76,7 @@ public class EnhancedPricingService {
         logger.info("Found {} matches during stay period", matchesDuringStay.size());
 
         // Calculate price by tournament phases
-        return calculatePhasedPrice(booking.getCheckInDate(),booking.getCheckOutDate(), hotel, roomType,
+        return calculatePhasedPrice(booking.getCheckInDate(), booking.getCheckOutDate(), hotel, roomType,
                 numberOfRooms, matchesDuringStay);
     }
 
@@ -85,7 +84,7 @@ public class EnhancedPricingService {
      * Calculate price by splitting stay into tournament phases
      */
     private BigDecimal calculatePhasedPrice(
-           LocalDate checkIn,
+            LocalDate checkIn,
             LocalDate checkOut,
             Hotel hotel,
             RoomType roomType,
@@ -128,8 +127,7 @@ public class EnhancedPricingService {
             totalPrice = totalPrice.add(phaseTotal);
         }
 
-        long totalNights = ChronoUnit.DAYS.between(
-                checkIn, checkOut);
+        long totalNights = ChronoUnit.DAYS.between(checkIn, checkOut);
         BigDecimal avgNightlyRate = totalPrice
                 .divide(BigDecimal.valueOf(totalNights * numberOfRooms), 2, RoundingMode.HALF_UP);
 
@@ -246,7 +244,11 @@ public class EnhancedPricingService {
         // Prefer matches in same city, then by importance
         return phaseMatches.stream()
                 .max(Comparator
-                        .comparing((Match m) -> m.getCity().equals(hotel.getCity()) ? 1 : 0)
+                        .comparing((Match m) -> {
+                            // Check if match stadium city equals hotel city
+                            String matchCity = m.getStadium().getCity();
+                            return (matchCity != null && matchCity.equals(hotel.getCity())) ? 1 : 0;
+                        })
                         .thenComparing(this::getMatchImportanceScore))
                 .orElse(phaseMatches.get(0));
     }
@@ -270,7 +272,6 @@ public class EnhancedPricingService {
         // Add bonuses
         if (match.isOpeningMatch()) score += 50;
         if (match.isDerby()) score += 30;
-
 
         return score;
     }
@@ -305,11 +306,16 @@ public class EnhancedPricingService {
         defaultMatch.setHomeTeam("TBD");
         defaultMatch.setAwayTeam("TBD");
         defaultMatch.setMatchDateTime(phase.getStartDate().atTime(15, 0));
-        defaultMatch.setStage(Match.MatchStage.GROUP_STAGE_1);
-        defaultMatch.setVenue("Stadium");
-        defaultMatch.setCity(hotel.getCity());
-        defaultMatch.getStadium().setStadiumLatitude(hotel.getLatitude());
-        defaultMatch.getStadium().setStadiumLongitude(hotel.getLongitude());
+        defaultMatch.setStage(Match.MatchStage.GROUP_STAGE_1); // arbitrary stage
+
+        // Create a dummy stadium with hotel's location
+        Stadium dummyStadium = new Stadium();
+        dummyStadium.setName("Stadium");
+        dummyStadium.setCity(hotel.getCity());
+        dummyStadium.setLatitude(hotel.getLatitude());
+        dummyStadium.setLongitude(hotel.getLongitude());
+        defaultMatch.setStadium(dummyStadium);
+
         return defaultMatch;
     }
 
@@ -344,7 +350,9 @@ public class EnhancedPricingService {
         if (matches.isEmpty()) {
             return new MultiNightPricingBreakdown(
                     new ArrayList<>(),
-                    roomType.getBasePrice(),
+                    roomType.getBasePrice()
+                            .multiply(BigDecimal.valueOf(ChronoUnit.DAYS.between(booking.getCheckInDate(), booking.getCheckOutDate())))
+                            .multiply(BigDecimal.valueOf(numberOfRooms)),
                     roomType.getBasePrice()
             );
         }
@@ -447,6 +455,8 @@ public class EnhancedPricingService {
             return sb.toString();
         }
     }
+
+    // Overloaded method for direct date parameters
     public BigDecimal calculateTotalStayPrice(
             LocalDate checkIn,
             LocalDate checkOut,
@@ -476,7 +486,7 @@ public class EnhancedPricingService {
         logger.info("Found {} matches during stay period", matchesDuringStay.size());
 
         // Calculate price by tournament phases
-        return calculatePhasedPrice(checkIn,checkOut, hotel, roomType,
+        return calculatePhasedPrice(checkIn, checkOut, hotel, roomType,
                 numberOfRooms, matchesDuringStay);
     }
 }

@@ -74,7 +74,7 @@ public class PricingService {
     private double calculateDistanceMultiplier(Hotel hotel, Match match) {
         double distance = calculateDistance(
                 hotel.getLatitude(), hotel.getLongitude(),
-                match.getStadium().getStadiumLatitude(), match.getStadium().getStadiumLongitude()
+                match.getStadium().getLatitude(), match.getStadium().getLongitude()
         );
 
         if (distance <= 2) {
@@ -268,7 +268,7 @@ public class PricingService {
                 timeMultiplier,
                 finalPrice,
                 calculateDistance(hotel.getLatitude(), hotel.getLongitude(),
-                        match.getStadium().getStadiumLatitude(), match.getStadium().getStadiumLatitude())
+                        match.getStadium().getLatitude(), match.getStadium().getLongitude())
         );
     }
 }

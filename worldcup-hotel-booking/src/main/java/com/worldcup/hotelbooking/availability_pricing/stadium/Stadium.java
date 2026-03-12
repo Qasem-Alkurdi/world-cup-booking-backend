@@ -1,22 +1,29 @@
 package com.worldcup.hotelbooking.availability_pricing.stadium;
 
-import com.worldcup.hotelbooking.availability_pricing.match.Match;
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
-
-import java.util.List;
+import jakarta.validation.constraints.NotBlank;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Entity
-@Getter
-@Setter
+@Data
+@NoArgsConstructor
+@Table(name = "stadiums")
 public class Stadium {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY) long id;
-    // Stadium location
-    private Double stadiumLatitude;
-    private Double stadiumLongitude;
 
-    @OneToMany(mappedBy = "stadium")
-    private List<Match> matches;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @NotBlank(message = "Stadium name is required")
+    @Column(nullable = false)
+    private String name;
+
+    private String city;
+
+    private Double latitude;
+
+    private Double longitude;
+
+    private Integer capacity;
 }

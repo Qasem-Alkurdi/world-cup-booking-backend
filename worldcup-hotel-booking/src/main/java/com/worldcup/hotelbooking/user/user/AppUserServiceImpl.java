@@ -5,11 +5,13 @@ import com.worldcup.hotelbooking.booking.booking.BookingResponseDto;
 import com.worldcup.hotelbooking.notification.notification.NotificationService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -18,18 +20,21 @@ public class AppUserServiceImpl implements AppUserService {
 
     private final AppUserRepository appUserRepository;
     private final NotificationService notificationService;
+    private final PasswordEncoder passwordEncoder;
 
 
     public AppUserServiceImpl(AppUserRepository appUserRepository,
-                              NotificationService notificationService) {
+                              NotificationService notificationService, PasswordEncoder passwordEncoder) {
         this.appUserRepository = appUserRepository;
         this.notificationService = notificationService;
+        this.passwordEncoder = passwordEncoder;
     }
 
     // 1. Create User
     @Override
     public AppUser createUser(AppUserRequestDto dto) {
         AppUser user = AppUserMapper.toEntity(dto);
+        user.setPassword(passwordEncoder.encode(dto.password()));
 
         // Assign default role if none provided
         if (user.getRoles() == null || user.getRoles().isEmpty()) {
@@ -86,7 +91,7 @@ public class AppUserServiceImpl implements AppUserService {
 
         existingUser.setUsername(dto.username());
         existingUser.setEmail(dto.email());
-        existingUser.setPassword(dto.password());
+        existingUser.setPassword(passwordEncoder.encode(dto.password()));
         // Note: For security, you should hash the password here if it's plain text
         // existingUser.setPassword(passwordEncoder.encode(dto.getPassword()));
 
@@ -143,7 +148,7 @@ public class AppUserServiceImpl implements AppUserService {
                     existingUser.setEmail((String) value);
                     break;
                 case "password":
-                    existingUser.setPassword((String) value);
+                    existingUser.setPassword(passwordEncoder.encode((String) value));
                     break;
                 case "enabled":
                     if (value instanceof Boolean) {
@@ -159,5 +164,11 @@ public class AppUserServiceImpl implements AppUserService {
         });
 
         return appUserRepository.save(existingUser);
+    }
+    @Override
+    public AppUser updateUserRoles(Long id, Set<Role> roles) {
+        AppUser user = getUserById(id);
+        user.setRoles(roles);
+        return appUserRepository.save(user);
     }
 }

@@ -5,6 +5,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 import java.util.List;
+import java.util.Set;
 import java.util.Map;
 import java.util.Optional;
 
@@ -33,4 +34,6 @@ public interface AppUserService {
     List<AppUser> searchUsers(String username, String email);
 
     AppUser partialUpdateUser(Long id, Map<String, Object> updates);
+
+    AppUser updateUserRoles(Long id, Set<Role> roles);
 }

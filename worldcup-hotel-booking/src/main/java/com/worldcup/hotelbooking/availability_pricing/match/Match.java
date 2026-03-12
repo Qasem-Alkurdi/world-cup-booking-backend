@@ -2,9 +2,10 @@ package com.worldcup.hotelbooking.availability_pricing.match;
 
 import com.worldcup.hotelbooking.availability_pricing.stadium.Stadium;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -12,42 +13,46 @@ import java.util.List;
 @Entity
 @Getter
 @Setter
-@Table(name = "matches")
+@Table(name = "matches", indexes = {
+        @Index(name = "idx_match_datetime", columnList = "matchDateTime"),
+        @Index(name = "idx_match_stadium", columnList = "stadium_id")
+})
 public class Match {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @NotBlank
     @Column(nullable = false)
     private String homeTeam;
 
+    @NotBlank
     @Column(nullable = false)
     private String awayTeam;
 
+    @NotNull
     @Column(nullable = false)
     private LocalDateTime matchDateTime;
 
+    @NotNull
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private MatchStage stage;
 
-    @Column(nullable = false)
-    private String venue;  // Stadium name
-
-    @Column(nullable = false)
-    private String city;
-
-    @ManyToOne
-    @JoinColumn(name = "Stadium_id")
+    // Link to Stadium – now the single source of truth for location
+    @NotNull
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "stadium_id", nullable = false)
     private Stadium stadium;
 
-    // Match importance factors
+    // Match importance factors (optional)
     private boolean isOpeningMatch = false;
     private boolean isDerby = false;
 
     @ElementCollection
-    @CollectionTable(name = "match_popular_teams")
+    @CollectionTable(name = "match_popular_teams", joinColumns = @JoinColumn(name = "match_id"))
+    @Column(name = "team_name")
     private List<String> popularTeams = new ArrayList<>();
 
     public enum MatchStage {

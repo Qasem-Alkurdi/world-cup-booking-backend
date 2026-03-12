@@ -8,6 +8,13 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 public interface MatchRepository extends JpaRepository<Match, Long> {
+
+    // Basic finder needed for stadium deletion check
+    boolean existsByStadiumId(Long stadiumId);
+
+    // Find matches by stadium ID (already covered by exists, but useful)
+    List<Match> findByStadiumId(Long stadiumId);
+
     /**
      * Find all matches happening between two dates
      */
@@ -22,13 +29,15 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
             @Param("endDate") LocalDateTime endDate);
 
     /**
-     * Find matches near a hotel during a date range
+     * Find matches near a hotel during a date range, filtered by stadium city
+     * (since city is now in Stadium entity)
      */
     @Query("""
         SELECT m FROM Match m 
+        JOIN m.stadium s
         WHERE m.matchDateTime >= :startDate 
         AND m.matchDateTime <= :endDate
-        AND m.city = :city
+        AND s.city = :city
         ORDER BY m.stage DESC, m.matchDateTime
     """)
     List<Match> findMatchesInCityBetweenDates(

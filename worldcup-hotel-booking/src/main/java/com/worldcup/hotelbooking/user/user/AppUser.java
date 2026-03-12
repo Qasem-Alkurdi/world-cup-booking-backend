@@ -26,6 +26,7 @@ public class AppUser {
     private Long id;
 
     @NotBlank
+    @Column(unique = true)
     private String username;
 
     @NotBlank
