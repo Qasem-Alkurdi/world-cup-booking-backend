@@ -3,11 +3,14 @@ package com.worldcup.hotelbooking.catalog.query.hotel;
 import com.worldcup.hotelbooking.availability_pricing.pricing.EnhancedPricingService;
 import com.worldcup.hotelbooking.catalog.hotel.Hotel;
 import com.worldcup.hotelbooking.catalog.hotel.HotelRepository;
+import com.worldcup.hotelbooking.catalog.hotelphoto.HotelPhotoRepository;
+import com.worldcup.hotelbooking.catalog.hotelphoto.dto.HotelPrimaryPhotoProjection;
 import com.worldcup.hotelbooking.catalog.query.hotel.dto.HotelCatalogResponseDto;
 import com.worldcup.hotelbooking.catalog.query.hotel.exception.CheckOutBeforeCheckIn;
 import com.worldcup.hotelbooking.catalog.query.hotel.exception.CheckOutDateAreRequired;
 import com.worldcup.hotelbooking.catalog.query.hotel.mapper.HotelCatalogMapper;
 import com.worldcup.hotelbooking.catalog.roomtype.RoomType;
+import com.worldcup.hotelbooking.catalog.storage.PhotoUrlResolver;
 import org.springframework.data.domain.*;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
@@ -17,6 +20,8 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 public class HotelCatalogServiceImpl implements HotelCatalogService {
@@ -26,14 +31,38 @@ public class HotelCatalogServiceImpl implements HotelCatalogService {
 
 
     private static final int MAX_HOTELS_FOR_PRICE_FILTER = 500;
-
+    private final HotelPhotoRepository hotelPhotoRepository;
+    private final PhotoUrlResolver photoUrlResolver;
     private final HotelRepository hotelRepository;
     private final EnhancedPricingService enhancedPricingService;
+    private final HotelCatalogMapper hotelCatalogMapper;
 
     HotelCatalogServiceImpl(HotelRepository hotelRepository,
-                            EnhancedPricingService enhancedPricingService) {
+                            EnhancedPricingService enhancedPricingService,
+                            HotelCatalogMapper hotelCatalogMapper,
+                            HotelPhotoRepository hotelPhotoRepository,
+                            PhotoUrlResolver photoUrlResolver) {
         this.hotelRepository = hotelRepository;
         this.enhancedPricingService = enhancedPricingService;
+        this.hotelCatalogMapper = hotelCatalogMapper;
+        this.hotelPhotoRepository = hotelPhotoRepository;
+        this.photoUrlResolver = photoUrlResolver;
+    }
+
+    private Map<Long, String> loadPrimaryPhotoUrls(List<Hotel> hotels) {
+        List<Long> hotelIds = hotels.stream()
+                .map(Hotel::getId)
+                .toList();
+
+        if (hotelIds.isEmpty()) {
+            return Map.of();
+        }
+
+        return hotelPhotoRepository.findPrimaryPhotosByHotelIds(hotelIds).stream()
+                .collect(Collectors.toMap(
+                        HotelPrimaryPhotoProjection::hotelId,
+                        p -> photoUrlResolver.resolve(p.storageKey())
+                ));
     }
 
     @Override
@@ -97,17 +126,27 @@ public class HotelCatalogServiceImpl implements HotelCatalogService {
             }
 
             List<Hotel> paged = slicePage(filtered, pageable);
+            Map<Long, String> primaryPhotoUrls = loadPrimaryPhotoUrls(paged);
+
             List<HotelCatalogResponseDto> content = paged.stream()
-                    .map(HotelCatalogMapper::toDto)
+                    .map(hotel -> hotelCatalogMapper.toDto(
+                            hotel,
+                            primaryPhotoUrls.get(hotel.getId())
+                    ))
                     .toList();
 
             return new PageImpl<>(content, pageable, filtered.size());
         }
 
         Page<Hotel> result = hotelRepository.findAll(spec, pageable);
+        List<Hotel> hotels = result.getContent();
+        Map<Long, String> primaryPhotoUrls = loadPrimaryPhotoUrls(hotels);
 
-        List<HotelCatalogResponseDto> content = result.getContent().stream()
-                .map(HotelCatalogMapper::toDto)
+        List<HotelCatalogResponseDto> content = hotels.stream()
+                .map(hotel -> hotelCatalogMapper.toDto(
+                        hotel,
+                        primaryPhotoUrls.get(hotel.getId())
+                ))
                 .toList();
 
         return new PageImpl<>(content, pageable, result.getTotalElements());

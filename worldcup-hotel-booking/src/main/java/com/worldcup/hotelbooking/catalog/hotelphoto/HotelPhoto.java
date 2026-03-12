@@ -48,6 +48,8 @@ public class HotelPhoto {
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;
+    @Column(name = "is_primary", nullable = false)
+    private boolean primary = false;
 
     public HotelPhoto(Hotel hotel, String storageKey, String caption, Integer sortOrder) {
         this.hotel = hotel;

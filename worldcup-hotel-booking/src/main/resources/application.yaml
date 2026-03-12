@@ -30,4 +30,6 @@ logging:
 
 app:
   storage:
-    public-base-url: http://localhost:8080/uploads
+    upload-dir: uploads
+    public-base-url: /uploads
+    max-file-size-bytes: 5242880

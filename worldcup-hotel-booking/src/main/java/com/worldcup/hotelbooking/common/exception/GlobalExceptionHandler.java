@@ -4,10 +4,15 @@ import com.worldcup.hotelbooking.booking.booking.BookingNotFoundException;
 import com.worldcup.hotelbooking.booking.bookingroom.BookingRoomNotFoundException;
 import com.worldcup.hotelbooking.catalog.hotel.exception.DeleteConflictException;
 import com.worldcup.hotelbooking.catalog.hotel.exception.HotelNotFoundException;
+import com.worldcup.hotelbooking.catalog.hotelphoto.exception.HotelPhotoNotFoundException;
+import com.worldcup.hotelbooking.catalog.hotelphoto.exception.InvalidPhotoOrderException;
 import com.worldcup.hotelbooking.catalog.query.hotel.exception.CheckOutBeforeCheckIn;
 import com.worldcup.hotelbooking.catalog.query.hotel.exception.CheckOutDateAreRequired;
 import com.worldcup.hotelbooking.catalog.roomtype.exception.RoomTypeAlreadyExistsException;
 import com.worldcup.hotelbooking.catalog.roomtype.exception.RoomTypeNotFoundException;
+import com.worldcup.hotelbooking.catalog.roomtypephoto.exception.RoomTypePhotoNotFoundException;
+import com.worldcup.hotelbooking.catalog.storage.exception.InvalidPhotoFileException;
+import com.worldcup.hotelbooking.catalog.storage.exception.StorageOperationException;
 import com.worldcup.hotelbooking.payment.payment.PaymentNotFoundException;
 import com.worldcup.hotelbooking.user.user.AppUserNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -185,6 +190,84 @@ public class GlobalExceptionHandler {
 
 
     //search end
+    //photo start
+    @ExceptionHandler(InvalidPhotoFileException.class)
+    public ResponseEntity<ApiError> handleInvalidPhotoFileException(
+            InvalidPhotoFileException ex,
+            HttpServletRequest request
+    ) {
+        ApiError body = new ApiError(
+                Instant.now().toString(),
+                400,
+                "Bad Request",
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
+    }
+
+    @ExceptionHandler(StorageOperationException.class)
+    public ResponseEntity<ApiError> handleStorageOperationException(
+            StorageOperationException ex,
+            HttpServletRequest request
+    ) {
+        ApiError body = new ApiError(
+                Instant.now().toString(),
+                500,
+                "Internal Server Error",
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(body);
+    }
+
+    @ExceptionHandler(HotelPhotoNotFoundException.class)
+    public ResponseEntity<ApiError> handleHotelPhotoNotFound(
+            HotelPhotoNotFoundException ex,
+            HttpServletRequest request
+    ) {
+        ApiError body = new ApiError(
+                Instant.now().toString(),
+                HttpStatus.NOT_FOUND.value(),
+                HttpStatus.NOT_FOUND.getReasonPhrase(),
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body);
+    }
+
+    @ExceptionHandler(RoomTypePhotoNotFoundException.class)
+    public ResponseEntity<ApiError> handleRoomTypePhotoNotFound(
+            RoomTypePhotoNotFoundException ex,
+            HttpServletRequest request
+    ) {
+        ApiError body = new ApiError(
+                Instant.now().toString(),
+                HttpStatus.NOT_FOUND.value(),
+                HttpStatus.NOT_FOUND.getReasonPhrase(),
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body);
+    }
+
+    @ExceptionHandler(InvalidPhotoOrderException.class)
+    public ResponseEntity<ApiError> handleInvalidPhotoOrderException(
+            InvalidPhotoOrderException ex,
+            HttpServletRequest request
+    ) {
+        ApiError body = new ApiError(
+                Instant.now().toString(),
+                HttpStatus.BAD_REQUEST.value(),
+                HttpStatus.BAD_REQUEST.getReasonPhrase(),
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
+    }
+//photo end
 
 // catalog end
 
