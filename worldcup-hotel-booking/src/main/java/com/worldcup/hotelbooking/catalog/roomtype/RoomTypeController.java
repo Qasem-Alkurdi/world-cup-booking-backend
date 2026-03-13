@@ -2,6 +2,7 @@ package com.worldcup.hotelbooking.catalog.roomtype;
 
 import com.worldcup.hotelbooking.catalog.roomtype.dto.CreateRoomTypeRequestDto;
 import com.worldcup.hotelbooking.catalog.roomtype.dto.ReplaceRoomTypeRequestDto;
+import com.worldcup.hotelbooking.catalog.roomtype.dto.RoomTypeAvailabilityCriteria;
 import com.worldcup.hotelbooking.catalog.roomtype.dto.RoomTypeResponseDto;
 import com.worldcup.hotelbooking.catalog.roomtype.mapper.RoomTypeMapper;
 import jakarta.validation.Valid;
@@ -24,9 +25,11 @@ public class RoomTypeController {
     }
 
     @GetMapping
-
-    public List<RoomTypeResponseDto> all(@PathVariable Long hotelId) {
-        return service.findByHotel(hotelId)
+    public List<RoomTypeResponseDto> all(
+            @PathVariable Long hotelId,
+            @ModelAttribute RoomTypeAvailabilityCriteria criteria
+    ) {
+        return service.findAvailableByHotel(hotelId, criteria)
                 .stream()
                 .map(RoomTypeMapper::toResponse)
                 .toList();
