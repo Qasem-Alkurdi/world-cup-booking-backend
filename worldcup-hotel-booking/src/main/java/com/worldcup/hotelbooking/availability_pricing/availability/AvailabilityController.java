@@ -16,14 +16,14 @@ public class AvailabilityController {
     }
 
     // Implement endpoints for checking room availability here
-    @GetMapping("/availability/room-type/{roomTypeId}")
-    public boolean checkRoomTypeAvailability(@PathVariable long roomTypeId, @RequestParam LocalDate checkIn, @RequestParam LocalDate checkOut) {
-        return availabilityService.checkRoomTypeAvailability(roomTypeId, checkIn, checkOut);
+    @GetMapping("/availability/room-type/{id}")
+    public boolean checkRoomTypeAvailability(@PathVariable long id, @RequestParam LocalDate checkIn, @RequestParam LocalDate checkOut) {
+        return availabilityService.checkRoomTypeAvailability(id, checkIn, checkOut);
     }
 
-    @GetMapping("/availability/room-type/{roomTypeId}/room")
-    public int getAvailableRooms(@PathVariable long roomTypeId, @RequestParam LocalDate checkIn, @RequestParam LocalDate checkOut) {
-        return availabilityService.getAvailableRooms(roomTypeId, checkIn, checkOut);
+    @GetMapping("/availability/room-type/{id}/room")
+    public int getAvailableRooms(@PathVariable long id, @RequestParam LocalDate checkIn, @RequestParam LocalDate checkOut) {
+        return availabilityService.getAvailableRooms(id, checkIn, checkOut);
     }
 //        GetMapping("/availability/hotel/{id}/?checkIn=2026-06-10&checkOut=2026-06-12")
 //        public boolean checkHotelAvailability(@PathVariable long hotelId, LocalDate checkIn, LocalDate checkOut) {
