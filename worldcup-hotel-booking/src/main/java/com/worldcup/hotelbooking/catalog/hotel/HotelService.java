@@ -4,7 +4,7 @@ import com.worldcup.hotelbooking.catalog.hotel.dto.UpdateHotelPatchRequest;
 
 import java.util.List;
 
-public interface HotelServiceInterface {
+public interface HotelService {
     List<Hotel> findAll();
 
     Hotel findById(Long id);

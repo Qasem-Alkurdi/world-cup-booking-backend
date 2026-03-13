@@ -20,7 +20,7 @@ import static com.worldcup.hotelbooking.catalog.hotel.HotelStatus.APPROVED;
 
 @Service
 @Transactional
-public class HotelServiceImpl implements HotelServiceInterface {
+public class HotelServiceImpl implements HotelService {
 
     private final AppUserRepository userRepository;
     private final HotelRepository repository;
