@@ -2,8 +2,8 @@ package com.worldcup.hotelbooking.catalog.hotel;
 
 import com.worldcup.hotelbooking.booking.booking.BookingRepository;
 import com.worldcup.hotelbooking.catalog.hotel.dto.UpdateHotelPatchRequest;
-import com.worldcup.hotelbooking.catalog.hotel.exceptions.DeleteConflictException;
-import com.worldcup.hotelbooking.catalog.hotel.exceptions.HotelNotFoundException;
+import com.worldcup.hotelbooking.catalog.hotel.exception.DeleteConflictException;
+import com.worldcup.hotelbooking.catalog.hotel.exception.HotelNotFoundException;
 import com.worldcup.hotelbooking.user.user.AppUser;
 import com.worldcup.hotelbooking.user.user.AppUserNotFoundException;
 import com.worldcup.hotelbooking.user.user.AppUserRepository;
@@ -20,15 +20,15 @@ import static com.worldcup.hotelbooking.catalog.hotel.HotelStatus.APPROVED;
 
 @Service
 @Transactional
-public class HotelService implements HotelServiceInterface {
+public class HotelServiceImpl implements HotelServiceInterface {
 
     private final AppUserRepository userRepository;
     private final HotelRepository repository;
     private final BookingRepository bookingRepository;
 
-    public HotelService(HotelRepository repository,
-                        AppUserRepository userRepository,
-                        BookingRepository bookingRepository) {
+    public HotelServiceImpl(HotelRepository repository,
+                            AppUserRepository userRepository,
+                            BookingRepository bookingRepository) {
         this.repository = repository;
         this.userRepository = userRepository;
         this.bookingRepository = bookingRepository;

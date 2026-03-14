@@ -6,7 +6,7 @@ import com.worldcup.hotelbooking.booking.bookingroom.BookingRoomRepository;
 import com.worldcup.hotelbooking.catalog.hotel.Hotel;
 import com.worldcup.hotelbooking.catalog.roomtype.RoomType;
 import com.worldcup.hotelbooking.catalog.roomtype.RoomTypeRepository;
-import com.worldcup.hotelbooking.catalog.roomtype.exceptions.RoomTypeNotFoundException;
+import com.worldcup.hotelbooking.catalog.roomtype.exception.RoomTypeNotFoundException;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -51,11 +51,11 @@ public class AvailabilityService {
         return availableRooms >= rooms;
     }
 
-    public boolean checkAvailabilityOfHotel(Hotel hotel,LocalDate checkIn,LocalDate checkout){
-        boolean b=false;
-        for(RoomType roomType:hotel.getRoomsType()){
-            if(checkAvailability(roomType.getId(),checkIn,checkout,1))
-                b=true;
+    public boolean checkAvailabilityOfHotel(Hotel hotel, LocalDate checkIn, LocalDate checkout) {
+        boolean b = false;
+        for (RoomType roomType : hotel.getRoomTypes()) {
+            if (checkAvailability(roomType.getId(), checkIn, checkout, 1))
+                b = true;
         }
         return b;
     }

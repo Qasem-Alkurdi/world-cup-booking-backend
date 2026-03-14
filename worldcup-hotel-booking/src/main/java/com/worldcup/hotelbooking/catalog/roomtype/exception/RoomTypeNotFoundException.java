@@ -1,4 +1,4 @@
-package com.worldcup.hotelbooking.catalog.roomtype.exceptions;
+package com.worldcup.hotelbooking.catalog.roomtype.exception;
 
 public class RoomTypeNotFoundException extends RuntimeException {
 

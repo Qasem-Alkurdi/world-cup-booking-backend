@@ -3,7 +3,7 @@ package com.worldcup.hotelbooking.catalog.query.hotel;
 import com.worldcup.hotelbooking.booking.booking.Booking;
 import com.worldcup.hotelbooking.booking.bookingroom.BookingRoom;
 import com.worldcup.hotelbooking.catalog.hotel.Hotel;
-import com.worldcup.hotelbooking.catalog.query.hotel.exeption.CheckOutBeforeCheckIn;
+import com.worldcup.hotelbooking.catalog.query.hotel.exception.CheckOutBeforeCheckIn;
 import com.worldcup.hotelbooking.catalog.roomtype.RoomType;
 import jakarta.persistence.criteria.*;
 import org.springframework.data.jpa.domain.Specification;

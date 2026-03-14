@@ -1,6 +1,7 @@
 package com.worldcup.hotelbooking.catalog.roomtype;
 
 import com.worldcup.hotelbooking.catalog.roomtype.dto.ReplaceRoomTypeRequestDto;
+import com.worldcup.hotelbooking.catalog.roomtype.dto.RoomTypeAvailabilityCriteria;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
@@ -34,4 +35,6 @@ public interface RoomTypeService {
      * Delete a room type
      */
     void delete(Long hotelId, Long roomTypeId);
+
+    List<RoomType> findAvailableByHotel(Long hotelId, RoomTypeAvailabilityCriteria criteria);
 }

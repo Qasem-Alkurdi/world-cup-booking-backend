@@ -11,4 +11,5 @@ public class HotelCatalogResponseDto {
     private String description;
     private String city;
     private String country;
+    private String primaryPhotoUrl;
 }

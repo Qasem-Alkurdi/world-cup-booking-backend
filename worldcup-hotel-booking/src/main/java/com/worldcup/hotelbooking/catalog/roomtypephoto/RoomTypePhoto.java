@@ -48,6 +48,8 @@ public class RoomTypePhoto {
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;
+    @Column(name = "is_primary", nullable = false)
+    private boolean primary = false;
 
     public RoomTypePhoto(RoomType roomType, String storageKey, String caption, Integer sortOrder) {
         this.roomType = roomType;

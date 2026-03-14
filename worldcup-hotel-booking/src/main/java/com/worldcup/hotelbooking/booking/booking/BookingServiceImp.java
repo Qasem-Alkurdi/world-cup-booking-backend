@@ -7,7 +7,7 @@ import com.worldcup.hotelbooking.booking.bookingroom.BookingRoomRepository;
 import com.worldcup.hotelbooking.booking.cancellation.CancellationPolicyService;
 import com.worldcup.hotelbooking.booking.cancellation.CancellationResult;
 import com.worldcup.hotelbooking.catalog.hotel.HotelRepository;
-import com.worldcup.hotelbooking.catalog.hotel.exceptions.HotelNotFoundException;
+import com.worldcup.hotelbooking.catalog.hotel.exception.HotelNotFoundException;
 import com.worldcup.hotelbooking.catalog.roomtype.RoomTypeRepository;
 import com.worldcup.hotelbooking.user.user.AppUserNotFoundException;
 import com.worldcup.hotelbooking.user.user.AppUserRepository;
@@ -64,7 +64,6 @@ public class BookingServiceImp implements BookingService {
     public Booking getBookingById(Long id) {
         return bookingRepository.findById(id).orElseThrow(() -> new BookingNotFoundException("Booking not found with id: " + id));
     }
-
 
 
     @Transactional(readOnly = true)
@@ -311,7 +310,6 @@ public class BookingServiceImp implements BookingService {
             throw new ModificationNotAllowedException("No changes detected");
         }
     }
-
 
 
     public Page<Booking> getGuestHistory(

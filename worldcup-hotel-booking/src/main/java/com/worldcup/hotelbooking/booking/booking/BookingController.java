@@ -7,7 +7,7 @@ import com.worldcup.hotelbooking.booking.bookingroom.BookingRoomResponseDto;
 import com.worldcup.hotelbooking.booking.cancellation.CancellationMapper;
 import com.worldcup.hotelbooking.booking.cancellation.CancellationPolicyResponse;
 import com.worldcup.hotelbooking.booking.cancellation.CancellationResult;
-import com.worldcup.hotelbooking.catalog.hotel.HotelService;
+import com.worldcup.hotelbooking.catalog.hotel.HotelServiceImpl;
 import com.worldcup.hotelbooking.catalog.roomtype.RoomTypeService;
 import com.worldcup.hotelbooking.common.response.PagedResponse;
 import com.worldcup.hotelbooking.user.user.AppUserService;
@@ -34,12 +34,12 @@ public class BookingController {
     private static final Logger logger = LoggerFactory.getLogger(BookingController.class);
     private final BookingServiceImp bookingService;
     private final AppUserService appUserService;
-    private final HotelService hotelService;
+    private final HotelServiceImpl hotelServiceImpl;
     private final RoomTypeService roomTypeService;
 
-    BookingController(BookingServiceImp bookingService, AppUserService appUserService, HotelService hotelService, RoomTypeService roomTypeService) {
+    BookingController(BookingServiceImp bookingService, AppUserService appUserService, HotelServiceImpl hotelServiceImpl, RoomTypeService roomTypeService) {
         this.roomTypeService = roomTypeService;
-        this.hotelService = hotelService;
+        this.hotelServiceImpl = hotelServiceImpl;
         this.appUserService = appUserService;
         this.bookingService = bookingService;
     }
@@ -74,7 +74,7 @@ public class BookingController {
     @Operation(summary = "Create a new booking", description = "Create a new booking with the provided details. The request must include user ID, hotel ID, check-in and check-out dates, and room details.")
     @PostMapping
     public ResponseEntity<BookingResponseDto> createBooking(@Valid @RequestBody BookingRequestDto bookingRequest, UriComponentsBuilder uriBuilder) {
-        Booking booking = BookingMapper.toEntity(bookingRequest, appUserService.getUserById(bookingRequest.getUserId()), hotelService.findById(bookingRequest.getHotelId()));
+        Booking booking = BookingMapper.toEntity(bookingRequest, appUserService.getUserById(bookingRequest.getUserId()), hotelServiceImpl.findById(bookingRequest.getHotelId()));
         for (BookingRoomRequestDto roomRequest : bookingRequest.getRooms()) {
             bookingService.addBookingRoom(
                     BookingRoomMapper.toEntity(
@@ -147,7 +147,7 @@ public class BookingController {
 
     @PutMapping("/id")
     public ResponseEntity<BookingResponseDto> updateBooking(@PathVariable long id, @RequestBody @Valid BookingRequestDto bookingRequest, UriComponentsBuilder uriBuilder) {
-        Booking booking = BookingMapper.toEntity(bookingRequest, appUserService.getUserById(bookingRequest.getUserId()), hotelService.findById(bookingRequest.getHotelId()));
+        Booking booking = BookingMapper.toEntity(bookingRequest, appUserService.getUserById(bookingRequest.getUserId()), hotelServiceImpl.findById(bookingRequest.getHotelId()));
         for (BookingRoomRequestDto roomRequest : bookingRequest.getRooms()) {
             bookingService.addBookingRoom(
                     BookingRoomMapper.toEntity(

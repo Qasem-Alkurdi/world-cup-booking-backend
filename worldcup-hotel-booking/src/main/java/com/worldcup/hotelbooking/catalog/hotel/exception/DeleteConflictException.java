@@ -1,4 +1,4 @@
-package com.worldcup.hotelbooking.catalog.hotel.exceptions;
+package com.worldcup.hotelbooking.catalog.hotel.exception;
 
 public class DeleteConflictException extends RuntimeException {
     public DeleteConflictException(Long id) {

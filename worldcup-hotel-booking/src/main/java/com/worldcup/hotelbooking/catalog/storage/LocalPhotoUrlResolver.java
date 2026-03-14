@@ -1,21 +1,22 @@
 package com.worldcup.hotelbooking.catalog.storage;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 @Component
 public class LocalPhotoUrlResolver implements PhotoUrlResolver {
 
-    private final String baseUrl;
+    private final StorageProperties storageProperties;
 
-    public LocalPhotoUrlResolver(
-            @Value("${app.storage.public-base-url}") String baseUrl
-    ) {
-        this.baseUrl = baseUrl;
+    public LocalPhotoUrlResolver(StorageProperties storageProperties) {
+        this.storageProperties = storageProperties;
     }
 
     @Override
     public String resolve(String storageKey) {
+        String baseUrl = storageProperties.getPublicBaseUrl();
+        if (baseUrl.endsWith("/")) {
+            return baseUrl + storageKey;
+        }
         return baseUrl + "/" + storageKey;
     }
 }
