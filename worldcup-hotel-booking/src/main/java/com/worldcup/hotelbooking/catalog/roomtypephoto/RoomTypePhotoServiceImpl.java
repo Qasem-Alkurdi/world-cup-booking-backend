@@ -50,23 +50,55 @@ public class RoomTypePhotoServiceImpl implements RoomTypePhotoService {
                 .orElseThrow(() -> new RoomTypeNotFoundException(hotelId, roomTypeId));
     }
 
+    private void validateSortOrder(Integer sortOrder) {
+        if (sortOrder != null && sortOrder <= 0) {
+            throw new InvalidPhotoOrderException("sortOrder must be greater than 0");
+        }
+    }
+
+    private void normalizeSortOrders(Long roomTypeId) {
+        List<RoomTypePhoto> photos =
+                roomTypePhotoRepository.findByRoomTypeIdOrderBySortOrderAscCreatedAtAsc(roomTypeId);
+
+        for (int i = 0; i < photos.size(); i++) {
+            photos.get(i).setSortOrder(i + 1);
+        }
+    }
+
     @Override
     public RoomTypePhoto addPhoto(Long hotelId, Long roomTypeId, MultipartFile file, String caption, Integer sortOrder) {
         validateHotel(hotelId);
         RoomType roomType = getRoomTypeOrThrow(hotelId, roomTypeId);
+        validateSortOrder(sortOrder);
 
-        Integer finalSortOrder = sortOrder != null
-                ? sortOrder
-                : roomTypePhotoRepository.findNextSortOrderByRoomTypeId(roomTypeId);
+        List<RoomTypePhoto> existingPhotos =
+                roomTypePhotoRepository.findByRoomTypeIdOrderBySortOrderAscCreatedAtAsc(roomTypeId);
+
+        int finalSortOrder;
+        if (sortOrder == null) {
+            finalSortOrder = existingPhotos.size() + 1;
+        } else {
+            finalSortOrder = Math.min(sortOrder, existingPhotos.size() + 1);
+
+            for (RoomTypePhoto existingPhoto : existingPhotos) {
+                if (existingPhoto.getSortOrder() >= finalSortOrder) {
+                    existingPhoto.setSortOrder(existingPhoto.getSortOrder() + 1);
+                }
+            }
+        }
 
         String storageKey = photoStorageService.store(file, "hotels/" + hotelId + "/room-types/" + roomTypeId);
 
-        boolean hasPrimary = roomTypePhotoRepository.findByRoomTypeIdAndPrimaryTrue(roomTypeId).isPresent();
+        boolean hasPrimary = existingPhotos.stream().anyMatch(RoomTypePhoto::isPrimary);
 
         RoomTypePhoto photo = new RoomTypePhoto(roomType, storageKey, caption, finalSortOrder);
         photo.setPrimary(!hasPrimary);
 
-        return roomTypePhotoRepository.save(photo);
+        RoomTypePhoto saved = roomTypePhotoRepository.save(photo);
+
+        normalizeSortOrders(roomTypeId);
+
+        return saved;
     }
 
     @Override
@@ -92,11 +124,16 @@ public class RoomTypePhotoServiceImpl implements RoomTypePhotoService {
         roomTypePhotoRepository.delete(photo);
         photoStorageService.delete(storageKey);
 
+        normalizeSortOrders(roomTypeId);
+
         if (wasPrimary) {
             List<RoomTypePhoto> remaining =
                     roomTypePhotoRepository.findByRoomTypeIdOrderBySortOrderAscCreatedAtAsc(roomTypeId);
 
             if (!remaining.isEmpty()) {
+                for (RoomTypePhoto p : remaining) {
+                    p.setPrimary(false);
+                }
                 remaining.get(0).setPrimary(true);
             }
         }

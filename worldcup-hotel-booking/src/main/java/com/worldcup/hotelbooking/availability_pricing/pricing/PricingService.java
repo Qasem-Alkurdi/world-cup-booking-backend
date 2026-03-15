@@ -3,9 +3,9 @@ package com.worldcup.hotelbooking.availability_pricing.pricing;
 import com.worldcup.hotelbooking.availability_pricing.match.Match;
 import com.worldcup.hotelbooking.catalog.hotel.Hotel;
 import com.worldcup.hotelbooking.catalog.roomtype.RoomType;
-import org.springframework.stereotype.Service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -206,7 +206,7 @@ public class PricingService {
 
 
         // Combine (multiply to compound the effects)
-        return dayMultiplier ;
+        return dayMultiplier;
     }
 
     /**

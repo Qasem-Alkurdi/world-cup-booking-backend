@@ -1,5 +1,5 @@
-
 package com.worldcup.hotelbooking.booking.booking;
+
 import com.worldcup.hotelbooking.availability_pricing.availability.AvailabilityService;
 import com.worldcup.hotelbooking.availability_pricing.match.MatchRepository;
 import com.worldcup.hotelbooking.availability_pricing.pricing.EnhancedPricingService;
@@ -12,10 +12,9 @@ import com.worldcup.hotelbooking.catalog.roomtype.RoomType;
 import com.worldcup.hotelbooking.catalog.roomtype.RoomTypeRepository;
 import com.worldcup.hotelbooking.user.user.AppUser;
 import com.worldcup.hotelbooking.user.user.AppUserRepository;
-import org.apache.catalina.User;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -35,7 +34,7 @@ import static org.mockito.Mockito.*;
 
 /**
  * Unit tests for BookingServiceImp
- *
+ * <p>
  * Tests all business logic without touching the database
  * Uses Mockito to mock dependencies
  */
@@ -192,7 +191,7 @@ class BookingServiceImpTest {
                 .thenReturn(BigDecimal.valueOf(600));
         lenient().when(availabilityService.isNumberOfGuestsValid(any(Booking.class)))
                 .thenReturn(true);
-        lenient().when(availabilityService.checkAvailability(anyLong(),any(),any(),anyInt()))
+        lenient().when(availabilityService.checkAvailability(anyLong(), any(), any(), anyInt()))
                 .thenReturn(true);
 
         // Act

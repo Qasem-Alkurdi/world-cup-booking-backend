@@ -40,22 +40,52 @@ public class HotelPhotoServiceImpl implements HotelPhotoService {
                 .orElseThrow(() -> new HotelNotFoundException(hotelId));
     }
 
+    private void validateSortOrder(Integer sortOrder) {
+        if (sortOrder != null && sortOrder <= 0) {
+            throw new InvalidPhotoOrderException("sortOrder must be greater than 0");
+        }
+    }
+
+    private void normalizeSortOrders(Long hotelId) {
+        List<HotelPhoto> photos = hotelPhotoRepository.findByHotelIdOrderBySortOrderAscCreatedAtAsc(hotelId);
+
+        for (int i = 0; i < photos.size(); i++) {
+            photos.get(i).setSortOrder(i + 1);
+        }
+    }
+
     @Override
     public HotelPhoto addPhoto(Long hotelId, MultipartFile file, String caption, Integer sortOrder) {
         Hotel hotel = getActiveApprovedHotel(hotelId);
+        validateSortOrder(sortOrder);
 
-        Integer finalSortOrder = sortOrder != null
-                ? sortOrder
-                : hotelPhotoRepository.findNextSortOrderByHotelId(hotelId);
+        List<HotelPhoto> existingPhotos = hotelPhotoRepository.findByHotelIdOrderBySortOrderAscCreatedAtAsc(hotelId);
+
+        int finalSortOrder;
+        if (sortOrder == null) {
+            finalSortOrder = existingPhotos.size() + 1;
+        } else {
+            finalSortOrder = Math.min(sortOrder, existingPhotos.size() + 1);
+
+            for (HotelPhoto existingPhoto : existingPhotos) {
+                if (existingPhoto.getSortOrder() >= finalSortOrder) {
+                    existingPhoto.setSortOrder(existingPhoto.getSortOrder() + 1);
+                }
+            }
+        }
 
         String storageKey = photoStorageService.store(file, "hotels/" + hotelId);
 
-        boolean hasPrimary = hotelPhotoRepository.findByHotelIdAndPrimaryTrue(hotelId).isPresent();
+        boolean hasPrimary = existingPhotos.stream().anyMatch(HotelPhoto::isPrimary);
 
         HotelPhoto photo = new HotelPhoto(hotel, storageKey, caption, finalSortOrder);
         photo.setPrimary(!hasPrimary);
 
-        return hotelPhotoRepository.save(photo);
+        HotelPhoto saved = hotelPhotoRepository.save(photo);
+
+        normalizeSortOrders(hotelId);
+
+        return saved;
     }
 
     @Override
@@ -78,9 +108,14 @@ public class HotelPhotoServiceImpl implements HotelPhotoService {
         hotelPhotoRepository.delete(photo);
         photoStorageService.delete(storageKey);
 
+        normalizeSortOrders(hotelId);
+
         if (wasPrimary) {
             List<HotelPhoto> remaining = hotelPhotoRepository.findByHotelIdOrderBySortOrderAscCreatedAtAsc(hotelId);
             if (!remaining.isEmpty()) {
+                for (HotelPhoto p : remaining) {
+                    p.setPrimary(false);
+                }
                 remaining.get(0).setPrimary(true);
             }
         }

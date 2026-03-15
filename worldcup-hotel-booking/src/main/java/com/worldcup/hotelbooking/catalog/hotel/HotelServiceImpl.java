@@ -20,7 +20,7 @@ import static com.worldcup.hotelbooking.catalog.hotel.HotelStatus.APPROVED;
 
 @Service
 @Transactional
-public class HotelServiceImpl implements HotelServiceInterface {
+public class HotelServiceImpl implements HotelService {
 
     private final AppUserRepository userRepository;
     private final HotelRepository repository;
@@ -72,6 +72,7 @@ public class HotelServiceImpl implements HotelServiceInterface {
                 "owner",
                 "status",
                 "isDeleted",
+                "deleted",
                 "deletedAt",
                 "createdAt",
                 "updatedAt",

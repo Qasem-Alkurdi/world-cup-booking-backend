@@ -18,9 +18,9 @@ import java.util.List;
 
 public class HotelController {
 
-    private final HotelServiceInterface service;
+    private final HotelService service;
 
-    public HotelController(HotelServiceInterface service) {
+    public HotelController(HotelService service) {
         this.service = service;
     }
 

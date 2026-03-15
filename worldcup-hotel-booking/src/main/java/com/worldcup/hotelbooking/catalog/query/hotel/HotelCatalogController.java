@@ -10,12 +10,11 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/catalog/hotels")
-
 public class HotelCatalogController {
 
-    private final HotelCatalogServiceImpl service;
+    private final HotelCatalogService service;
 
-    public HotelCatalogController(HotelCatalogServiceImpl service) {
+    public HotelCatalogController(HotelCatalogService service) {
         this.service = service;
     }
 

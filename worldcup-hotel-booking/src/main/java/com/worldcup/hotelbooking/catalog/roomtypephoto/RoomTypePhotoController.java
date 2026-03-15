@@ -3,6 +3,7 @@ package com.worldcup.hotelbooking.catalog.roomtypephoto;
 import com.worldcup.hotelbooking.catalog.roomtypephoto.dto.ReorderPhotosRequestDto;
 import com.worldcup.hotelbooking.catalog.roomtypephoto.dto.RoomTypePhotoResponseDto;
 import com.worldcup.hotelbooking.catalog.roomtypephoto.mapper.RoomTypePhotoMapper;
+import jakarta.validation.Valid;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -38,8 +39,8 @@ public class RoomTypePhotoController {
             @PathVariable Long hotelId,
             @PathVariable Long roomTypeId,
             @RequestPart("file") MultipartFile file,
-            @RequestPart(value = "caption", required = false) String caption,
-            @RequestPart(value = "sortOrder", required = false) Integer sortOrder,
+            @RequestParam(value = "caption", required = false) String caption,
+            @RequestParam(value = "sortOrder", required = false) Integer sortOrder,
             UriComponentsBuilder uriBuilder
     ) {
         RoomTypePhoto saved = roomTypePhotoService.addPhoto(hotelId, roomTypeId, file, caption, sortOrder);
@@ -76,7 +77,7 @@ public class RoomTypePhotoController {
     public ResponseEntity<Void> reorder(
             @PathVariable Long hotelId,
             @PathVariable Long roomTypeId,
-            @RequestBody ReorderPhotosRequestDto body
+            @Valid @RequestBody ReorderPhotosRequestDto body
     ) {
         roomTypePhotoService.reorderPhotos(hotelId, roomTypeId, body.getPhotoIds());
         return ResponseEntity.noContent().build();
