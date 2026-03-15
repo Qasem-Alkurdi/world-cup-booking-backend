@@ -7,7 +7,8 @@ import java.math.BigDecimal;
 
 @Getter
 public class BookingRoomRequestDto {
-    private int numberOfRooms;
+
     private long roomTypeId;
+    private int numberOfRooms;
 
 }

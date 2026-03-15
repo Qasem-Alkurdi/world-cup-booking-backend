@@ -22,16 +22,16 @@ import java.time.temporal.ChronoUnit;
  * - Already cancelled: Cannot cancel again
  */
 @Service
-public class CancellationPolicyService {
+public class CancellationPolicyServiceImpl {
 
-    private static final Logger logger = LoggerFactory.getLogger(CancellationPolicyService.class);
+    private static final Logger logger = LoggerFactory.getLogger(CancellationPolicyServiceImpl.class);
 
     /**
      * Check if booking can be cancelled and calculate refund
      *
      * @throws CancellationNotAllowedException if booking cannot be cancelled
      */
-    public CancellationResult calculateCancellation(Booking booking) {
+    public CancellationResponseDto calculateCancellation(Booking booking) {
 
         // Rule 1: Cannot cancel if already cancelled
         if (booking.getStatus() == Booking.BookingStatus.CANCELLED) {
@@ -115,7 +115,7 @@ public class CancellationPolicyService {
         logger.info("Cancellation policy applied: {} - Refund: ${} ({}%)",
                 policyApplied, refundAmount, refundPercentage);
 
-        return new CancellationResult(
+        return new CancellationResponseDto(
                 true,  // Can cancel
                 refundAmount,
                 cancellationFee,
@@ -129,11 +129,11 @@ public class CancellationPolicyService {
      * Get cancellation policy info without actually cancelling
      * Shows user what they would get if they cancel now
      */
-    public CancellationResult previewCancellation(Booking booking) {
+    public CancellationResponseDto previewCancellation(Booking booking) {
         try {
             return calculateCancellation(booking);
         } catch (CancellationNotAllowedException e) {
-            return new CancellationResult(
+            return new CancellationResponseDto(
                     false,  // Cannot cancel
                     BigDecimal.ZERO,
                     booking.getTotalPrice(),

@@ -1,6 +1,7 @@
 package com.worldcup.hotelbooking.catalog.query.hotel;
 
-import com.worldcup.hotelbooking.availability_pricing.pricing.EnhancedPricingService;
+
+import com.worldcup.hotelbooking.availability_pricing.pricing.EnhancedPricingServiceImpl;
 import com.worldcup.hotelbooking.catalog.hotel.Hotel;
 import com.worldcup.hotelbooking.catalog.hotel.HotelRepository;
 import com.worldcup.hotelbooking.catalog.hotelphoto.HotelPhotoRepository;
@@ -38,16 +39,16 @@ public class HotelCatalogServiceImpl implements HotelCatalogService {
     private final HotelPhotoRepository hotelPhotoRepository;
     private final PhotoUrlResolver photoUrlResolver;
     private final HotelRepository hotelRepository;
-    private final EnhancedPricingService enhancedPricingService;
+    private final EnhancedPricingServiceImpl enhancedPricingServiceImpl;
     private final HotelCatalogMapper hotelCatalogMapper;
 
     public HotelCatalogServiceImpl(HotelRepository hotelRepository,
-                                   EnhancedPricingService enhancedPricingService,
+                                   EnhancedPricingServiceImpl enhancedPricingServiceImpl,
                                    HotelCatalogMapper hotelCatalogMapper,
                                    HotelPhotoRepository hotelPhotoRepository,
                                    PhotoUrlResolver photoUrlResolver) {
         this.hotelRepository = hotelRepository;
-        this.enhancedPricingService = enhancedPricingService;
+        this.enhancedPricingServiceImpl = enhancedPricingServiceImpl;
         this.hotelCatalogMapper = hotelCatalogMapper;
         this.hotelPhotoRepository = hotelPhotoRepository;
         this.photoUrlResolver = photoUrlResolver;
@@ -201,7 +202,7 @@ public class HotelCatalogServiceImpl implements HotelCatalogService {
         BigDecimal minPrice = null;
 
         for (RoomType roomType : hotel.getRoomTypes()) {
-            BigDecimal total = enhancedPricingService.calculateTotalStayPrice(
+            BigDecimal total = enhancedPricingServiceImpl.calculateTotalStayPrice(
                     checkIn,
                     checkOut,
                     hotel,

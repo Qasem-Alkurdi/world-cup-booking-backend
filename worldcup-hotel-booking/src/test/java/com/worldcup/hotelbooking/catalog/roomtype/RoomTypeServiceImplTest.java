@@ -1,6 +1,6 @@
 package com.worldcup.hotelbooking.catalog.roomtype;
 
-import com.worldcup.hotelbooking.availability_pricing.availability.AvailabilityService;
+import com.worldcup.hotelbooking.availability_pricing.availability.AvailabilityServiceImpl;
 import com.worldcup.hotelbooking.catalog.hotel.Hotel;
 import com.worldcup.hotelbooking.catalog.hotel.HotelRepository;
 import com.worldcup.hotelbooking.catalog.hotel.exception.HotelNotFoundException;
@@ -27,14 +27,14 @@ class RoomTypeServiceImplTest {
 
     private RoomTypeRepository roomTypeRepository;
     private HotelRepository hotelRepository;
-    private AvailabilityService availabilityService;
+    private AvailabilityServiceImpl availabilityService;
     private RoomTypeServiceImpl service;
 
     @BeforeEach
     void setUp() {
         roomTypeRepository = mock(RoomTypeRepository.class);
         hotelRepository = mock(HotelRepository.class);
-        availabilityService = mock(AvailabilityService.class);
+        availabilityService = mock(AvailabilityServiceImpl.class);
 
         service = new RoomTypeServiceImpl(roomTypeRepository, hotelRepository, availabilityService);
     }

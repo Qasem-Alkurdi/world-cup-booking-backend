@@ -1,12 +1,10 @@
-package com.worldcup.hotelbooking.catalog.query;
+package com.worldcup.hotelbooking.catalog.query.hotel;
 
-import com.worldcup.hotelbooking.availability_pricing.pricing.EnhancedPricingService;
+import com.worldcup.hotelbooking.availability_pricing.pricing.EnhancedPricingServiceImpl;
 import com.worldcup.hotelbooking.catalog.hotel.Hotel;
 import com.worldcup.hotelbooking.catalog.hotel.HotelRepository;
 import com.worldcup.hotelbooking.catalog.hotelphoto.HotelPhotoRepository;
 import com.worldcup.hotelbooking.catalog.hotelphoto.dto.HotelPrimaryPhotoProjection;
-import com.worldcup.hotelbooking.catalog.query.hotel.HotelCatalogCriteria;
-import com.worldcup.hotelbooking.catalog.query.hotel.HotelCatalogServiceImpl;
 import com.worldcup.hotelbooking.catalog.query.hotel.dto.HotelCatalogResponseDto;
 import com.worldcup.hotelbooking.catalog.query.hotel.exception.CheckOutBeforeCheckIn;
 import com.worldcup.hotelbooking.catalog.query.hotel.exception.CheckOutDateAreRequired;
@@ -31,7 +29,7 @@ import static org.mockito.Mockito.*;
 class HotelCatalogServiceImplTest {
 
     private HotelRepository hotelRepository;
-    private EnhancedPricingService enhancedPricingService;
+    private EnhancedPricingServiceImpl enhancedPricingService;
     private HotelCatalogMapper hotelCatalogMapper;
     private HotelPhotoRepository hotelPhotoRepository;
     private PhotoUrlResolver photoUrlResolver;
@@ -40,7 +38,7 @@ class HotelCatalogServiceImplTest {
     @BeforeEach
     void setUp() {
         hotelRepository = mock(HotelRepository.class);
-        enhancedPricingService = mock(EnhancedPricingService.class);
+        enhancedPricingService = mock(EnhancedPricingServiceImpl.class);
         hotelCatalogMapper = mock(HotelCatalogMapper.class);
         hotelPhotoRepository = mock(HotelPhotoRepository.class);
         photoUrlResolver = mock(PhotoUrlResolver.class);

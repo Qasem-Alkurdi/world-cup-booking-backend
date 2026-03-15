@@ -11,6 +11,7 @@ import jakarta.persistence.*;
 import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
@@ -34,7 +35,7 @@ public class BookingRoom {
     private Long id;
 
 
-    @Min(1)
+    @NotNull
     @Column(name = "number_of_rooms", nullable = false)
     private int numberOfRooms;
 
@@ -50,12 +51,10 @@ public class BookingRoom {
 
     @ManyToOne(fetch = FetchType.LAZY)//FetchType.LAZY means that the associated Booking entity will be loaded on demand, not immediately when the BookingRoom entity is fetched.
     @JoinColumn(name = "booking_id", nullable = false)
-    @JsonBackReference
     private Booking booking;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "room_type_id", nullable = false)
-    @JsonBackReference
     private RoomType roomType;
 
     

@@ -1,6 +1,6 @@
 package com.worldcup.hotelbooking.catalog.roomtype;
 
-import com.worldcup.hotelbooking.availability_pricing.availability.AvailabilityService;
+import com.worldcup.hotelbooking.availability_pricing.availability.AvailabilityServiceImpl;
 import com.worldcup.hotelbooking.catalog.hotel.Hotel;
 import com.worldcup.hotelbooking.catalog.hotel.HotelRepository;
 import com.worldcup.hotelbooking.catalog.hotel.exception.HotelNotFoundException;
@@ -19,13 +19,13 @@ import static com.worldcup.hotelbooking.catalog.hotel.HotelStatus.APPROVED;
 @Service
 @Transactional
 public class RoomTypeServiceImpl implements RoomTypeService {
-    private final AvailabilityService availabilityService;
+    private final AvailabilityServiceImpl availabilityService;
     private final RoomTypeRepository roomTypeRepository;
     private final HotelRepository hotelRepository;
 
     public RoomTypeServiceImpl(RoomTypeRepository roomTypeRepository,
                                HotelRepository hotelRepository,
-                               AvailabilityService availabilityService) {
+                               AvailabilityServiceImpl availabilityService) {
         this.roomTypeRepository = roomTypeRepository;
         this.hotelRepository = hotelRepository;
         this.availabilityService = availabilityService;

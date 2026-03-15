@@ -15,7 +15,7 @@ import com.worldcup.hotelbooking.catalog.roomtype.exception.RoomTypeNotFoundExce
 import com.worldcup.hotelbooking.catalog.roomtypephoto.exception.RoomTypePhotoNotFoundException;
 import com.worldcup.hotelbooking.catalog.storage.exception.InvalidPhotoFileException;
 import com.worldcup.hotelbooking.catalog.storage.exception.StorageOperationException;
-import com.worldcup.hotelbooking.payment.payment.PaymentNotFoundException;
+import com.worldcup.hotelbooking.payment.PaymentException;
 import com.worldcup.hotelbooking.user.user.AppUserNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -30,8 +30,8 @@ import java.time.Instant;
 @ControllerAdvice
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(PaymentNotFoundException.class)
-    public ResponseEntity<ApiError> handlePaymentNotFound(PaymentNotFoundException ex, HttpServletRequest request) {
+    @ExceptionHandler(PaymentException.class)
+    public ResponseEntity<ApiError> handlePaymentNotFound(PaymentException ex, HttpServletRequest request) {
         ApiError body = new ApiError(
                 Instant.now().toString(),
                 404,

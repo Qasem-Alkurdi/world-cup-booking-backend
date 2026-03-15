@@ -12,31 +12,29 @@ import java.time.LocalDate;
 import java.util.Date;
 import java.util.List;
 
-    @Getter
-    public class BookingRequestDto {
+@Getter
+public class BookingRequestDto {
 
-        @NotNull(message = "Hotel ID cannot be null")
-        @Positive(message = "Hotel ID must be positive")
-        private Long hotelId;
+    @NotNull(message = "Hotel ID cannot be null")
+    @Positive(message = "Hotel ID must be positive")
+    private Long hotelId;
 
-        @NotNull(message = "User ID cannot be null")
-        @Positive(message = "User ID must be positive")
-        private long userId;
+    @NotNull(message = "User ID cannot be null")
+    @Positive(message = "User ID must be positive")
+    private long userId;
 
-        private Long matchId;
+    private Long matchId;
 
-        @NotBlank(message = "Check-in date cannot be null")
-        private LocalDate checkInDate;
+    @NotNull(message = "Check-in date cannot be null")
+    private LocalDate checkInDate;
 
-        @NotBlank(message = "Check-out date cannot be null")
-        private LocalDate checkOutDate;
+    @NotNull(message = "Check-out date cannot be null")
+    private LocalDate checkOutDate;
 
-        @Min(1)
-        private int numberOfGuests;
-        private int numberOfAdults;
-        private int numberOfChildren;
+    @Min(1)
+    private int numberOfGuests;
+    private int numberOfAdults;
+    private int numberOfChildren;
 
-        private List<BookingRoomRequestDto> rooms;
-    }
-
-
+    private List<BookingRoomRequestDto> rooms;
+}

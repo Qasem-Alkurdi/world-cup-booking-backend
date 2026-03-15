@@ -10,7 +10,7 @@ import java.math.BigDecimal;
  */
 @Getter
 @AllArgsConstructor
-public class CancellationResult {
+public class CancellationResponseDto {
 
     private boolean canCancel;
     private BigDecimal refundAmount;
