@@ -10,7 +10,7 @@ import com.worldcup.hotelbooking.catalog.query.hotel.exeption.CheckOutBeforeChec
 import com.worldcup.hotelbooking.catalog.query.hotel.exeption.CheckOutDateAreRequired;
 import com.worldcup.hotelbooking.catalog.roomtype.exceptions.RoomTypeAlreadyExistsException;
 import com.worldcup.hotelbooking.catalog.roomtype.exceptions.RoomTypeNotFoundException;
-import com.worldcup.hotelbooking.payment.payment.PaymentNotFoundException;
+import com.worldcup.hotelbooking.payment.PaymentException;
 import com.worldcup.hotelbooking.user.user.AppUserNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -25,8 +25,8 @@ import java.time.Instant;
 @ControllerAdvice
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(PaymentNotFoundException.class)
-    public ResponseEntity<ApiError> handlePaymentNotFound(PaymentNotFoundException ex, HttpServletRequest request) {
+    @ExceptionHandler(PaymentException.class)
+    public ResponseEntity<ApiError> handlePaymentNotFound(PaymentException ex, HttpServletRequest request) {
         ApiError body = new ApiError(
                 Instant.now().toString(),
                 404,

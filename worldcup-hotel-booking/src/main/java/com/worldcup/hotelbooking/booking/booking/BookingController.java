@@ -5,8 +5,8 @@ import com.worldcup.hotelbooking.booking.bookingroom.BookingRoomMapper;
 import com.worldcup.hotelbooking.booking.bookingroom.BookingRoomRequestDto;
 import com.worldcup.hotelbooking.booking.bookingroom.BookingRoomResponseDto;
 import com.worldcup.hotelbooking.booking.cancellation.CancellationMapper;
-import com.worldcup.hotelbooking.booking.cancellation.CancellationPolicyResponse;
-import com.worldcup.hotelbooking.booking.cancellation.CancellationResult;
+import com.worldcup.hotelbooking.booking.cancellation.CancellationPolicyResponseDto;
+import com.worldcup.hotelbooking.booking.cancellation.CancellationResponseDto;
 import com.worldcup.hotelbooking.catalog.hotel.HotelService;
 import com.worldcup.hotelbooking.catalog.roomtype.RoomTypeService;
 import com.worldcup.hotelbooking.common.response.PagedResponse;
@@ -33,12 +33,12 @@ import static java.util.stream.Collectors.toList;
 @RequestMapping("/bookings")
 public class BookingController {
     private static final Logger logger = LoggerFactory.getLogger(BookingController.class);
-    private final BookingServiceImp bookingService;
+    private final BookingServiceImpl bookingService;
     private final AppUserService appUserService;
     private final HotelService hotelService;
     private final RoomTypeService roomTypeService;
 
-    BookingController(BookingServiceImp bookingService, AppUserService appUserService, HotelService hotelService, RoomTypeService roomTypeService) {
+    BookingController(BookingServiceImpl bookingService, AppUserService appUserService, HotelService hotelService, RoomTypeService roomTypeService) {
         this.roomTypeService = roomTypeService;
         this.hotelService = hotelService;
         this.appUserService = appUserService;
@@ -109,10 +109,10 @@ public class BookingController {
      * Example: GET /api/v1/bookings/123/cancellation-policy
      */
     @GetMapping("/{id}/cancellation-policy")
-    public ResponseEntity<CancellationPolicyResponse> getCancellationPolicy(@PathVariable Long id) {
+    public ResponseEntity<CancellationPolicyResponseDto> getCancellationPolicy(@PathVariable Long id) {
         logger.info("GET request for cancellation policy for booking: {}", id);
 
-        CancellationResult result = (bookingService).previewCancellation(id);
+        CancellationResponseDto result = (bookingService).previewCancellation(id);
 
         return ResponseEntity.ok(CancellationMapper.toDto(result));
     }
@@ -133,7 +133,7 @@ public class BookingController {
         }
 
         // Preview policy first to include in response
-        CancellationResult policyResult = (bookingService).previewCancellation(id);
+        CancellationResponseDto policyResult = (bookingService).previewCancellation(id);
 
         // Cancel the booking (will throw exception if not allowed)
         Booking cancelledBooking = bookingService.cancelBooking(id, reason);
@@ -252,11 +252,7 @@ public class BookingController {
 
     }
 
-    @PutMapping("/{id}/confirm")
-    public ResponseEntity<BookingResponseDto> confirmBooking(@PathVariable Long id) {
-        Booking confirmed = bookingService.confirmBooking(id);
-        return ResponseEntity.ok(BookingMapper.toDto(confirmed));
-    }
+
 
     @PutMapping("/{id}/checkin")
     public ResponseEntity<BookingResponseDto> checkInBooking(@PathVariable Long id) {

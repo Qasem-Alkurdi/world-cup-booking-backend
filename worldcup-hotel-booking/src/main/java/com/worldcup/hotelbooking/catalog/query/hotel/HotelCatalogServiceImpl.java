@@ -1,6 +1,6 @@
 package com.worldcup.hotelbooking.catalog.query.hotel;
 
-import com.worldcup.hotelbooking.availability_pricing.pricing.EnhancedPricingService;
+import com.worldcup.hotelbooking.availability_pricing.pricing.EnhancedPricingServiceImpl;
 import com.worldcup.hotelbooking.catalog.hotel.Hotel;
 import com.worldcup.hotelbooking.catalog.hotel.HotelRepository;
 import com.worldcup.hotelbooking.catalog.query.hotel.dto.HotelCatalogResponseDto;
@@ -27,10 +27,10 @@ public class HotelCatalogServiceImpl implements HotelCatalogService {
     private static final int MAX_HOTELS_FOR_PRICE_FILTER = 500;
 
     private final HotelRepository hotelRepository;
-    private final EnhancedPricingService enhancedPricingService;
+    private final EnhancedPricingServiceImpl enhancedPricingService;
 
     HotelCatalogServiceImpl(HotelRepository hotelRepository,
-                            EnhancedPricingService enhancedPricingService) {
+                            EnhancedPricingServiceImpl enhancedPricingService) {
         this.hotelRepository = hotelRepository;
         this.enhancedPricingService = enhancedPricingService;
     }

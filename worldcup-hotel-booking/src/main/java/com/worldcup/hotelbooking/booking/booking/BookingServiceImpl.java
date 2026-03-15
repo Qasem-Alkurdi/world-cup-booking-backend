@@ -1,24 +1,17 @@
 package com.worldcup.hotelbooking.booking.booking;
 
-import com.worldcup.hotelbooking.availability_pricing.availability.AvailabilityService;
-import com.worldcup.hotelbooking.availability_pricing.pricing.EnhancedPricingService;
+import com.worldcup.hotelbooking.availability_pricing.availability.AvailabilityServiceImpl;
+import com.worldcup.hotelbooking.availability_pricing.pricing.EnhancedPricingServiceImpl;
 import com.worldcup.hotelbooking.booking.bookingroom.BookingRoom;
-import com.worldcup.hotelbooking.booking.bookingroom.BookingRoomRepository;
-import com.worldcup.hotelbooking.booking.cancellation.CancellationPolicyService;
-import com.worldcup.hotelbooking.booking.cancellation.CancellationResult;
-import com.worldcup.hotelbooking.catalog.hotel.HotelRepository;
-import com.worldcup.hotelbooking.catalog.hotel.exceptions.HotelNotFoundException;
-import com.worldcup.hotelbooking.catalog.roomtype.RoomTypeRepository;
-import com.worldcup.hotelbooking.payment.payment.Payment;
-import com.worldcup.hotelbooking.payment.payment.PaymentNotFoundException;
-import com.worldcup.hotelbooking.payment.payment.PaymentService;
-import com.worldcup.hotelbooking.user.user.AppUserNotFoundException;
-import com.worldcup.hotelbooking.user.user.AppUserRepository;
+import com.worldcup.hotelbooking.booking.cancellation.CancellationPolicyServiceImpl;
+import com.worldcup.hotelbooking.booking.cancellation.CancellationResponseDto;
+import com.worldcup.hotelbooking.payment.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,30 +19,35 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 
 
 @Service
 @Transactional
-public class BookingServiceImp implements BookingService {
-    private static final Logger logger = LoggerFactory.getLogger(BookingServiceImp.class);
+public class BookingServiceImpl implements BookingService {
+    private static final Logger logger = LoggerFactory.getLogger(BookingServiceImpl.class);
     private final BookingRepository bookingRepository;
-    private final EnhancedPricingService enhancedPricingService;
-    private final CancellationPolicyService cancellationPolicyService;
-    private final AvailabilityService availabilityService;
-    private final PaymentService paymentService;
+    private final EnhancedPricingServiceImpl enhancedPricingService;
+    private final CancellationPolicyServiceImpl cancellationPolicyService;
+    private final AvailabilityServiceImpl availabilityService;
+    private final PaymentRepository paymentRepository;
+    private final PaymentServiceImpl paymentService;
 
-    public BookingServiceImp(
+    public BookingServiceImpl(
             BookingRepository bookingRepository,
-            EnhancedPricingService enhancedPricingService,
-            CancellationPolicyService cancellationPolicyService,
-            AvailabilityService availabilityService,
-            PaymentService paymentService) {
+            EnhancedPricingServiceImpl enhancedPricingService,
+            CancellationPolicyServiceImpl cancellationPolicyService,
+            AvailabilityServiceImpl availabilityService,
+            PaymentRepository paymentRepository,
+            PaymentServiceImpl paymentService) {
         this.bookingRepository = bookingRepository;
         this.enhancedPricingService = enhancedPricingService;
         this.cancellationPolicyService = cancellationPolicyService;
         this.availabilityService = availabilityService;
+        this.paymentRepository = paymentRepository;
         this.paymentService = paymentService;
     }
 
@@ -78,7 +76,7 @@ public class BookingServiceImp implements BookingService {
             throw new IllegalArgumentException("Number of guests exceeds room capacity");
         }
 
-        if(booking.getNumberOfGuests()!=booking.getNumberOfAdults()+booking.getNumberOfChildren()){
+        if (booking.getNumberOfGuests() != booking.getNumberOfAdults() + booking.getNumberOfChildren()) {
             throw new IllegalArgumentException("Total number of guests must equal the sum of adults and children");
         }
         for (BookingRoom room : booking.getBookingRooms()) {
@@ -88,6 +86,8 @@ public class BookingServiceImp implements BookingService {
         }
 
         booking.setTotalPrice(calculateTotalPrice(booking));
+        booking.setConfirmationDeadline(LocalDateTime.now().plusDays(3));
+
 
 
         return bookingRepository.save(booking);
@@ -114,24 +114,64 @@ public class BookingServiceImp implements BookingService {
         Booking booking = bookingRepository.findByIdWithRooms(id)
                 .orElseThrow(() -> new BookingNotFoundException("Booking not found with id: " + id));
 
-        CancellationResult cancellationResult = cancellationPolicyService.previewCancellation(booking);
+        // CHECK CANCELLATION POLICY
+        CancellationResponseDto cancellationResult = cancellationPolicyService.previewCancellation(booking);
 
         if (!cancellationResult.isCanCancel()) {
             throw new IllegalStateException(cancellationResult.getPolicyMessage());
         }
 
+        // Log refund information
         logger.info("Cancellation approved: Refund ${} ({}%), Fee ${}",
                 cancellationResult.getRefundAmount(),
                 cancellationResult.getRefundPercentage(),
                 cancellationResult.getCancellationFee());
 
+        if (paymentRepository.existsByBookingId(booking.getId())) {
+            Payment payment = paymentRepository.findByBookingId(booking.getId())
+                    .orElseThrow(() -> new PaymentException("Payment not found"));
+
+            // Allow refund for COMPLETED or PARTIALLY_REFUNDED (e.g. after a price-decrease modification)
+            boolean canRefund = payment.getStatus() == Payment.PaymentStatus.COMPLETED
+                    || payment.getStatus() == Payment.PaymentStatus.PARTIALLY_REFUNDED;
+
+            if (canRefund && cancellationResult.getRefundAmount().compareTo(BigDecimal.ZERO) > 0) {
+
+                // Calculate how much is still left to refund (total paid minus already refunded)
+                BigDecimal alreadyRefunded = payment.getRefundAmount() != null
+                        ? payment.getRefundAmount()
+                        : BigDecimal.ZERO;
+                BigDecimal paidAmount = payment.getPaidAmount() != null
+                        ? payment.getPaidAmount()
+                        : BigDecimal.ZERO;
+                BigDecimal maxRefundable = paidAmount.subtract(alreadyRefunded);
+
+                BigDecimal cancellationRefund = cancellationResult.getRefundAmount().min(maxRefundable);
+
+                if (cancellationRefund.compareTo(BigDecimal.ZERO) > 0) {
+                    // ✅ Refund amount comes from CANCELLATION POLICY (capped at remaining paid amount)
+                    RefundRequestDto refundRequest = RefundRequestDto.builder()
+                            .paymentId(payment.getId())
+                            .refundAmount(cancellationRefund)
+                            .reason(reason + " | " + cancellationResult.getPolicyMessage())
+                            .build();
+
+                    paymentService.refundPayment(refundRequest);
+                }
+            }
+        }
+
+        // Update booking status
         booking.setStatus(Booking.BookingStatus.CANCELLED);
         booking.setCancelReason(reason + " | " + cancellationResult.getPolicyMessage());
         booking.setCancelledAt(java.time.LocalDateTime.now());
         booking.setCancelledBy(booking.getAppUser().getUsername());
 
+        // You might want to add refund fields to Booking entity:
+        // booking.setRefundAmount(cancellationResult.getRefundAmount());
+        // booking.setCancellationFee(cancellationResult.getCancellationFee());
+
         Booking cancelled = bookingRepository.save(booking);
-        autoRefundCompletedPaymentIfEligible(cancelled, cancellationResult);
         logger.info("Booking {} cancelled successfully - Refund: ${}",
                 cancelled.getBookingReference(),
                 cancellationResult.getRefundAmount());
@@ -143,7 +183,7 @@ public class BookingServiceImp implements BookingService {
      * Preview cancellation without actually cancelling
      * Shows user what refund they would get
      */
-    public CancellationResult previewCancellation(Long bookingId) {
+    public CancellationResponseDto previewCancellation(Long bookingId) {
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new BookingNotFoundException("Booking not found with id: " + bookingId));
 
@@ -156,6 +196,7 @@ public class BookingServiceImp implements BookingService {
         if (booking.getStatus() == Booking.BookingStatus.CONFIRMED) {
             throw new IllegalStateException("Booking is already confirmed");
         }
+
         if (booking.getStatus() == Booking.BookingStatus.CANCELLED) {
             throw new IllegalStateException("Cancelled booking cannot be confirmed");
         }
@@ -183,6 +224,9 @@ public class BookingServiceImp implements BookingService {
         // 2. Business Rule Validations
         validateCanModify(managedBooking, requestBooking);
 
+        // 3. Store old values for comparison
+        BigDecimal oldPrice = managedBooking.getTotalPrice();
+        Booking.BookingStatus oldStatus = managedBooking.getStatus();
         // 3. Update top-level fields
         managedBooking.setCheckInDate(requestBooking.getCheckInDate());
         managedBooking.setCheckOutDate(requestBooking.getCheckOutDate());
@@ -192,12 +236,13 @@ public class BookingServiceImp implements BookingService {
 
         // 4. SMART ROOM UPDATE: Synchronize the collections
         // This avoids deleting and re-inserting the same rooms
-        BigDecimal newTotal =updateBookingRoomsAndPrice(managedBooking, requestBooking.getBookingRooms());
+        BigDecimal newTotal = updateBookingRoomsAndPrice(managedBooking, requestBooking.getBookingRooms());
         managedBooking.setTotalPrice(newTotal);
         // 5. DATA INTEGRITY: Validate logic (dates, capacity, etc.)
         performBookingValidations(managedBooking);
 
-        // 6. CALCULATE PRICES: This fills the "price_per_night" columns before saving
+        // 8. ⭐ SMART PAYMENT HANDLING
+        handlePriceChange(managedBooking, oldStatus, oldPrice, newTotal);
 
 
         return bookingRepository.save(managedBooking);
@@ -209,15 +254,15 @@ public class BookingServiceImp implements BookingService {
         managed.getBookingRooms().clear();
         BigDecimal totalPrice = BigDecimal.ZERO;
         for (BookingRoom room : requestedRooms) {
-                BigDecimal roomPrice = enhancedPricingService.calculateTotalStayPrice(managed, room.getRoomType().getHotel(), room.getRoomType(), room.getNumberOfRooms());
-                totalPrice = totalPrice.add(roomPrice);
-                room.setBasePricePerNightPerRoom(room.getRoomType().getBasePrice());
-                room.setTotalPriceWithFees(roomPrice);
-                room.setBooking(managed);
-                managed.getBookingRooms().add(room);
-            }
-            return totalPrice.setScale(2, RoundingMode.HALF_UP);
+            BigDecimal roomPrice = enhancedPricingService.calculateTotalStayPrice(managed, room.getRoomType().getHotel(), room.getRoomType(), room.getNumberOfRooms());
+            totalPrice = totalPrice.add(roomPrice);
+            room.setBasePricePerNightPerRoom(room.getRoomType().getBasePrice());
+            room.setTotalPriceWithFees(roomPrice);
+            room.setBooking(managed);
+            managed.getBookingRooms().add(room);
         }
+        return totalPrice.setScale(2, RoundingMode.HALF_UP);
+    }
 
 
     private void performBookingValidations(Booking booking) {
@@ -246,7 +291,7 @@ public class BookingServiceImp implements BookingService {
      */
     private void validateCanModify(Booking booking, Booking request) {
 
-        if (!booking.getHotel().getId().equals(request.getHotel().getId()))
+        if (booking.getHotel().getId() != request.getHotel().getId())
             throw new ModificationNotAllowedException(
                     "Cannot modify the hotel"
             );
@@ -311,7 +356,6 @@ public class BookingServiceImp implements BookingService {
     }
 
 
-
     public Page<Booking> getGuestHistory(
             Long userId,
             Pageable pageable
@@ -365,7 +409,16 @@ public class BookingServiceImp implements BookingService {
 
     public Booking checkInBooking(Long id) {
         Booking booking = bookingRepository.findByIdWithRooms(id)
-                .orElseThrow(() -> new BookingNotFoundException("Booking not found with id: " + id));
+                .orElseThrow(() -> new BookingNotFoundException("Booking not found"));
+
+        // ⭐ VALIDATE PAYMENT STATUS
+        if (!booking.canCheckIn()) {
+            if (booking.isAdditionalPaymentRequired()) {
+                throw new IllegalStateException(
+                        "Cannot check in - Additional payment is required. Please complete payment before check-in."
+                );
+            }
+        }
 
         if (booking.getStatus() != Booking.BookingStatus.CONFIRMED) {
             throw new IllegalStateException("Only confirmed bookings can be checked in");
@@ -376,7 +429,10 @@ public class BookingServiceImp implements BookingService {
         }
 
         booking.setStatus(Booking.BookingStatus.CHECKED_IN);
+        logger.info("✅ Check-in successful");
+
         return bookingRepository.save(booking);
+
     }
 
     public Booking checkOutBooking(Long id) {
@@ -392,23 +448,195 @@ public class BookingServiceImp implements BookingService {
         return bookingRepository.save(booking);
     }
 
-    private void autoRefundCompletedPaymentIfEligible(Booking booking, CancellationResult cancellationResult) {
-        if (cancellationResult.getRefundAmount() == null
-                || cancellationResult.getRefundAmount().compareTo(BigDecimal.ZERO) <= 0) {
+
+    // ========================================
+    // PRICE CHANGE HANDLER
+    // ========================================
+
+    private void handlePriceChange(Booking booking,
+                                   Booking.BookingStatus oldStatus,
+                                   BigDecimal oldPrice,
+                                   BigDecimal newPrice) {
+
+        int priceComparison = newPrice.compareTo(oldPrice);
+
+        if (priceComparison == 0) {
+            logger.info("✅ Price unchanged: ${}", newPrice);
             return;
         }
 
-        try {
-            Payment payment = paymentService.getPaymentByBookingId(booking.getId());
-            if (payment.getStatus() == Payment.PaymentStatus.COMPLETED) {
-                paymentService.refundPaymentForBooking(
-                        booking.getId(),
-                        cancellationResult.getRefundAmount(),
-                        "Auto refund after booking cancellation"
-                );
+        if (oldStatus == Booking.BookingStatus.PENDING) {
+            // ✅ PENDING: Just update price, no payment processing
+            logger.info("📝 PENDING booking - Price updated: ${} → ${}", oldPrice, newPrice);
+
+        } else if (oldStatus == Booking.BookingStatus.CONFIRMED) {
+
+            if (priceComparison < 0) {
+                // 💰 Price DECREASED: Refund difference
+                handlePriceDecrease(booking, oldPrice, newPrice);
+
+            } else {
+                // 💳 Price INCREASED: Additional payment required
+                handlePriceIncrease(booking, oldPrice, newPrice);
             }
-        } catch (PaymentNotFoundException ex) {
-            logger.info("No payment found for booking {}. Skipping refund.", booking.getId());
         }
     }
-}
+
+    // ========================================
+    // PRICE DECREASE: REFUND WITH POLICY
+    // ========================================
+
+    private void handlePriceDecrease(Booking booking, BigDecimal oldPrice, BigDecimal newPrice) {
+        BigDecimal priceDifference = oldPrice.subtract(newPrice);
+
+        logger.info("💰 Price decreased by ${}", priceDifference);
+
+        // Calculate refund based on cancellation policy
+        long daysUntilCheckIn = ChronoUnit.DAYS.between(LocalDate.now(), booking.getCheckInDate());
+
+        BigDecimal refundAmount;
+        int refundPercentage;
+        String refundPolicy;
+
+        if (daysUntilCheckIn >= 30) {
+            refundPercentage = 100;
+            refundAmount = priceDifference;
+            refundPolicy = "Full refund - 30+ days notice";
+        } else if (daysUntilCheckIn >= 14) {
+            refundPercentage = 75;
+            refundAmount = priceDifference.multiply(BigDecimal.valueOf(0.75));
+            refundPolicy = "75% refund - 14-29 days notice";
+        } else if (daysUntilCheckIn >= 7) {
+            refundPercentage = 50;
+            refundAmount = priceDifference.multiply(BigDecimal.valueOf(0.50));
+            refundPolicy = "50% refund - 7-13 days notice";
+        } else if (daysUntilCheckIn >= 3) {
+            refundPercentage = 25;
+            refundAmount = priceDifference.multiply(BigDecimal.valueOf(0.25));
+            refundPolicy = "25% refund - 3-6 days notice";
+        } else {
+            refundPercentage = 0;
+            refundAmount = BigDecimal.ZERO;
+            refundPolicy = "No refund - Less than 3 days notice";
+        }
+
+        logger.info("Refunding ${} ({}%) - {}", refundAmount, refundPercentage, refundPolicy);
+
+        // Process refund if payment exists
+        if (paymentRepository.existsByBookingId(booking.getId())) {
+            Payment payment = paymentRepository.findByBookingId(booking.getId())
+                    .orElseThrow(() -> new PaymentException("Payment not found"));
+
+            if (payment.getStatus() == Payment.PaymentStatus.COMPLETED &&
+                    refundAmount.compareTo(BigDecimal.ZERO) > 0) {
+
+                try {
+                    RefundRequestDto refundRequest = RefundRequestDto.builder()
+                            .paymentId(payment.getId())
+                            .refundAmount(refundAmount)
+                            .reason("Booking modification - price decrease | " + refundPolicy)
+                            .build();
+
+                    paymentService.refundPayment(refundRequest);
+                    logger.info("✅ Partial refund processed: ${}", refundAmount);
+
+                } catch (Exception e) {
+                    logger.error("❌ Refund failed: {}", e.getMessage());
+                    throw new PaymentException("Failed to process refund: " + e.getMessage());
+                }
+            }
+        }
+    }
+
+    // ========================================
+    // PRICE INCREASE: ADDITIONAL PAYMENT REQUIRED
+    // ========================================
+
+    private void handlePriceIncrease(Booking booking, BigDecimal oldPrice, BigDecimal newPrice) {
+        BigDecimal additionalAmount = newPrice.subtract(oldPrice);
+
+        logger.warn("💳 Price increased by ${} - Additional payment required", additionalAmount);
+
+        // ⭐ Set additional payment flag
+        booking.setAdditionalPaymentRequired(true);
+       //booking.setAdditionalPaymentAmount(additionalAmount);
+
+
+
+        // Keep status as CONFIRMED but flag additional payment needed
+        logger.warn("⚠️ Booking {} requires additional payment of ${} ",
+                booking.getBookingReference(),
+                additionalAmount
+        );
+
+        // Update existing payment amount
+        if (paymentRepository.existsByBookingId(booking.getId())) {
+            Payment payment = paymentRepository.findByBookingId(booking.getId())
+                    .orElseThrow(() -> new PaymentException("Payment not found"));
+
+            // Update payment to reflect new total
+            payment.setTotalAmount(newPrice);
+            payment.setRequiredAdditionalPaymentAmount(additionalAmount);
+            payment.setStatus(Payment.PaymentStatus.PARTIALLY_PAID); // Mark as partial until additional payment is made
+            paymentRepository.save(payment);
+        }
+
+        // TODO: Send notification email to user about additional payment
+        // sendAdditionalPaymentNotification(booking, additionalAmount);
+    }
+
+    // ========================================
+    // TASK 1: Auto-cancel PENDING bookings
+    // Runs every minute
+    // ========================================
+
+    /**
+     * Auto-cancel PENDING bookings older than 3 minutes
+     *
+     * For PRODUCTION: Change to 3 DAYS
+     * Change: .minusMinutes(3) → .minusDays(3)
+     */
+    @Scheduled(cron = "0 * * * * *") // Every minute
+    @Transactional
+    public void cancelExpiredPendingBookings() {
+
+        // ⭐ FOR TESTING: 3 minutes
+        LocalDateTime expiryTime = LocalDateTime.now().minusMinutes(1);
+
+        // ⭐ FOR PRODUCTION: Uncomment this line instead
+        // LocalDateTime expiryTime = LocalDateTime.now().minusDays(3);
+
+        List<Booking> expiredBookings = bookingRepository
+                .findByStatusAndCreatedAtBefore(Booking.BookingStatus.PENDING, expiryTime);
+
+        if (expiredBookings.isEmpty()) {
+            return; // No expired bookings
+        }
+
+        logger.warn("⏰ Found {} expired PENDING bookings", expiredBookings.size());
+
+        for (Booking booking : expiredBookings) {
+            try {
+                // Cancel the booking
+                booking.setStatus(Booking.BookingStatus.CANCELLED);
+                booking.setCancelReason("Auto-cancelled: Payment not completed within time limit");
+                booking.setCancelledAt(LocalDateTime.now());
+                booking.setCancelledBy("SYSTEM");
+
+                bookingRepository.save(booking);
+
+                logger.info("❌ Auto-cancelled PENDING booking: {} (created: {})",
+                        booking.getBookingReference(),
+                        booking.getCreatedAt());
+
+            } catch (Exception e) {
+                logger.error("Failed to auto-cancel booking {}: {}",
+                        booking.getId(), e.getMessage());
+            }
+        }
+
+        logger.info("✅ Auto-cancelled {} PENDING bookings", expiredBookings.size());
+    }
+
+
+    }

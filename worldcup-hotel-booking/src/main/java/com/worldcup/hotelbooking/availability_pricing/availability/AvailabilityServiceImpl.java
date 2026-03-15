@@ -12,11 +12,11 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 
 @Service
-public class AvailabilityService {
+public class AvailabilityServiceImpl {
     private final RoomTypeRepository roomTypeRepository;
     private final BookingRoomRepository bookingRoomRepository;
 
-    AvailabilityService(RoomTypeRepository roomTypeRepository, BookingRoomRepository bookingRoomRepository) {
+    AvailabilityServiceImpl(RoomTypeRepository roomTypeRepository, BookingRoomRepository bookingRoomRepository) {
         this.bookingRoomRepository = bookingRoomRepository;
         this.roomTypeRepository = roomTypeRepository;
     }

@@ -7,7 +7,7 @@ import java.math.BigDecimal;
 
 @Getter
 @AllArgsConstructor
-public class CancellationPolicyResponse {
+public class CancellationPolicyResponseDto {
     private boolean canCancel;
     private BigDecimal refundAmount;
     private BigDecimal cancellationFee;

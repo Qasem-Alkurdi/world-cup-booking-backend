@@ -1,14 +1,11 @@
 package com.worldcup.hotelbooking.booking.bookingroom;
 
-import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-
 @Service
-public class BookingRoomServiceImp implements BookingRoomService {
+public class BookingRoomServiceImpl implements BookingRoomService {
     private final BookingRoomRepository bookingRoomRepository;
-    BookingRoomServiceImp(BookingRoomRepository bookingRoomRepository) {
+    BookingRoomServiceImpl(BookingRoomRepository bookingRoomRepository) {
         this.bookingRoomRepository = bookingRoomRepository;
     }
 

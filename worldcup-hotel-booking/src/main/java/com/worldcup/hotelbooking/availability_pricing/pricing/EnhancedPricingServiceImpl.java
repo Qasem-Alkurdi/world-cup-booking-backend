@@ -15,7 +15,6 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -28,15 +27,15 @@ import java.util.List;
  * Solution: Calculate price for each tournament phase separately
  */
 @Service
-public class EnhancedPricingService {
+public class EnhancedPricingServiceImpl {
 
-    private static final Logger logger = LoggerFactory.getLogger(EnhancedPricingService.class);
+    private static final Logger logger = LoggerFactory.getLogger(EnhancedPricingServiceImpl.class);
 
-    private final PricingService basePricingService;
+    private final PricingServiceImpl basePricingService;
     private final MatchRepository matchRepository;
 
-    public EnhancedPricingService(
-            PricingService basePricingService,
+    public EnhancedPricingServiceImpl(
+            PricingServiceImpl basePricingService,
             MatchRepository matchRepository) {
         this.basePricingService = basePricingService;
         this.matchRepository = matchRepository;

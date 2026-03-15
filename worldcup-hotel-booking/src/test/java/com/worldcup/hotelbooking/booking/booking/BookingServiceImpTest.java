@@ -1,17 +1,17 @@
+
 package com.worldcup.hotelbooking.booking.booking;
-import com.worldcup.hotelbooking.availability_pricing.availability.AvailabilityService;
+import com.worldcup.hotelbooking.availability_pricing.availability.AvailabilityServiceImpl;
 import com.worldcup.hotelbooking.availability_pricing.match.MatchRepository;
-import com.worldcup.hotelbooking.availability_pricing.pricing.EnhancedPricingService;
+import com.worldcup.hotelbooking.availability_pricing.pricing.EnhancedPricingServiceImpl;
 import com.worldcup.hotelbooking.booking.bookingroom.BookingRoom;
 import com.worldcup.hotelbooking.booking.bookingroom.BookingRoomRepository;
-import com.worldcup.hotelbooking.booking.cancellation.CancellationPolicyService;
+import com.worldcup.hotelbooking.booking.cancellation.CancellationPolicyServiceImpl;
 import com.worldcup.hotelbooking.catalog.hotel.Hotel;
 import com.worldcup.hotelbooking.catalog.hotel.HotelRepository;
 import com.worldcup.hotelbooking.catalog.roomtype.RoomType;
 import com.worldcup.hotelbooking.catalog.roomtype.RoomTypeRepository;
 import com.worldcup.hotelbooking.user.user.AppUser;
 import com.worldcup.hotelbooking.user.user.AppUserRepository;
-import org.apache.catalina.User;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.DisplayName;
@@ -63,17 +63,17 @@ class BookingServiceImpTest {
     private MatchRepository matchRepository;
 
     @Mock
-    private EnhancedPricingService enhancedPricingService;
+    private EnhancedPricingServiceImpl enhancedPricingService;
 
     @Mock
-    private CancellationPolicyService cancellationPolicyService;
+    private CancellationPolicyServiceImpl cancellationPolicyService;
 
     @Mock
-    private AvailabilityService availabilityService;
+    private AvailabilityServiceImpl availabilityService;
 
     // Service under test (with mocks injected)
     @InjectMocks
-    private BookingServiceImp bookingService;
+    private BookingServiceImpl bookingService;
 
     // Test data
     private Booking testBooking;

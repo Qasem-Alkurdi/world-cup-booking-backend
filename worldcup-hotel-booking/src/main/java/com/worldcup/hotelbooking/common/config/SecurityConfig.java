@@ -44,7 +44,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PUT, "/stadiums/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/stadiums/**").hasRole("ADMIN")
                         .requestMatchers("/users/**").permitAll()  // adjust as needed
-                        .anyRequest().authenticated()
+                        .anyRequest().permitAll()
                 )
                 .httpBasic(httpBasic -> {}); // For testing; replace with JWT later
 

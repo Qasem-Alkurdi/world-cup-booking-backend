@@ -15,9 +15,9 @@ import java.util.Arrays;
 import java.util.List;
 
 @Service
-public class PricingService {
+public class PricingServiceImpl {
 
-    private static final Logger logger = LoggerFactory.getLogger(PricingService.class);
+    private static final Logger logger = LoggerFactory.getLogger(PricingServiceImpl.class);
     private static final List<String> POPULAR_TEAMS = Arrays.asList(
             "Brazil", "Argentina", "Germany", "France", "Spain",
             "England", "Italy", "Portugal", "Belgium"
@@ -25,7 +25,7 @@ public class PricingService {
 
     private final PricingConfig config;
 
-    public PricingService(PricingConfig config) {
+    public PricingServiceImpl(PricingConfig config) {
         this.config = config;
     }
 

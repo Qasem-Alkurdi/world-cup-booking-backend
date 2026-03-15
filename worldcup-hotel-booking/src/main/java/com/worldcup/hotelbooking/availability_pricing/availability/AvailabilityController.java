@@ -10,9 +10,9 @@ import java.time.LocalDate;
 
 @RestController
 public class AvailabilityController {
-    private final AvailabilityService availabilityService;
+    private final AvailabilityServiceImpl availabilityService;
 
-    public AvailabilityController(AvailabilityService availabilityService) {
+    public AvailabilityController(AvailabilityServiceImpl availabilityService) {
         this.availabilityService = availabilityService;
     }
 
