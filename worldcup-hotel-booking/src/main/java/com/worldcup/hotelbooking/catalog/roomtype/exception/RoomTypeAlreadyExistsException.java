@@ -1,4 +1,4 @@
-package com.worldcup.hotelbooking.catalog.roomtype.exceptions;
+package com.worldcup.hotelbooking.catalog.roomtype.exception;
 
 public class RoomTypeAlreadyExistsException extends RuntimeException {
     public RoomTypeAlreadyExistsException(Long hotelId, String name) {

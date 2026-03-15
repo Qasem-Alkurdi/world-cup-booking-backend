@@ -7,7 +7,6 @@ import com.worldcup.hotelbooking.catalog.hotel.dto.UpdateHotelPatchRequest;
 import com.worldcup.hotelbooking.catalog.hotel.mapper.HotelMapper;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -16,17 +15,17 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/hotels")
-@Transactional
+
 public class HotelController {
 
-    private final HotelServiceInterface service;
+    private final HotelService service;
 
-    public HotelController(HotelServiceInterface service) {
+    public HotelController(HotelService service) {
         this.service = service;
     }
 
     @GetMapping
-    @Transactional(readOnly = true)
+
     public List<HotelResponseDto> all() {
         return service.findAll().stream().map(HotelMapper::toResponse).toList();
     }
@@ -44,7 +43,7 @@ public class HotelController {
     }
 
     @GetMapping("/{id}")
-    @Transactional(readOnly = true)
+
     public HotelResponseDto one(@PathVariable Long id) {
         return HotelMapper.toResponse(service.findById(id));
     }
@@ -75,7 +74,6 @@ public class HotelController {
     }
 
     @GetMapping("/owner/{ownerId}")
-    @Transactional(readOnly = true)
     public List<HotelResponseDto> getMyHotels(@PathVariable Long ownerId) {
         return service.getMyHotels(ownerId).stream().map(HotelMapper::toResponse).toList();
     }

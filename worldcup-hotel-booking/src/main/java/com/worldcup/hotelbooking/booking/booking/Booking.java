@@ -74,7 +74,8 @@ public class Booking {
 
     // ---------------- Constructors ----------------
 
-    public Booking() {}
+    public Booking() {
+    }
 
     // ---------------- Lifecycle ----------------
 

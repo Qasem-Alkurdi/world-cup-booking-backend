@@ -1,4 +1,4 @@
-package com.worldcup.hotelbooking.catalog.query.hotel.exeption;
+package com.worldcup.hotelbooking.catalog.query.hotel.exception;
 
 public class CheckOutBeforeCheckIn extends IllegalArgumentException {
     public CheckOutBeforeCheckIn(String message) {

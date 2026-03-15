@@ -1,11 +1,13 @@
 package com.worldcup.hotelbooking.catalog.roomtype;
 
+import com.worldcup.hotelbooking.availability_pricing.availability.AvailabilityServiceImpl;
 import com.worldcup.hotelbooking.catalog.hotel.Hotel;
 import com.worldcup.hotelbooking.catalog.hotel.HotelRepository;
-import com.worldcup.hotelbooking.catalog.hotel.exceptions.HotelNotFoundException;
+import com.worldcup.hotelbooking.catalog.hotel.exception.HotelNotFoundException;
 import com.worldcup.hotelbooking.catalog.roomtype.dto.ReplaceRoomTypeRequestDto;
-import com.worldcup.hotelbooking.catalog.roomtype.exceptions.RoomTypeAlreadyExistsException;
-import com.worldcup.hotelbooking.catalog.roomtype.exceptions.RoomTypeNotFoundException;
+import com.worldcup.hotelbooking.catalog.roomtype.dto.RoomTypeAvailabilityCriteria;
+import com.worldcup.hotelbooking.catalog.roomtype.exception.RoomTypeAlreadyExistsException;
+import com.worldcup.hotelbooking.catalog.roomtype.exception.RoomTypeNotFoundException;
 import com.worldcup.hotelbooking.catalog.roomtype.mapper.RoomTypeMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,13 +19,16 @@ import static com.worldcup.hotelbooking.catalog.hotel.HotelStatus.APPROVED;
 @Service
 @Transactional
 public class RoomTypeServiceImpl implements RoomTypeService {
-
+    private final AvailabilityServiceImpl availabilityService;
     private final RoomTypeRepository roomTypeRepository;
     private final HotelRepository hotelRepository;
 
-    public RoomTypeServiceImpl(RoomTypeRepository roomTypeRepository, HotelRepository hotelRepository) {
+    public RoomTypeServiceImpl(RoomTypeRepository roomTypeRepository,
+                               HotelRepository hotelRepository,
+                               AvailabilityServiceImpl availabilityService) {
         this.roomTypeRepository = roomTypeRepository;
         this.hotelRepository = hotelRepository;
+        this.availabilityService = availabilityService;
     }
 
     /* -------------------- Helpers -------------------- */
@@ -108,5 +113,82 @@ public class RoomTypeServiceImpl implements RoomTypeService {
 
         RoomType current = getRoomTypeOrThrow(hotelId, roomTypeId);
         roomTypeRepository.delete(current);
+    }
+
+    @Transactional(readOnly = true)
+    @Override
+    public List<RoomType> findAvailableByHotel(Long hotelId, RoomTypeAvailabilityCriteria criteria) {
+        getApprovedActiveHotel(hotelId);
+
+        List<RoomType> roomTypes = roomTypeRepository.findByHotelIdAndHotelNotDeleted(hotelId);
+
+        if (criteria == null || !hasAvailabilityCriteria(criteria)) {
+            return roomTypes;
+        }
+
+        validateAvailabilityCriteria(criteria);
+
+        return roomTypes.stream()
+                .filter(roomType -> matchesCapacity(roomType, criteria))
+                .filter(roomType -> matchesAvailability(roomType, criteria))
+                .sorted((a, b) -> a.getBasePrice().compareTo(b.getBasePrice()))
+                .toList();
+    }
+
+    private boolean hasAvailabilityCriteria(RoomTypeAvailabilityCriteria criteria) {
+        return criteria.getCheckInDate() != null
+                || criteria.getCheckOutDate() != null
+                || criteria.getAdults() != null
+                || criteria.getChildren() != null
+                || criteria.getNumberOfRooms() != null;
+    }
+
+    private void validateAvailabilityCriteria(RoomTypeAvailabilityCriteria criteria) {
+        boolean hasDate = criteria.getCheckInDate() != null || criteria.getCheckOutDate() != null;
+
+        if (hasDate) {
+            if (criteria.getCheckInDate() == null || criteria.getCheckOutDate() == null) {
+                throw new IllegalArgumentException("checkInDate and checkOutDate must both be provided");
+            }
+
+            if (!criteria.getCheckInDate().isBefore(criteria.getCheckOutDate())) {
+                throw new IllegalArgumentException("checkOutDate must be after checkInDate");
+            }
+        }
+
+        if (criteria.getAdults() != null && criteria.getAdults() < 0) {
+            throw new IllegalArgumentException("adults must be greater than or equal to 0");
+        }
+
+        if (criteria.getChildren() != null && criteria.getChildren() < 0) {
+            throw new IllegalArgumentException("children must be greater than or equal to 0");
+        }
+
+        if (criteria.getNumberOfRooms() != null && criteria.getNumberOfRooms() <= 0) {
+            throw new IllegalArgumentException("numberOfRooms must be greater than 0");
+        }
+    }
+
+    private boolean matchesCapacity(RoomType roomType, RoomTypeAvailabilityCriteria criteria) {
+        int adults = criteria.getAdults() == null ? 0 : criteria.getAdults();
+        int children = criteria.getChildren() == null ? 0 : criteria.getChildren();
+
+        return roomType.getMaxAdults() >= adults
+                && roomType.getMaxChildren() >= children;
+    }
+
+    private boolean matchesAvailability(RoomType roomType, RoomTypeAvailabilityCriteria criteria) {
+        if (criteria.getCheckInDate() == null || criteria.getCheckOutDate() == null) {
+            return true;
+        }
+
+        int requestedRooms = criteria.getNumberOfRooms() == null ? 1 : criteria.getNumberOfRooms();
+
+        return availabilityService.checkAvailability(
+                roomType.getId(),
+                criteria.getCheckInDate(),
+                criteria.getCheckOutDate(),
+                requestedRooms
+        );
     }
 }
