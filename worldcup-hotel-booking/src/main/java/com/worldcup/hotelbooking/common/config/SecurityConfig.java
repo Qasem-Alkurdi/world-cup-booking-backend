@@ -1,6 +1,8 @@
 package com.worldcup.hotelbooking.common.config;
 
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
+import com.worldcup.hotelbooking.security.CustomAccessDeniedHandler;
+import com.worldcup.hotelbooking.security.CustomAuthenticationEntryPoint;
 import com.worldcup.hotelbooking.user.user.AppUserDetailsService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -32,9 +34,14 @@ import java.util.stream.Collectors;
 public class SecurityConfig {
 
     private final AppUserDetailsService appUserDetailsService;
+    private final CustomAuthenticationEntryPoint authenticationEntryPoint;
+    private final CustomAccessDeniedHandler accessDeniedHandler;
 
-    public SecurityConfig(AppUserDetailsService appUserDetailsService) {
+    public SecurityConfig(AppUserDetailsService appUserDetailsService,CustomAuthenticationEntryPoint authenticationEntryPoint,
+                          CustomAccessDeniedHandler accessDeniedHandler) {
         this.appUserDetailsService = appUserDetailsService;
+        this.authenticationEntryPoint = authenticationEntryPoint;
+        this.accessDeniedHandler = accessDeniedHandler;
     }
 
     @Bean
@@ -82,20 +89,20 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/auth/**").permitAll()
-                        .requestMatchers("/users").permitAll() // only POST registration
+                        .requestMatchers("/users").permitAll()
                         .requestMatchers("/stadiums/**").permitAll()
                         .requestMatchers("/matches/**").permitAll()
-                        .requestMatchers(
-                                "/swagger-ui/**",
-                                "/swagger-ui.html",
-                                "/api-docs/**",
-                                "/v3/api-docs/**"
-                        ).permitAll()
+                        .requestMatchers("/swagger-ui/**", "/api-docs/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .oauth2ResourceServer(oauth2 -> oauth2
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter()))
+                        .authenticationEntryPoint(authenticationEntryPoint)   // 401 handler
+                )
+                .exceptionHandling(exceptions -> exceptions
+                        .accessDeniedHandler(accessDeniedHandler)             // 403 handler
                 );
+
         return http.build();
     }
 

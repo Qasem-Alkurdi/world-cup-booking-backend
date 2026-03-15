@@ -1,5 +1,7 @@
 package com.worldcup.hotelbooking.common.exception;
 
+import com.worldcup.hotelbooking.auth.InvalidCredentialsException;
+import com.worldcup.hotelbooking.auth.InvalidRefreshTokenException;
 import com.worldcup.hotelbooking.availability_pricing.match.MatchNotFoundException;
 import com.worldcup.hotelbooking.availability_pricing.stadium.StadiumNotFoundException;
 import com.worldcup.hotelbooking.booking.booking.BookingNotFoundException;
@@ -309,6 +311,31 @@ public class GlobalExceptionHandler {
                 request.getRequestURI()
         );
         return ResponseEntity.status(HttpStatus.CONFLICT).body(body);
+    }
+
+
+    @ExceptionHandler(InvalidCredentialsException.class)
+    public ResponseEntity<ApiError> handleInvalidCredentials(InvalidCredentialsException ex, HttpServletRequest request) {
+        ApiError body = new ApiError(
+                Instant.now().toString(),
+                401,
+                "Unauthorized",
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(body);
+    }
+
+    @ExceptionHandler(InvalidRefreshTokenException.class)
+    public ResponseEntity<ApiError> handleInvalidRefreshToken(InvalidRefreshTokenException ex, HttpServletRequest request) {
+        ApiError body = new ApiError(
+                Instant.now().toString(),
+                401,
+                "Unauthorized",
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(body);
     }
     //user end
 

@@ -38,11 +38,14 @@ public class AuthService {
     @Transactional(readOnly = true)
     public LoginResponse login(String username, String password) {
         AppUser user = userRepository.findByUsername(username)
-                .filter(AppUser::isEnabled)
-                .orElseThrow(() -> new RuntimeException("Invalid credentials"));
+                .orElseThrow(() -> new InvalidCredentialsException("Invalid credentials"));
 
         if (!passwordEncoder.matches(password, user.getPassword())) {
-            throw new RuntimeException("Invalid credentials");
+            throw new InvalidCredentialsException("Invalid credentials");
+        }
+
+        if (!user.isEnabled()) {
+            throw new InvalidCredentialsException("User account is disabled");
         }
 
         List<String> roles = user.getRoles().stream()
@@ -63,15 +66,15 @@ public class AuthService {
     @Transactional
     public LoginResponse refresh(String refreshTokenValue) {
         RefreshToken refreshToken = refreshTokenRepository.findByToken(refreshTokenValue)
-                .orElseThrow(() -> new RuntimeException("Invalid refresh token"));
+                .orElseThrow(() -> new InvalidRefreshTokenException("Invalid refresh token"));
 
         if (refreshToken.isRevoked() || refreshToken.isExpired()) {
-            throw new RuntimeException("Refresh token is revoked or expired");
+            throw new InvalidRefreshTokenException("Refresh token is revoked or expired");
         }
 
         AppUser user = refreshToken.getUser();
         if (!user.isEnabled()) {
-            throw new RuntimeException("User account is disabled");
+            throw new InvalidRefreshTokenException("User account is disabled");
         }
 
         // Rotate refresh token: revoke old, create new
