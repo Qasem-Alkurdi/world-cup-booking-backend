@@ -22,7 +22,7 @@ public class UserSeeder {
                 admin.setUsername("admin");
                 admin.setEmail("admin@example.com");
                 admin.setPassword(passwordEncoder.encode("Admin@123"));
-                admin.setRoles(Set.of(Role.admin));
+                admin.setRoles(Set.of(Role.ADMIN));
                 admin.setEnabled(true);
                 userRepository.save(admin);
                 System.out.println("Seeded admin user");
@@ -34,7 +34,7 @@ public class UserSeeder {
                 manager.setUsername("manager");
                 manager.setEmail("manager@example.com");
                 manager.setPassword(passwordEncoder.encode("Manager@123"));
-                manager.setRoles(Set.of(Role.manager));
+                manager.setRoles(Set.of(Role.MANAGER));
                 manager.setEnabled(true);
                 userRepository.save(manager);
                 System.out.println("Seeded manager user");
@@ -46,7 +46,7 @@ public class UserSeeder {
                 guest.setUsername("guest");
                 guest.setEmail("guest@example.com");
                 guest.setPassword(passwordEncoder.encode("Guest@123"));
-                guest.setRoles(Set.of(Role.guest));
+                guest.setRoles(Set.of(Role.GUEST));
                 guest.setEnabled(true);
                 userRepository.save(guest);
                 System.out.println("Seeded guest user");
