@@ -17,7 +17,10 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
-import org.springframework.security.oauth2.jwt.*;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.jwt.JwtEncoder;
+import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
+import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.web.SecurityFilterChain;
 
@@ -37,7 +40,7 @@ public class SecurityConfig {
     private final CustomAuthenticationEntryPoint authenticationEntryPoint;
     private final CustomAccessDeniedHandler accessDeniedHandler;
 
-    public SecurityConfig(AppUserDetailsService appUserDetailsService,CustomAuthenticationEntryPoint authenticationEntryPoint,
+    public SecurityConfig(AppUserDetailsService appUserDetailsService, CustomAuthenticationEntryPoint authenticationEntryPoint,
                           CustomAccessDeniedHandler accessDeniedHandler) {
         this.appUserDetailsService = appUserDetailsService;
         this.authenticationEntryPoint = authenticationEntryPoint;
@@ -90,17 +93,30 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/auth/**").permitAll()
                         .requestMatchers("/users").permitAll()
+
+                        .requestMatchers("/swagger-ui/**", "/api-docs/**").permitAll()
+                        .requestMatchers("/uploads/**").permitAll()
+
+                        // Public catalog / hotel reads
+                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/catalog/hotels/**").permitAll()
+                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/hotels").permitAll()
+                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/hotels/*").permitAll()
+                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/hotels/*/room-types").permitAll()
+                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/hotels/*/room-types/*").permitAll()
+                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/hotels/*/photos").permitAll()
+                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/hotels/*/room-types/*/photos").permitAll()
+
                         .requestMatchers("/stadiums/**").permitAll()
                         .requestMatchers("/matches/**").permitAll()
-                        .requestMatchers("/swagger-ui/**", "/api-docs/**").permitAll()
+
                         .anyRequest().authenticated()
                 )
                 .oauth2ResourceServer(oauth2 -> oauth2
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter()))
-                        .authenticationEntryPoint(authenticationEntryPoint)   // 401 handler
+                        .authenticationEntryPoint(authenticationEntryPoint)
                 )
                 .exceptionHandling(exceptions -> exceptions
-                        .accessDeniedHandler(accessDeniedHandler)             // 403 handler
+                        .accessDeniedHandler(accessDeniedHandler)
                 );
 
         return http.build();

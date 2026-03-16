@@ -99,8 +99,13 @@ class RoomTypePhotoControllerTest {
                 new byte[]{1, 2, 3}
         );
 
-        given(roomTypePhotoService.addPhoto(eq(100L), eq(10L), any(), eq("caption1"), eq(1)))
-                .willReturn(saved);
+        given(roomTypePhotoService.addPhoto(
+                eq(100L),
+                eq(10L),
+                any(org.springframework.web.multipart.MultipartFile.class),
+                eq("caption1"),
+                eq(1)
+        )).willReturn(saved);
         given(roomTypePhotoMapper.toResponse(saved)).willReturn(response);
 
         mockMvc.perform(
@@ -138,8 +143,13 @@ class RoomTypePhotoControllerTest {
                 new byte[]{1, 2, 3}
         );
 
-        given(roomTypePhotoService.addPhoto(eq(100L), eq(10L), any(), eq(null), eq(null)))
-                .willReturn(saved);
+        given(roomTypePhotoService.addPhoto(
+                eq(100L),
+                eq(10L),
+                any(org.springframework.web.multipart.MultipartFile.class),
+                eq(null),
+                eq(null)
+        )).willReturn(saved);
         given(roomTypePhotoMapper.toResponse(saved)).willReturn(response);
 
         mockMvc.perform(

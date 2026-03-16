@@ -3,9 +3,9 @@ package com.worldcup.hotelbooking.catalog.roomtypephoto;
 import com.worldcup.hotelbooking.catalog.roomtypephoto.dto.ReorderPhotosRequestDto;
 import com.worldcup.hotelbooking.catalog.roomtypephoto.dto.RoomTypePhotoResponseDto;
 import com.worldcup.hotelbooking.catalog.roomtypephoto.mapper.RoomTypePhotoMapper;
-import jakarta.validation.Valid;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -35,12 +35,13 @@ public class RoomTypePhotoController {
     }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasRole('ADMIN') or (hasRole('MANAGER') and @hotelAuthorizationService.canManageHotel(#hotelId, authentication))")
     public ResponseEntity<RoomTypePhotoResponseDto> upload(
             @PathVariable Long hotelId,
             @PathVariable Long roomTypeId,
             @RequestPart("file") MultipartFile file,
-            @RequestParam(value = "caption", required = false) String caption,
-            @RequestParam(value = "sortOrder", required = false) Integer sortOrder,
+            @RequestPart(value = "caption", required = false) String caption,
+            @RequestPart(value = "sortOrder", required = false) Integer sortOrder,
             UriComponentsBuilder uriBuilder
     ) {
         RoomTypePhoto saved = roomTypePhotoService.addPhoto(hotelId, roomTypeId, file, caption, sortOrder);
@@ -54,6 +55,7 @@ public class RoomTypePhotoController {
     }
 
     @DeleteMapping("/{photoId}")
+    @PreAuthorize("hasRole('ADMIN') or (hasRole('MANAGER') and @hotelAuthorizationService.canManageHotel(#hotelId, authentication))")
     public ResponseEntity<Void> delete(
             @PathVariable Long hotelId,
             @PathVariable Long roomTypeId,
@@ -64,6 +66,7 @@ public class RoomTypePhotoController {
     }
 
     @PatchMapping("/{photoId}/primary")
+    @PreAuthorize("hasRole('ADMIN') or (hasRole('MANAGER') and @hotelAuthorizationService.canManageHotel(#hotelId, authentication))")
     public ResponseEntity<Void> setPrimary(
             @PathVariable Long hotelId,
             @PathVariable Long roomTypeId,
@@ -74,10 +77,11 @@ public class RoomTypePhotoController {
     }
 
     @PatchMapping("/reorder")
+    @PreAuthorize("hasRole('ADMIN') or (hasRole('MANAGER') and @hotelAuthorizationService.canManageHotel(#hotelId, authentication))")
     public ResponseEntity<Void> reorder(
             @PathVariable Long hotelId,
             @PathVariable Long roomTypeId,
-            @Valid @RequestBody ReorderPhotosRequestDto body
+            @RequestBody ReorderPhotosRequestDto body
     ) {
         roomTypePhotoService.reorderPhotos(hotelId, roomTypeId, body.getPhotoIds());
         return ResponseEntity.noContent().build();
