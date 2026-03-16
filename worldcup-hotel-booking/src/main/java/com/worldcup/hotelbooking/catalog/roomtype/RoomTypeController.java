@@ -7,6 +7,7 @@ import com.worldcup.hotelbooking.catalog.roomtype.dto.RoomTypeResponseDto;
 import com.worldcup.hotelbooking.catalog.roomtype.mapper.RoomTypeMapper;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -15,7 +16,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/hotels/{hotelId}/room-types")
-
 public class RoomTypeController {
 
     private final RoomTypeService service;
@@ -36,6 +36,7 @@ public class RoomTypeController {
     }
 
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN') or (hasRole('MANAGER') and @hotelAuthorizationService.canManageHotel(#hotelId, authentication))")
     public ResponseEntity<RoomTypeResponseDto> create(
             @PathVariable Long hotelId,
             @Valid @RequestBody CreateRoomTypeRequestDto body,
@@ -53,12 +54,12 @@ public class RoomTypeController {
     }
 
     @GetMapping("/{id}")
-
     public RoomTypeResponseDto one(@PathVariable Long hotelId, @PathVariable Long id) {
         return RoomTypeMapper.toResponse(service.findById(hotelId, id));
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN') or (hasRole('MANAGER') and @hotelAuthorizationService.canManageHotel(#hotelId, authentication))")
     public ResponseEntity<RoomTypeResponseDto> replace(
             @PathVariable Long hotelId,
             @PathVariable Long id,
@@ -68,8 +69,8 @@ public class RoomTypeController {
         return ResponseEntity.ok(RoomTypeMapper.toResponse(updated));
     }
 
-
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN') or (hasRole('MANAGER') and @hotelAuthorizationService.canManageHotel(#hotelId, authentication))")
     public ResponseEntity<Void> delete(@PathVariable Long hotelId, @PathVariable Long id) {
         service.delete(hotelId, id);
         return ResponseEntity.noContent().build();

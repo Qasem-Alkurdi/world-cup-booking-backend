@@ -7,6 +7,7 @@ import com.worldcup.hotelbooking.catalog.hotel.exception.HotelNotFoundException;
 import com.worldcup.hotelbooking.user.user.AppUser;
 import com.worldcup.hotelbooking.user.user.AppUserNotFoundException;
 import com.worldcup.hotelbooking.user.user.AppUserRepository;
+import com.worldcup.hotelbooking.user.user.Role;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -51,6 +52,11 @@ public class HotelServiceImpl implements HotelService {
     public Hotel create(Hotel hotel, Long ownerId) {
         AppUser owner = userRepository.findById(ownerId)
                 .orElseThrow(() -> new AppUserNotFoundException("User not found with id: " + ownerId));
+
+        if (!owner.getRoles().contains(Role.MANAGER)) {
+            owner.addRole(Role.MANAGER);
+            userRepository.save(owner);
+        }
 
         hotel.setOwner(owner);
         hotel.setStatus(APPROVED);
