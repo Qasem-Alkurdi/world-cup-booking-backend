@@ -1,27 +1,48 @@
 package com.worldcup.hotelbooking.common.config;
 
+import com.nimbusds.jose.jwk.source.ImmutableSecret;
+import com.worldcup.hotelbooking.security.CustomAccessDeniedHandler;
+import com.worldcup.hotelbooking.security.CustomAuthenticationEntryPoint;
 import com.worldcup.hotelbooking.user.user.AppUserDetailsService;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
+import org.springframework.security.oauth2.jwt.*;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.web.SecurityFilterChain;
+
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
+import java.util.Base64;
+import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Configuration
 @EnableWebSecurity
-@EnableMethodSecurity(prePostEnabled = true)  // ✅ Enables @PreAuthorize
-@RequiredArgsConstructor
+@EnableMethodSecurity(prePostEnabled = true)
 public class SecurityConfig {
 
-    private final AppUserDetailsService appUserDetailsService; // Your custom UserDetailsService
+    private final AppUserDetailsService appUserDetailsService;
+    private final CustomAuthenticationEntryPoint authenticationEntryPoint;
+    private final CustomAccessDeniedHandler accessDeniedHandler;
+
+    public SecurityConfig(AppUserDetailsService appUserDetailsService,CustomAuthenticationEntryPoint authenticationEntryPoint,
+                          CustomAccessDeniedHandler accessDeniedHandler) {
+        this.appUserDetailsService = appUserDetailsService;
+        this.authenticationEntryPoint = authenticationEntryPoint;
+        this.accessDeniedHandler = accessDeniedHandler;
+    }
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -29,25 +50,64 @@ public class SecurityConfig {
     }
 
     @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration authConfig) throws Exception {
-        return authConfig.getAuthenticationManager();
+    public SecretKey jwtSecretKey(@Value("${security.jwt.secret}") String base64Secret) {
+        byte[] decoded = Base64.getDecoder().decode(base64Secret);
+        return new SecretKeySpec(decoded, "HmacSHA256");
+    }
+
+    @Bean
+    public JwtEncoder jwtEncoder(SecretKey jwtSecretKey) {
+        return new NimbusJwtEncoder(new ImmutableSecret<>(jwtSecretKey));
+    }
+
+    @Bean
+    public JwtDecoder jwtDecoder(SecretKey jwtSecretKey) {
+        return NimbusJwtDecoder.withSecretKey(jwtSecretKey)
+                .macAlgorithm(MacAlgorithm.HS256)
+                .build();
+    }
+
+    @Bean
+    public JwtAuthenticationConverter jwtAuthenticationConverter() {
+        JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
+        converter.setJwtGrantedAuthoritiesConverter(jwt -> {
+            List<String> roles = jwt.getClaimAsStringList("roles");
+            if (roles == null) {
+                return Collections.emptyList();
+            }
+            return roles.stream()
+                    .map(role -> new SimpleGrantedAuthority("ROLE_" + role))
+                    .collect(Collectors.toList());
+        });
+        return converter;
     }
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                .csrf(csrf -> csrf.disable()) // For development; enable with tokens in production
+                .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(HttpMethod.GET, "/stadiums/**").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/stadiums/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.PUT, "/stadiums/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/stadiums/**").hasRole("ADMIN")
-                        .requestMatchers("/users/**").permitAll()  // adjust as needed
+                        .requestMatchers("/auth/**").permitAll()
+                        .requestMatchers("/users").permitAll()
+                        .requestMatchers("/stadiums/**").permitAll()
+                        .requestMatchers("/matches/**").permitAll()
+                        .requestMatchers("/swagger-ui/**", "/api-docs/**").permitAll()
                         .anyRequest().authenticated()
                 )
-                .httpBasic(httpBasic -> {}); // For testing; replace with JWT later
+                .oauth2ResourceServer(oauth2 -> oauth2
+                        .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter()))
+                        .authenticationEntryPoint(authenticationEntryPoint)   // 401 handler
+                )
+                .exceptionHandling(exceptions -> exceptions
+                        .accessDeniedHandler(accessDeniedHandler)             // 403 handler
+                );
 
         return http.build();
+    }
+
+    @Bean
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration authConfig) throws Exception {
+        return authConfig.getAuthenticationManager();
     }
 }

@@ -40,7 +40,7 @@ public class AppUserController {
 
     // User themselves or admin
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN') or #id == authentication.principal.id")
+        @PreAuthorize("hasRole('ADMIN') or #id == authentication.principal.claims['userId']")
     public ResponseEntity<AppUserResponseDto> getUserById(@PathVariable Long id) {
         AppUser user = appUserService.getUserById(id);
         return ResponseEntity.ok(AppUserMapper.toDto(user));
@@ -76,7 +76,7 @@ public class AppUserController {
 
     // User themselves or admin
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN') or #id == authentication.principal.id")
+    @PreAuthorize("hasRole('ADMIN') or #id == authentication.principal.claims['userId']")
     public ResponseEntity<AppUserResponseDto> updateUser(
             @PathVariable Long id,
             @Valid @RequestBody AppUserRequestDto dto) {
@@ -87,7 +87,7 @@ public class AppUserController {
 
     // User themselves or admin
     @PatchMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN') or #id == authentication.principal.id")
+    @PreAuthorize("hasRole('ADMIN') or #id == authentication.principal.claims['userId']")
     public ResponseEntity<AppUserResponseDto> partialUpdateUser(
             @PathVariable Long id,
             @RequestBody Map<String, Object> updates) {
@@ -98,7 +98,7 @@ public class AppUserController {
 
     // User themselves or admin
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN') or #id == authentication.principal.id")
+    @PreAuthorize("hasRole('ADMIN') or #id == authentication.principal.claims['userId']")
     public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
         appUserService.deleteUser(id);
         return ResponseEntity.noContent().build();
@@ -106,7 +106,7 @@ public class AppUserController {
 
     // User themselves or admin
     @GetMapping("/{id}/bookings")
-    @PreAuthorize("hasRole('ADMIN') or #id == authentication.principal.id")
+    @PreAuthorize("hasRole('ADMIN') or #id == authentication.principal.claims['userId']")
     public ResponseEntity<List<BookingResponseDto>> getUserBookings(@PathVariable Long id) {
         List<BookingResponseDto> bookings = appUserService.getUserBookings(id);
         return ResponseEntity.ok(bookings);

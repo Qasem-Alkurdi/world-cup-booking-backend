@@ -38,7 +38,7 @@ public class AppUserServiceImpl implements AppUserService {
 
         // Assign default role if none provided
         if (user.getRoles() == null || user.getRoles().isEmpty()) {
-            user.addRole(Role.guest);
+            user.addRole(Role.GUEST);
         }
 
 

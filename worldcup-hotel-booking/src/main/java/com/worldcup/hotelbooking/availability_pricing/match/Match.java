@@ -50,7 +50,7 @@ public class Match {
     private boolean isOpeningMatch = false;
     private boolean isDerby = false;
 
-    @ElementCollection
+    @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "match_popular_teams", joinColumns = @JoinColumn(name = "match_id"))
     @Column(name = "team_name")
     private List<String> popularTeams = new ArrayList<>();

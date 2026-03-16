@@ -17,7 +17,7 @@ public class AppUserMapper {
         // Plain assignment for Step 1
         user.setPassword(dto.password());
 
-        user.setRoles(Set.of(Role.guest));
+        user.setRoles(Set.of(Role.GUEST));
         user.setEnabled(true);
 
         return user;

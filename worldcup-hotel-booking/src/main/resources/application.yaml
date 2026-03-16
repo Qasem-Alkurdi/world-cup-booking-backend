@@ -33,3 +33,10 @@ app:
     upload-dir: uploads
     public-base-url: /uploads
     max-file-size-bytes: 5242880
+
+security:
+  jwt:
+    secret: ${JWT_SECRET:defaultSecretKeyWithAtLeast32CharactersBase64Encoded}
+    issuer: worldcup-hotel-booking
+    access-token-minutes: 60
+    refresh-token-days: 7
