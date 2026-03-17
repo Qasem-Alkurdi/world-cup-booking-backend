@@ -1,6 +1,7 @@
 package com.worldcup.hotelbooking.booking.cancellation;
 
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 
 import java.math.BigDecimal;
@@ -10,6 +11,7 @@ import java.math.BigDecimal;
  */
 @Getter
 @AllArgsConstructor
+@Builder//this anotation allows us to easily create instances of this class using a builder pattern, which is especially useful when there are multiple fields to set.
 public class CancellationResponseDto {
 
     private boolean canCancel;
