@@ -6,12 +6,15 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class LocalPhotoStorageServiceTest {
 
@@ -213,27 +216,24 @@ class LocalPhotoStorageServiceTest {
         assertEquals("Invalid storage key", ex.getMessage());
     }
 
+
     @Test
-    void store_WhenIOExceptionOccurs_ShouldThrowStorageOperationException() {
-        StorageProperties badProperties = new StorageProperties();
-        badProperties.setUploadDir("/proc/invalid-path-that-cannot-be-created");
-        badProperties.setMaxFileSizeBytes(1024 * 1024);
+    void store_WhenIOExceptionOccurs_ShouldThrowStorageOperationException() throws Exception {
+        MultipartFile file = mock(MultipartFile.class);
 
-        LocalPhotoStorageService badService = new LocalPhotoStorageService(badProperties);
-
-        MockMultipartFile file = new MockMultipartFile(
-                "file",
-                "photo.jpg",
-                "image/jpeg",
-                new byte[]{1, 2, 3}
-        );
+        when(file.isEmpty()).thenReturn(false);
+        when(file.getSize()).thenReturn(3L);
+        when(file.getContentType()).thenReturn("image/jpeg");
+        when(file.getOriginalFilename()).thenReturn("photo.jpg");
+        when(file.getInputStream()).thenThrow(new IOException("Simulated IO failure"));
 
         StorageOperationException ex = assertThrows(
                 StorageOperationException.class,
-                () -> badService.store(file, "hotels")
+                () -> storageService.store(file, "hotels")
         );
 
         assertEquals("Failed to store photo file", ex.getMessage());
         assertNotNull(ex.getCause());
+        assertInstanceOf(IOException.class, ex.getCause());
     }
 }
