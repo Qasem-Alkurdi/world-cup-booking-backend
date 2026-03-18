@@ -5,13 +5,19 @@ import com.worldcup.hotelbooking.availability_pricing.stadium.Stadium;
 import com.worldcup.hotelbooking.availability_pricing.stadium.StadiumRepository;
 import com.worldcup.hotelbooking.auth.LoginRequest;
 import com.worldcup.hotelbooking.auth.LoginResponse;
+import com.worldcup.hotelbooking.security.RefreshTokenRepository;
+import com.worldcup.hotelbooking.user.user.AppUser;
+import com.worldcup.hotelbooking.user.user.AppUserRepository;
+import com.worldcup.hotelbooking.user.user.Role;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.servlet.MvcResult;
 
 import java.time.LocalDateTime;
+import java.util.Set;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -23,6 +29,15 @@ class MatchControllerTest extends BaseIntegrationTest {
 
     @Autowired
     private MatchRepository matchRepository;
+
+    @Autowired
+    private AppUserRepository appUserRepository;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private RefreshTokenRepository refreshTokenRepository;
 
     private Long stadiumId;
     private Long matchId;
@@ -52,6 +67,32 @@ class MatchControllerTest extends BaseIntegrationTest {
         match.setOpeningMatch(false);
         match.setDerby(false);
         matchId = matchRepository.save(match).getId();
+    }
+
+    @BeforeEach
+    void setUpUsers() {
+        refreshTokenRepository.deleteAll();
+        appUserRepository.deleteAll();
+        // Delete users if needed (careful with foreign keys – delete refresh tokens first)
+        // For simplicity, we'll just create if they don't exist.
+        if (appUserRepository.findByUsername("admin").isEmpty()) {
+            AppUser admin = new AppUser();
+            admin.setUsername("admin");
+            admin.setEmail("admin@test.com");
+            admin.setPassword(passwordEncoder.encode("Admin@123"));
+            admin.setEnabled(true);
+            admin.setRoles(Set.of(Role.ADMIN));
+            appUserRepository.save(admin);
+        }
+        if (appUserRepository.findByUsername("guest").isEmpty()) {
+            AppUser guest = new AppUser();
+            guest.setUsername("guest");
+            guest.setEmail("guest@test.com");
+            guest.setPassword(passwordEncoder.encode("Guest@123"));
+            guest.setEnabled(true);
+            guest.setRoles(Set.of(Role.GUEST));
+            appUserRepository.save(guest);
+        }
     }
 
     // ========== Public Endpoints (no token required) ==========

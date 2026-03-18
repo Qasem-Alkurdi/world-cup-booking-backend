@@ -6,11 +6,13 @@ import com.worldcup.hotelbooking.user.user.Role;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.Set;
 
 @Configuration
+@Profile("!test")
 public class UserSeeder {
 
     @Bean

@@ -12,6 +12,9 @@ import com.worldcup.hotelbooking.user.user.AppUserService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.security.oauth2.client.autoconfigure.OAuth2ClientAutoConfiguration;
+import org.springframework.boot.security.oauth2.client.autoconfigure.servlet.OAuth2ClientWebSecurityAutoConfiguration;
+import org.springframework.boot.security.oauth2.server.resource.autoconfigure.servlet.OAuth2ResourceServerAutoConfiguration;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -41,7 +44,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(controllers = BookingController.class,
-        excludeAutoConfiguration = {StaticResourceConfig.class})
+        excludeAutoConfiguration = {StaticResourceConfig.class,
+                                    OAuth2ClientAutoConfiguration.class,
+                                    OAuth2ClientWebSecurityAutoConfiguration.class,
+                                    OAuth2ResourceServerAutoConfiguration.class})
 @Import(BookingControllerTest.TestBeans.class)
 @AutoConfigureMockMvc(addFilters = false)
 class BookingControllerTest {

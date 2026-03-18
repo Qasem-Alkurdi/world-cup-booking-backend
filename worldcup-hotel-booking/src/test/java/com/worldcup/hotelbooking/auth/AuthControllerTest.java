@@ -156,4 +156,31 @@ class AuthControllerTest extends BaseIntegrationTest {
         LoginResponse response = objectMapper.readValue(result.getResponse().getContentAsString(), LoginResponse.class);
         return response.refreshToken();
     }
+
+    @Test
+    void login_withBlankUsername_shouldReturn400() throws Exception {
+        LoginRequest request = new LoginRequest("", "password");
+        mockMvc.perform(post("/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void login_withBlankPassword_shouldReturn400() throws Exception {
+        LoginRequest request = new LoginRequest("user", "");
+        mockMvc.perform(post("/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void refresh_withBlankToken_shouldReturn400() throws Exception {
+        RefreshTokenRequest request = new RefreshTokenRequest("");
+        mockMvc.perform(post("/auth/refresh")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
+    }
 }
