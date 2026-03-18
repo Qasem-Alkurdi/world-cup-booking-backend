@@ -6,6 +6,9 @@ import com.worldcup.hotelbooking.catalog.storage.StaticResourceConfig;
 import com.worldcup.hotelbooking.catalog.storage.StorageProperties;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.security.oauth2.client.autoconfigure.OAuth2ClientAutoConfiguration;
+import org.springframework.boot.security.oauth2.client.autoconfigure.servlet.OAuth2ClientWebSecurityAutoConfiguration;
+import org.springframework.boot.security.oauth2.server.resource.autoconfigure.servlet.OAuth2ResourceServerAutoConfiguration;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -22,7 +25,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(controllers = AvailabilityController.class,
-        excludeAutoConfiguration = {StaticResourceConfig.class})
+        excludeAutoConfiguration = {StaticResourceConfig.class,
+                                    OAuth2ClientAutoConfiguration.class,
+                                    OAuth2ClientWebSecurityAutoConfiguration.class,
+                                    OAuth2ResourceServerAutoConfiguration.class}
+)
 @Import(AvailabilityControllerTest.TestBeans.class)
 @AutoConfigureMockMvc(addFilters = false)
 class AvailabilityControllerTest {

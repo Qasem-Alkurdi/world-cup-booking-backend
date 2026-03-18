@@ -3,6 +3,7 @@ package com.worldcup.hotelbooking.common.config;
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
 import com.worldcup.hotelbooking.security.CustomAccessDeniedHandler;
 import com.worldcup.hotelbooking.security.CustomAuthenticationEntryPoint;
+import com.worldcup.hotelbooking.security.OAuth2AuthenticationSuccessHandler;
 import com.worldcup.hotelbooking.user.user.AppUserDetailsService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -39,12 +40,14 @@ public class SecurityConfig {
     private final AppUserDetailsService appUserDetailsService;
     private final CustomAuthenticationEntryPoint authenticationEntryPoint;
     private final CustomAccessDeniedHandler accessDeniedHandler;
+    private final OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler;
 
     public SecurityConfig(AppUserDetailsService appUserDetailsService, CustomAuthenticationEntryPoint authenticationEntryPoint,
-                          CustomAccessDeniedHandler accessDeniedHandler) {
+                          CustomAccessDeniedHandler accessDeniedHandler,OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler) {
         this.appUserDetailsService = appUserDetailsService;
         this.authenticationEntryPoint = authenticationEntryPoint;
         this.accessDeniedHandler = accessDeniedHandler;
+        this.oAuth2AuthenticationSuccessHandler = oAuth2AuthenticationSuccessHandler;
     }
 
     @Bean
@@ -89,11 +92,14 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                // Allow session creation only when needed (for OAuth2 login flow)
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
                 .authorizeHttpRequests(auth -> auth
+                        // Public endpoints
                         .requestMatchers("/auth/**").permitAll()
-                        .requestMatchers("/users").permitAll()
-
+                        .requestMatchers("/users").permitAll()                // registration
+                        .requestMatchers("/login", "/login.html").permitAll() // custom login pages
+                        .requestMatchers("/oauth2/**").permitAll()            // OAuth2 endpoints
                         .requestMatchers("/swagger-ui/**", "/api-docs/**", "/swagger-ui.html").permitAll()
                         .requestMatchers("/uploads/**").permitAll()
 
@@ -110,6 +116,9 @@ public class SecurityConfig {
                         .requestMatchers("/matches/**").permitAll()
 
                         .anyRequest().authenticated()
+                ).oauth2Login(oauth2 -> oauth2
+                        .loginPage("/login")                                   // your custom login page
+                        .successHandler(oAuth2AuthenticationSuccessHandler)    // custom handler (must be a bean)
                 )
                 .oauth2ResourceServer(oauth2 -> oauth2
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter()))

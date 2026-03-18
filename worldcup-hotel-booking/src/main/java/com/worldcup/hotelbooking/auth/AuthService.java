@@ -2,8 +2,7 @@ package com.worldcup.hotelbooking.auth;
 
 import com.worldcup.hotelbooking.security.RefreshToken;
 import com.worldcup.hotelbooking.security.RefreshTokenRepository;
-import com.worldcup.hotelbooking.user.user.AppUser;
-import com.worldcup.hotelbooking.user.user.AppUserRepository;
+import com.worldcup.hotelbooking.user.user.*;
 import com.worldcup.hotelbooking.security.JwtTokenService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -12,6 +11,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -22,17 +24,19 @@ public class AuthService {
     private final JwtTokenService tokenService;
     private final RefreshTokenRepository refreshTokenRepository;
     private final long refreshTokenDays;
+    private final ExternalProviderRepository externalProviderRepository;
 
     public AuthService(AppUserRepository userRepository,
                        PasswordEncoder passwordEncoder,
                        JwtTokenService tokenService,
                        RefreshTokenRepository refreshTokenRepository,
-                       @Value("${security.jwt.refresh-token-days}") long refreshTokenDays) {
+                       @Value("${security.jwt.refresh-token-days}") long refreshTokenDays,ExternalProviderRepository externalProviderRepository) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.tokenService = tokenService;
         this.refreshTokenRepository = refreshTokenRepository;
         this.refreshTokenDays = refreshTokenDays;
+        this.externalProviderRepository = externalProviderRepository;
     }
 
     @Transactional(readOnly = true)
@@ -102,5 +106,58 @@ public class AuthService {
                 .orElseThrow(() -> new RuntimeException("Refresh token not found"));
         refreshToken.setRevoked(true);
         refreshTokenRepository.save(refreshToken);
+    }
+
+    @Transactional
+    public LoginResponse oauth2Login(String email, String name, String providerStr, String providerId) {
+        Provider provider = Provider.valueOf(providerStr.toUpperCase());
+
+        // 1. Check if external provider already linked
+        Optional<ExternalProvider> existingProvider = externalProviderRepository
+                .findByProviderAndProviderId(provider, providerId);
+        if (existingProvider.isPresent()) {
+            // User exists via provider
+            AppUser user = existingProvider.get().getUser();
+            return generateTokensForUser(user);
+        }
+
+        // 2. Try to find user by email
+        Optional<AppUser> userByEmail = userRepository.findByEmail(email);
+        AppUser user;
+        if (userByEmail.isPresent()) {
+            user = userByEmail.get();
+        } else {
+            // 3. Create new user
+            user = new AppUser();
+            user.setUsername(email);                  // or generate a unique username
+            user.setEmail(email);
+            user.setPassword(passwordEncoder.encode(UUID.randomUUID().toString())); // random, unusable password
+            user.setEnabled(true);
+            user.setRoles(Set.of(Role.GUEST));
+            user = userRepository.save(user);
+        }
+
+        // 4. Link the external provider to the user
+        ExternalProvider externalProvider = new ExternalProvider(provider, providerId, user);
+        externalProviderRepository.save(externalProvider);
+        user.getExternalProviders().add(externalProvider);
+
+        // 5. Generate tokens
+        return generateTokensForUser(user);
+    }
+
+    private LoginResponse generateTokensForUser(AppUser user) {
+        List<String> roles = user.getRoles().stream()
+                .map(role -> role.name().toUpperCase())
+                .collect(Collectors.toList());
+
+        String accessToken = tokenService.generateAccessToken(user.getUsername(), user.getId(), roles);
+
+        String refreshTokenValue = tokenService.generateRefreshToken();
+        Instant expiry = Instant.now().plusSeconds(refreshTokenDays * 24 * 60 * 60);
+        RefreshToken refreshToken = new RefreshToken(refreshTokenValue, user, expiry);
+        refreshTokenRepository.save(refreshToken);
+
+        return new LoginResponse(accessToken, refreshTokenValue, tokenService.getAccessTokenExpiresInSeconds());
     }
 }
