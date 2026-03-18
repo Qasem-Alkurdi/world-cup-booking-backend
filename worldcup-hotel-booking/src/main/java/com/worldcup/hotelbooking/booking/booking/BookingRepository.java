@@ -26,7 +26,7 @@ where b.id = :id
 select b from Booking b
 left join fetch b.bookingRooms br
 left join fetch br.roomType
-where b.bookingReference = :bookingReference
+where b.bookingReference = :bookingReference AND b.active = true
 """)
     Optional<Booking> findByBookingReferenceWithRooms(@Param("bookingReference") String bookingReference);
 
@@ -72,6 +72,29 @@ where b.hotel.id = :hotelId
 
 
     List<Booking> findByStatusAndCreatedAtBefore(Booking.BookingStatus status, LocalDateTime createdAt);
+
+    // Used by revertExpiredUpdatePayments() scheduler.
+    // Finds active CONFIRMED bookings where the 24h additional-payment window has expired.
+    @Query("SELECT b FROM Booking b " +
+            "WHERE b.active = true " +
+            "AND b.status = 'CONFIRMED' " +
+            "AND b.additionalPaymentRequired = true " +
+            "AND b.updatePaymentDeadline IS NOT NULL " +
+            "AND b.updatePaymentDeadline < :now")
+    List<Booking> findConfirmedBookingsWithExpiredUpdateDeadline(
+            @Param("now") LocalDateTime now);
+
+    // ── Query 2 ──────────────────────────────────────────────────────────────
+    // Used by revertExpiredUpdatePayments() and PaymentServiceImpl to load or
+    // delete the inactive snapshot copy for a given booking.
+    // We use bookingReference (the business key) — not the surrogate id — because
+    // bookingReference is the stable, human-readable identifier shared by both
+    // the original booking and its snapshot copy.
+    @Query("SELECT b FROM Booking b " +
+            "WHERE b.active = false " +
+            "AND b.snapshotOf.bookingReference = :bookingReference")
+    Optional<Booking> findInactiveSnapshotByOriginalReference(
+            @Param("bookingReference") String bookingReference);
 
 
 }

@@ -6,7 +6,7 @@ import com.worldcup.hotelbooking.booking.bookingroom.BookingRoomRequestDto;
 import com.worldcup.hotelbooking.booking.bookingroom.BookingRoomResponseDto;
 import com.worldcup.hotelbooking.booking.cancellation.CancellationMapper;
 import com.worldcup.hotelbooking.booking.cancellation.CancellationPolicyResponseDto;
-import com.worldcup.hotelbooking.booking.cancellation.CancellationResponseDto;
+import com.worldcup.hotelbooking.booking.cancellation.CancellationResponse;
 import com.worldcup.hotelbooking.catalog.hotel.HotelService;
 import com.worldcup.hotelbooking.catalog.roomtype.RoomTypeService;
 import com.worldcup.hotelbooking.common.response.PagedResponse;
@@ -117,7 +117,7 @@ public class BookingController {
     public ResponseEntity<CancellationPolicyResponseDto> getCancellationPolicy(@PathVariable Long id) {
         logger.info("GET request for cancellation policy for booking: {}", id);
 
-        CancellationResponseDto result = (bookingService).previewCancellation(id);
+        CancellationResponse result = (bookingService).previewCancellation(id);
 
         return ResponseEntity.ok(CancellationMapper.toDto(result));
     }
@@ -140,7 +140,7 @@ public class BookingController {
         }
 
         // Preview policy first to include in response
-        CancellationResponseDto policyResult = (bookingService).previewCancellation(id);
+        CancellationResponse policyResult = (bookingService).previewCancellation(id);
 
         // Cancel the booking (will throw exception if not allowed)
         Booking cancelledBooking = bookingService.cancelBooking(id, reason);
@@ -283,5 +283,69 @@ public class BookingController {
     public ResponseEntity<BookingResponseDto> checkOutBooking(@PathVariable Long id) {
         Booking checkedOut = bookingService.checkOutBooking(id);
         return ResponseEntity.ok(BookingMapper.toDto(checkedOut));
-}
+    }
+
+    /**
+     * Hotel manager cancels a guest booking with automatic compensation bonus.
+     *
+     * The guest always receives a full 100% base refund PLUS a bonus that increases
+     * the closer to check-in the cancellation happens:
+     *
+     *   30+ days  → +10%    14-29 days → +25%    7-13 days → +35%
+     *    3-6 days  → +40%    < 3 days   → +50%
+     *
+     * Example: $200 booking cancelled 2 days before check-in
+     *   base refund $200 + 50% bonus $100 = $300 total payout
+     *
+     * PUT /bookings/123/manager-cancel?reason=Hotel+renovation
+     */
+    @PutMapping("/{id}/manager-cancel")
+    @PreAuthorize("hasRole('ADMIN') or (hasRole('MANAGER') and @bookingAuthorizationService.isHimTheHotelOwnerOfTheBooking(#id, authentication))")
+    @Operation(
+            summary = "Manager cancels a guest booking",
+            description = """
+                    Cancels a booking on behalf of the hotel. The guest receives:
+                    - A full 100% base refund, PLUS
+                    - A compensation bonus (10% up to 50%) that increases the closer to check-in.
+                    The manager's identity is read server-side from the Security context.
+                    """)
+    public ResponseEntity<BookingCancellationResponse> cancelBookingByManager(
+            @PathVariable Long id,
+            @RequestParam String reason) {
+
+        logger.info("Manager '{}' requesting cancellation of booking id={}", id);
+
+        if (reason == null || reason.trim().isEmpty()) {
+            throw new IllegalArgumentException("Cancellation reason is required");
+        }
+
+
+        // Preview to get bonus breakdown for the response
+        CancellationResponse policyResult =
+                bookingService.previewManagerCancellation(id);
+
+        // Perform the actual cancellation
+        Booking cancelledBooking = bookingService.cancelBookingByManager(id, reason,"Hotel manger");
+
+        return ResponseEntity.ok(BookingMapper.toManagerCancellationDto(cancelledBooking, policyResult));
+    }
+
+    @GetMapping("/{id}/manager-cancellation-preview")
+    @PreAuthorize("hasRole('ADMIN') or (hasRole('MANAGER') and @bookingAuthorizationService.isHimTheHotelOwnerOfTheBooking(#id, authentication))")
+    @Operation(
+            summary = "Preview manager cancellation policy",
+            description = """
+                    Preview the cancellation policy and compensation bonus if the hotel were to cancel this booking.
+                    Shows the guest's base refund (always 100%) plus the bonus amount and tier that would apply based on how close to check-in the cancellation occurs.
+                    """)
+    public ResponseEntity<CancellationPolicyResponseDto> previewManagerCancellation(
+            @PathVariable Long id) {
+
+
+        CancellationResponse policyResult =
+                bookingService.previewManagerCancellation(id);
+
+        // We can return the same DTO as the actual cancellation since it includes all the necessary info
+        return ResponseEntity.ok(CancellationMapper.toDto(policyResult));
+    }
 }

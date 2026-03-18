@@ -4,7 +4,7 @@ import com.worldcup.hotelbooking.availability_pricing.availability.AvailabilityS
 import com.worldcup.hotelbooking.availability_pricing.pricing.EnhancedPricingServiceImpl;
 import com.worldcup.hotelbooking.booking.bookingroom.BookingRoom;
 import com.worldcup.hotelbooking.booking.cancellation.CancellationPolicyServiceImpl;
-import com.worldcup.hotelbooking.booking.cancellation.CancellationResponseDto;
+import com.worldcup.hotelbooking.booking.cancellation.CancellationResponse;
 import com.worldcup.hotelbooking.payment.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,7 +21,6 @@ import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
 import java.util.List;
 
 
@@ -115,7 +114,7 @@ public class BookingServiceImpl implements BookingService {
                 .orElseThrow(() -> new BookingNotFoundException("Booking not found with id: " + id));
 
         // CHECK CANCELLATION POLICY
-        CancellationResponseDto cancellationResult = cancellationPolicyService.previewCancellation(booking);
+        CancellationResponse cancellationResult = cancellationPolicyService.previewCancellation(booking);
 
         if (!cancellationResult.isCanCancel()) {
             throw new IllegalStateException(cancellationResult.getPolicyMessage());
@@ -183,11 +182,107 @@ public class BookingServiceImpl implements BookingService {
      * Preview cancellation without actually cancelling
      * Shows user what refund they would get
      */
-    public CancellationResponseDto previewCancellation(Long bookingId) {
+    public CancellationResponse previewCancellation(Long bookingId) {
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new BookingNotFoundException("Booking not found with id: " + bookingId));
 
         return cancellationPolicyService.previewCancellation(booking);
+    }
+
+    /**
+     * Preview manager cancellation without actually cancelling.
+     * Shows what bonus + refund the guest would receive if the manager cancels now.
+     */
+    public CancellationResponse previewManagerCancellation(Long bookingId) {
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new BookingNotFoundException("Booking not found with id: " + bookingId));
+
+        return cancellationPolicyService.calculateManagerCancellation(booking);
+    }
+
+    /**
+     * Hotel manager cancels a guest's booking.
+     *
+     * Differs from guest cancellation in three ways:
+     *  1. Refund policy: always 100% base refund + a compensation bonus on top
+     *     (bonus increases the closer to check-in, because the disruption is greater).
+     *  2. cancelledBy is set to the manager's username (passed from the Security context).
+     *  3. The cancel reason is prefixed with "HOTEL_CANCELLED" so reports can distinguish
+     *     hotel-side vs guest-side cancellations.
+     *
+     * @param bookingId       booking to cancel
+     * @param reason          reason provided by the manager
+     * @param managerUsername username from Spring Security context (never client-supplied)
+     */
+    @Transactional
+    public Booking cancelBookingByManager(Long bookingId, String reason, String managerUsername) {
+        logger.info("Manager '{}' cancelling booking id={} — reason: {}", managerUsername, bookingId, reason);
+
+        Booking booking = bookingRepository.findByIdWithRooms(bookingId)
+                .orElseThrow(() -> new BookingNotFoundException("Booking not found with id: " + bookingId));
+
+        // Calculates 100% base refund + bonus tier — throws CancellationNotAllowedException
+        // if status is CANCELLED, CHECKED_IN, or CHECKED_OUT (same guards as guest cancel)
+        CancellationResponse cancellationResult =
+                cancellationPolicyService.calculateManagerCancellation(booking);
+
+        BigDecimal baseRefund  = cancellationResult.getRefundAmount();
+        BigDecimal bonusAmount = cancellationResult.getBonusAmount();
+        BigDecimal totalPayout = cancellationResult.getTotalPayout();
+
+        logger.info("Manager cancellation approved — base refund: ${}, bonus: ${} ({}), total payout: ${}",
+                baseRefund, bonusAmount, cancellationResult.getBonusTierDescription(), totalPayout);
+
+        // Process payment refund (base + bonus)
+        if (paymentRepository.existsByBookingId(booking.getId())) {
+            Payment payment = paymentRepository.findByBookingId(booking.getId())
+                    .orElseThrow(() -> new PaymentException("Payment record not found for booking " + bookingId));
+
+            boolean canRefund = payment.getStatus() == Payment.PaymentStatus.COMPLETED
+                    || payment.getStatus() == Payment.PaymentStatus.PARTIALLY_REFUNDED
+                    || payment.getStatus() == Payment.PaymentStatus.PARTIALLY_PAID;
+
+            if (canRefund) {
+                BigDecimal alreadyRefunded = payment.getRefundAmount() != null
+                        ? payment.getRefundAmount() : BigDecimal.ZERO;
+                BigDecimal paidAmount = payment.getPaidAmount() != null
+                        ? payment.getPaidAmount() : BigDecimal.ZERO;
+
+                // Cap the base refund at what the guest actually paid (safety net),
+                // but the bonus is always added on top — it is the hotel's cost
+                BigDecimal refundableBase = baseRefund.min(paidAmount.subtract(alreadyRefunded));
+                BigDecimal actualPayout   = refundableBase.add(bonusAmount);
+
+                if (actualPayout.compareTo(BigDecimal.ZERO) > 0) {
+                    RefundRequestDto refundRequest = RefundRequestDto.builder()
+                            .paymentId(payment.getId())
+                            .refundAmount(actualPayout)
+                            .reason("Hotel-initiated cancellation by manager '" + managerUsername
+                                    + "' | " + cancellationResult.getBonusTierDescription()
+                                    + " | " + reason)
+                            .build();
+
+                    paymentService.refundPayment(refundRequest);
+                    logger.info("Refund processed: base ${} + bonus ${} = ${}",
+                            refundableBase, bonusAmount, actualPayout);
+                }
+            }
+        }
+
+        // Persist cancellation state
+        String fullReason = String.format("HOTEL_CANCELLED | Manager: %s | %s | %s",
+                managerUsername, cancellationResult.getBonusTierDescription(), reason);
+
+        booking.setStatus(Booking.BookingStatus.CANCELLED);
+        booking.setCancelReason(fullReason);
+        booking.setCancelledAt(java.time.LocalDateTime.now());
+        booking.setCancelledBy(managerUsername);   // manager, not guest
+
+        Booking cancelled = bookingRepository.save(booking);
+        logger.info("Booking {} cancelled by manager '{}'. Guest total payout: ${}",
+                cancelled.getBookingReference(), managerUsername, totalPayout);
+
+        return cancelled;
     }
 
     @Override
@@ -217,33 +312,44 @@ public class BookingServiceImpl implements BookingService {
 
     @Transactional
     public Booking updateExisting(long id, Booking requestBooking) {
-        // 1. Fetch the MANAGED entity with its rooms
+        // 1. Fetch the managed entity with its current rooms
         Booking managedBooking = bookingRepository.findByIdWithRooms(id)
                 .orElseThrow(() -> new BookingNotFoundException("Booking not found: " + id));
 
-        // 2. Business Rule Validations
+        // 2. Guard: check the booking is in a state that allows modification
         validateCanModify(managedBooking, requestBooking);
 
-        // 3. Store old values for comparison
+        // 3. Capture the ORIGINAL state in full before applying any changes.
+        //    Every field here is the confirmed, fully-paid baseline.
+        //    These are passed into handlePriceIncrease to build the snapshot copy.
         BigDecimal oldPrice = managedBooking.getTotalPrice();
         Booking.BookingStatus oldStatus = managedBooking.getStatus();
-        // 3. Update top-level fields
+        LocalDate oldCheckInDate = managedBooking.getCheckInDate();
+        LocalDate oldCheckOutDate = managedBooking.getCheckOutDate();
+        int oldNumberOfGuests = managedBooking.getNumberOfGuests();
+        int oldNumberOfAdults = managedBooking.getNumberOfAdults();
+        int oldNumberOfChildren = managedBooking.getNumberOfChildren();
+        List<BookingRoom> originalRooms = new java.util.ArrayList<>(managedBooking.getBookingRooms());
+
+        // 4. Apply the requested changes to top-level fields
         managedBooking.setCheckInDate(requestBooking.getCheckInDate());
         managedBooking.setCheckOutDate(requestBooking.getCheckOutDate());
         managedBooking.setNumberOfGuests(requestBooking.getNumberOfGuests());
         managedBooking.setNumberOfAdults(requestBooking.getNumberOfAdults());
         managedBooking.setNumberOfChildren(requestBooking.getNumberOfChildren());
 
-        // 4. SMART ROOM UPDATE: Synchronize the collections
-        // This avoids deleting and re-inserting the same rooms
+        // 5. Synchronise rooms and recalculate the total price
         BigDecimal newTotal = updateBookingRoomsAndPrice(managedBooking, requestBooking.getBookingRooms());
         managedBooking.setTotalPrice(newTotal);
-        // 5. DATA INTEGRITY: Validate logic (dates, capacity, etc.)
+
+        // 6. Validate dates, capacity, and availability with the new values
         performBookingValidations(managedBooking);
 
-        // 8. ⭐ SMART PAYMENT HANDLING
-        handlePriceChange(managedBooking, oldStatus, oldPrice, newTotal);
-
+        // 7. Handle any price change — refund, flag additional payment, or do nothing
+        handlePriceChange(managedBooking, oldStatus, oldPrice, newTotal,
+                oldCheckInDate, oldCheckOutDate,
+                oldNumberOfGuests, oldNumberOfAdults, oldNumberOfChildren,
+                originalRooms);
 
         return bookingRepository.save(managedBooking);
     }
@@ -315,45 +421,21 @@ public class BookingServiceImpl implements BookingService {
             throw new ModificationNotAllowedException(
                     "Cannot modify after check-in date passed");
         }
-    }
 
-    private List<String> analyzeChanges(Booking original, Booking request) {
-
-        List<String> changes = new ArrayList<>();
-
-        if (!original.getCheckInDate().equals(request.getCheckInDate())) {
-            changes.add(String.format("Check-in: %s → %s",
-                    original.getCheckInDate(), request.getCheckInDate()));
-        }
-
-        if (!original.getCheckOutDate().equals(request.getCheckOutDate())) {
-            changes.add(String.format("Check-out: %s → %s",
-                    original.getCheckOutDate(), request.getCheckOutDate()));
-        }
-
-
-        if (original.getBookingRooms().size() != request.getBookingRooms().size()) {
-            changes.add(String.format("Rooms: %d → %d",
-                    original.getBookingRooms().size(), request.getBookingRooms().size()));
-        }
-
-        if (original.getNumberOfGuests() != request.getNumberOfGuests()) {
-            changes.add(String.format("Guests: %d → %d",
-                    original.getNumberOfGuests(), request.getNumberOfGuests()));
-        }
-
-        return changes;
-    }
-
-
-    /**
-     * Validate changes are allowed
-     */
-    private void validateChanges(List<String> analysis) {
-        if (analysis.isEmpty()) {
-            throw new ModificationNotAllowedException("No changes detected");
+        // All modifications are blocked while there is an outstanding payment.
+        // The snapshot copy already holds the confirmed baseline. The user has two options:
+        //  - Pay the outstanding amount to confirm the update.
+        //  - Wait — the system will auto-revert to the original confirmed booking within 24 hours.
+        // We do not allow ANY updates (not even price increases) because each new update
+        // would require a new snapshot or stacked logic that makes the state hard to reason about.
+        if (booking.isAdditionalPaymentRequired()) {
+            throw new ModificationNotAllowedException(
+                    "This booking has an outstanding payment from a recent update. " +
+                            "No further modifications are allowed until the extra amount is paid. " +
+                            "To undo the update, simply wait — the system will auto-revert within 24 hours.");
         }
     }
+
 
 
     public Page<Booking> getGuestHistory(
@@ -456,7 +538,13 @@ public class BookingServiceImpl implements BookingService {
     private void handlePriceChange(Booking booking,
                                    Booking.BookingStatus oldStatus,
                                    BigDecimal oldPrice,
-                                   BigDecimal newPrice) {
+                                   BigDecimal newPrice,
+                                   LocalDate oldCheckInDate,
+                                   LocalDate oldCheckOutDate,
+                                   int oldNumberOfGuests,
+                                   int oldNumberOfAdults,
+                                   int oldNumberOfChildren,
+                                   List<BookingRoom> originalRooms) {
 
         int priceComparison = newPrice.compareTo(oldPrice);
 
@@ -466,18 +554,24 @@ public class BookingServiceImpl implements BookingService {
         }
 
         if (oldStatus == Booking.BookingStatus.PENDING) {
-            // ✅ PENDING: Just update price, no payment processing
+            // PENDING: price update only — no copy, no payment touch.
+            // The auto-cancel scheduler will clean it up if payment never comes.
             logger.info("📝 PENDING booking - Price updated: ${} → ${}", oldPrice, newPrice);
 
         } else if (oldStatus == Booking.BookingStatus.CONFIRMED) {
 
             if (priceComparison < 0) {
-                // 💰 Price DECREASED: Refund difference
+                // 💰 Price DECREASED: refund the difference according to policy
                 handlePriceDecrease(booking, oldPrice, newPrice);
 
             } else {
-                // 💳 Price INCREASED: Additional payment required
-                handlePriceIncrease(booking, oldPrice, newPrice);
+                // 💳 Price INCREASED: create snapshot copy and request additional payment.
+                // A second update while additionalPaymentRequired=true is impossible —
+                // validateCanModify blocks all modifications in that state.
+                handlePriceIncrease(booking, oldPrice, newPrice,
+                        oldCheckInDate, oldCheckOutDate,
+                        oldNumberOfGuests, oldNumberOfAdults, oldNumberOfChildren,
+                        originalRooms);
             }
         }
     }
@@ -552,39 +646,99 @@ public class BookingServiceImpl implements BookingService {
     // PRICE INCREASE: ADDITIONAL PAYMENT REQUIRED
     // ========================================
 
-    private void handlePriceIncrease(Booking booking, BigDecimal oldPrice, BigDecimal newPrice) {
+    /**
+     * Called when a CONFIRMED booking is updated and the new price is higher.
+     *
+     * Strategy:
+     *  1. Create a full inactive copy of the booking AS IT WAS (dates, guests, rooms, price).
+     *     This copy has active=false and snapshotOf pointing to the original booking.
+     *  2. Apply the new changes to the original booking (already done by updateExisting).
+     *  3. Set a 24h payment deadline on the original booking.
+     *  4. Flag additionalPaymentRequired so check-in is blocked.
+     *
+     * If the user pays within 24h: the copy is deleted (handled in processAdditionalPayment).
+     * If they don't: the scheduler restores the original from the copy and deletes the copy.
+     *
+     * @param booking       the original booking, already updated with the new values
+     * @param oldPrice      price before the update (used for payment record diff)
+     * @param newPrice      price after the update
+     * @param originalRooms the rooms AS THEY WERE before the update — these go into the snapshot copy
+     */
+    private void handlePriceIncrease(Booking booking,
+                                     BigDecimal oldPrice,
+                                     BigDecimal newPrice,
+                                     LocalDate oldCheckInDate,
+                                     LocalDate oldCheckOutDate,
+                                     int oldNumberOfGuests,
+                                     int oldNumberOfAdults,
+                                     int oldNumberOfChildren,
+                                     List<BookingRoom> originalRooms) {
+
         BigDecimal additionalAmount = newPrice.subtract(oldPrice);
 
-        logger.warn("💳 Price increased by ${} - Additional payment required", additionalAmount);
+        // ── 1. Build the inactive snapshot copy ────────────────────────────
+        // IMPORTANT: booking already has the NEW values at this point (updateExisting
+        // applied them before calling here). Every field on the snapshot must come
+        // from the old* parameters captured BEFORE the update was applied — never
+        // from booking.getXxx() for fields that were mutated.
+        Booking snapshot = new Booking();
+        snapshot.setActive(false);
+        snapshot.setSnapshotOf(booking);
+        snapshot.setBookingReference(booking.getBookingReference()); // same reference for traceability
+        snapshot.setAppUser(booking.getAppUser());
+        snapshot.setHotel(booking.getHotel());
+        snapshot.setStatus(booking.getStatus());
 
-        // ⭐ Set additional payment flag
+        // Scalar fields: use the old* params, NOT booking.getXxx() ─────────
+        snapshot.setTotalPrice(oldPrice);
+        snapshot.setCheckInDate(oldCheckInDate);
+        snapshot.setCheckOutDate(oldCheckOutDate);
+        snapshot.setNumberOfGuests(oldNumberOfGuests);
+        snapshot.setNumberOfAdults(oldNumberOfAdults);
+        snapshot.setNumberOfChildren(oldNumberOfChildren);
+
+        // These fields were not mutated by the update — safe to read from booking
+        snapshot.setConfirmedAt(booking.getConfirmedAt());
+        snapshot.setConfirmationDeadline(booking.getConfirmationDeadline());
+
+        // ── 2. Copy the original rooms into the snapshot ────────────────────
+        // originalRooms were captured BEFORE updateBookingRoomsAndPrice cleared
+        // the collection — so these are the pre-update rooms.
+        for (BookingRoom originalRoom : originalRooms) {
+            BookingRoom roomCopy = new BookingRoom();
+            roomCopy.setBooking(snapshot);
+            roomCopy.setRoomType(originalRoom.getRoomType());
+            roomCopy.setNumberOfRooms(originalRoom.getNumberOfRooms());
+            roomCopy.setBasePricePerNightPerRoom(originalRoom.getBasePricePerNightPerRoom());
+            roomCopy.setTotalPriceWithFees(originalRoom.getTotalPriceWithFees());
+            snapshot.getBookingRooms().add(roomCopy);
+        }
+
+        bookingRepository.save(snapshot);
+        logger.info("📋 Snapshot copy created (id={}) for booking {}",
+                snapshot.getId(), booking.getBookingReference());
+
+        // ── 3. Set the 24h deadline on the original booking ────────────────
+        booking.setUpdatePaymentDeadline(LocalDateTime.now().plusMinutes(2)); // ⭐ FOR TESTING: 2 minutes
         booking.setAdditionalPaymentRequired(true);
-       //booking.setAdditionalPaymentAmount(additionalAmount);
 
+        logger.warn("⚠️ Booking {} requires additional payment of ${} — deadline: {}",
+                booking.getBookingReference(), additionalAmount, booking.getUpdatePaymentDeadline());
 
-
-        // Keep status as CONFIRMED but flag additional payment needed
-        logger.warn("⚠️ Booking {} requires additional payment of ${} ",
-                booking.getBookingReference(),
-                additionalAmount
-        );
-
-        // Update existing payment amount
+        // ── 4. Update the payment record to reflect the new total ──────────
         if (paymentRepository.existsByBookingId(booking.getId())) {
             Payment payment = paymentRepository.findByBookingId(booking.getId())
                     .orElseThrow(() -> new PaymentException("Payment not found"));
 
-            // Update payment to reflect new total
             payment.setTotalAmount(newPrice);
             payment.setRequiredAdditionalPaymentAmount(additionalAmount);
-            payment.setStatus(Payment.PaymentStatus.PARTIALLY_PAID); // Mark as partial until additional payment is made
+            payment.setStatus(Payment.PaymentStatus.PARTIALLY_PAID);
             paymentRepository.save(payment);
         }
 
-        // TODO: Send notification email to user about additional payment
+        // TODO: Send notification email to user about the additional payment deadline
         // sendAdditionalPaymentNotification(booking, additionalAmount);
     }
-
     // ========================================
     // TASK 1: Auto-cancel PENDING bookings
     // Runs every minute
@@ -600,7 +754,7 @@ public class BookingServiceImpl implements BookingService {
     @Transactional
     public void cancelExpiredPendingBookings() {
 
-        // ⭐ FOR TESTING: 3 minutes
+        // ⭐ FOR TESTING: 1 minute
         LocalDateTime expiryTime = LocalDateTime.now().minusMinutes(1);
 
         // ⭐ FOR PRODUCTION: Uncomment this line instead
@@ -610,14 +764,13 @@ public class BookingServiceImpl implements BookingService {
                 .findByStatusAndCreatedAtBefore(Booking.BookingStatus.PENDING, expiryTime);
 
         if (expiredBookings.isEmpty()) {
-            return; // No expired bookings
+            return;
         }
 
         logger.warn("⏰ Found {} expired PENDING bookings", expiredBookings.size());
 
         for (Booking booking : expiredBookings) {
             try {
-                // Cancel the booking
                 booking.setStatus(Booking.BookingStatus.CANCELLED);
                 booking.setCancelReason("Auto-cancelled: Payment not completed within time limit");
                 booking.setCancelledAt(LocalDateTime.now());
@@ -626,8 +779,7 @@ public class BookingServiceImpl implements BookingService {
                 bookingRepository.save(booking);
 
                 logger.info("❌ Auto-cancelled PENDING booking: {} (created: {})",
-                        booking.getBookingReference(),
-                        booking.getCreatedAt());
+                        booking.getBookingReference(), booking.getCreatedAt());
 
             } catch (Exception e) {
                 logger.error("Failed to auto-cancel booking {}: {}",
@@ -638,5 +790,97 @@ public class BookingServiceImpl implements BookingService {
         logger.info("✅ Auto-cancelled {} PENDING bookings", expiredBookings.size());
     }
 
+    // ========================================
+    // TASK 2: Revert unresolved update payments
+    // Runs every hour
+    // ========================================
 
+    /**
+     * Reverts CONFIRMED bookings where the user updated to a higher-priced option
+     * but did not pay the extra amount within 24 hours.
+     *
+     * How it works:
+     *  - Finds all active CONFIRMED bookings with an expired updatePaymentDeadline.
+     *  - For each one, finds the inactive snapshot copy (active=false, snapshotOf=booking).
+     *  - Copies all fields and rooms from the snapshot back onto the original booking.
+     *  - Deletes the snapshot copy.
+     *  - Resets the payment record to COMPLETED with the original price.
+     */
+    @Scheduled(cron = "0 0 * * * *") // Every hour
+    @Transactional
+    public void revertExpiredUpdatePayments() {
+
+        List<Booking> expiredUpdates = bookingRepository
+                .findConfirmedBookingsWithExpiredUpdateDeadline(LocalDateTime.now());
+
+        if (expiredUpdates.isEmpty()) {
+            return;
+        }
+
+        logger.warn("⏰ Found {} bookings with expired update payment deadline", expiredUpdates.size());
+
+        for (Booking booking : expiredUpdates) {
+            try {
+                logger.info("Reverting booking {} — deadline was: {}",
+                        booking.getBookingReference(), booking.getUpdatePaymentDeadline());
+
+                // ── Find the inactive snapshot copy ──────────────────────────
+                Booking snapshot = bookingRepository.findInactiveSnapshotByOriginalReference(booking.getBookingReference())
+                        .orElseThrow(() -> new BookingNotFoundException(
+                                "Snapshot copy not found for booking " + booking.getBookingReference()));
+
+                // ── Restore scalar fields from snapshot onto original ─────────
+                booking.setCheckInDate(snapshot.getCheckInDate());
+                booking.setCheckOutDate(snapshot.getCheckOutDate());
+                booking.setNumberOfGuests(snapshot.getNumberOfGuests());
+                booking.setNumberOfAdults(snapshot.getNumberOfAdults());
+                booking.setNumberOfChildren(snapshot.getNumberOfChildren());
+                booking.setTotalPrice(snapshot.getTotalPrice());
+
+                // ── Restore rooms: clear current rooms, copy from snapshot ────
+                booking.getBookingRooms().clear();
+                for (BookingRoom snapshotRoom : snapshot.getBookingRooms()) {
+                    BookingRoom restoredRoom = new BookingRoom();
+                    restoredRoom.setBooking(booking);
+                    restoredRoom.setRoomType(snapshotRoom.getRoomType());
+                    restoredRoom.setNumberOfRooms(snapshotRoom.getNumberOfRooms());
+                    restoredRoom.setBasePricePerNightPerRoom(snapshotRoom.getBasePricePerNightPerRoom());
+                    restoredRoom.setTotalPriceWithFees(snapshotRoom.getTotalPriceWithFees());
+                    booking.getBookingRooms().add(restoredRoom);
+                }
+
+                // ── Clear the additional-payment flags ───────────────────────
+                booking.setAdditionalPaymentRequired(false);
+                booking.setUpdatePaymentDeadline(null);
+                bookingRepository.save(booking);
+
+                // ── Reset the payment record to the original amount ──────────
+                if (paymentRepository.existsByBookingId(booking.getId())) {
+                    Payment payment = paymentRepository.findByBookingId(booking.getId())
+                            .orElseThrow(() -> new PaymentException("Payment not found"));
+
+                    payment.setTotalAmount(snapshot.getTotalPrice());
+                    payment.setRequiredAdditionalPaymentAmount(BigDecimal.ZERO);
+                    payment.setStatus(Payment.PaymentStatus.COMPLETED);
+                    paymentRepository.save(payment);
+                }
+
+                // ── Delete the snapshot copy — it has served its purpose ─────
+                bookingRepository.delete(snapshot);
+
+                // TODO: Send notification email to user explaining the revert.
+
+                logger.info("✅ Booking {} reverted to previous state — price restored to ${}",
+                        booking.getBookingReference(), booking.getTotalPrice());
+
+            } catch (Exception e) {
+                logger.error("❌ Failed to revert booking {}: {}",
+                        booking.getId(), e.getMessage());
+            }
+        }
+
+        logger.info("✅ Reverted {} bookings with expired update payment deadline", expiredUpdates.size());
     }
+
+
+}

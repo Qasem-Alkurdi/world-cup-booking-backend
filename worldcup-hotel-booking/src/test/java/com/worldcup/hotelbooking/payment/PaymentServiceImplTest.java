@@ -10,9 +10,12 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -101,7 +104,6 @@ class PaymentServiceImplTest {
         verify(paymentRepository, never()).save(any());
     }
 
-
     @Test
     void createPaymentIntent_bookingZeroOrNegativeTotalPrice_expectedPaymentException() {
         booking.setTotalPrice(BigDecimal.ZERO);
@@ -117,7 +119,6 @@ class PaymentServiceImplTest {
 
         verify(paymentRepository, never()).save(any());
     }
-
 
     // =========================================================
     // 2) processPayment
@@ -340,7 +341,7 @@ class PaymentServiceImplTest {
 
         RefundRequestDto request = RefundRequestDto.builder()
                 .paymentId(10L)
-                .refundAmount(BigDecimal.valueOf(450)) // total would be 550 > 500
+                .refundAmount(BigDecimal.valueOf(450))
                 .reason("Over refund")
                 .build();
 
@@ -432,25 +433,33 @@ class PaymentServiceImplTest {
     }
 
     @Test
-    void getUserPayments_success_expectedListReturned() {
+    void getUserPayments_success_expectedPageReturned() {
         Payment p1 = new Payment();
         Payment p2 = new Payment();
-        when(paymentRepository.findByBooking_AppUser_Id(77L)).thenReturn(List.of(p1, p2));
+        Pageable pageable = PageRequest.of(0, 10);
+        Page<Payment> page = new PageImpl<>(List.of(p1, p2), pageable, 2);
 
-        List<Payment> result = paymentService.getUserPayments(77L);
+        when(paymentRepository.findByBooking_AppUser_Id(77L, pageable)).thenReturn(page);
 
-        assertEquals(2, result.size());
-        verify(paymentRepository).findByBooking_AppUser_Id(77L);
+        Page<Payment> result = paymentService.getUserPayments(77L, pageable);
+
+        assertEquals(2, result.getTotalElements());
+        assertEquals(2, result.getContent().size());
+        verify(paymentRepository).findByBooking_AppUser_Id(77L, pageable);
     }
 
     @Test
-    void getHotelPayments_success_expectedListReturned() {
+    void getHotelPayments_success_expectedPageReturned() {
         Payment p1 = new Payment();
-        when(paymentRepository.findByBooking_Hotel_Id(88L)).thenReturn(List.of(p1));
+        Pageable pageable = PageRequest.of(0, 10);
+        Page<Payment> page = new PageImpl<>(List.of(p1), pageable, 1);
 
-        List<Payment> result = paymentService.getHotelPayments(88L);
+        when(paymentRepository.findByBooking_Hotel_Id(88L, pageable)).thenReturn(page);
 
-        assertEquals(1, result.size());
-        verify(paymentRepository).findByBooking_Hotel_Id(88L);
+        Page<Payment> result = paymentService.getHotelPayments(88L, pageable);
+
+        assertEquals(1, result.getTotalElements());
+        assertEquals(1, result.getContent().size());
+        verify(paymentRepository).findByBooking_Hotel_Id(88L, pageable);
     }
 }

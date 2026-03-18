@@ -23,7 +23,7 @@ public class BookingRequestDto {
     @Positive(message = "User ID must be positive")
     private long userId;
 
-    private Long matchId;
+
 
     @NotNull(message = "Check-in date cannot be null")
     private LocalDate checkInDate;

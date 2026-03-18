@@ -22,10 +22,9 @@ public class Booking {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-   // @Column(nullable = false, unique = true)
+    // @Column(nullable = false, unique = true)
     private String bookingReference;
 
-    private long matchId;
 
     @Column(nullable = false)
     private LocalDate checkInDate;
@@ -54,11 +53,34 @@ public class Booking {
     // ⭐ NEW FIELDS FOR ADDITIONAL PAYMENT TRACKING
     @Column(nullable = false)
     private BigDecimal totalPrice;
-    //private BigDecimal amountPaid;//in case the user confirmed the booking then update it so additional payment will be required so we update the total price and ask fot the additional payment
     @Column(nullable = false)
     private boolean additionalPaymentRequired = false;
-   // @Column(precision = 10, scale = 2)
-    //private BigDecimal additionalPaymentAmount;
+
+    // ── UPDATE SNAPSHOT ──────────────────────────────────────────────────────
+    // When a CONFIRMED booking is updated with a higher price, we create a full
+    // inactive copy of the original booking (isActive = false) and link it here.
+    // If the user pays within 24h the copy is deleted.
+    // If they don't, the scheduler restores everything from the copy and deletes it.
+    //
+    // PENDING bookings do NOT get a copy — the auto-cancel scheduler handles them.
+    // CONFIRMED bookings updated with the same price or a lower price do NOT get a
+    // copy either — those are applied directly (refund is issued for price decreases).
+
+    // False only on the inactive snapshot copy. Always true on the real booking.
+    @Column(nullable = false)
+    private boolean active = true;
+
+    // Set on the inactive snapshot copy to point back to the original booking.
+    // Null on all normal (active) bookings.
+    // We look up the snapshot using bookingReference (the business key) — not id —
+    // because bookingReference is the stable, human-readable identifier.
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "snapshot_of_booking_reference", referencedColumnName = "bookingReference")
+    private Booking snapshotOf;
+
+    // Deadline by which the user must pay the additional amount after a price-increasing update.
+    // Set to now + 24h on the original booking. Cleared when payment completes or booking is reverted.
+    private LocalDateTime updatePaymentDeadline;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)

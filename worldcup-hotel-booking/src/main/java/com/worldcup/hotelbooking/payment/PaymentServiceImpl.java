@@ -163,7 +163,18 @@ public class PaymentServiceImpl {
             // Update booking status to CONFIRMED
             Booking booking = payment.getBooking();
             booking.setAdditionalPaymentRequired(false);
+
+            // ── Clear the update deadline ─────────────────────────────────────
+            booking.setUpdatePaymentDeadline(null);
             bookingRepository.save(booking);
+
+            // ── Delete the inactive snapshot copy — payment was completed ─────
+            // We look up by bookingReference (the business key), not by id.
+            bookingRepository.findInactiveSnapshotByOriginalReference(booking.getBookingReference())
+                    .ifPresent(bookingRepository::delete);
+
+            logger.info("✅ Snapshot copy deleted for booking {} — additional payment completed",
+                    booking.getBookingReference());
 
 
             logger.info("Payment successful: {} for booking: {}",
