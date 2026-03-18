@@ -6,7 +6,7 @@ import com.worldcup.hotelbooking.booking.bookingroom.BookingRoomRequestDto;
 import com.worldcup.hotelbooking.booking.bookingroom.BookingRoomResponseDto;
 import com.worldcup.hotelbooking.booking.cancellation.CancellationMapper;
 import com.worldcup.hotelbooking.booking.cancellation.CancellationPolicyResponseDto;
-import com.worldcup.hotelbooking.booking.cancellation.CancellationResponse;
+import com.worldcup.hotelbooking.booking.cancellation.CancellationResponseDto;
 import com.worldcup.hotelbooking.catalog.hotel.HotelService;
 import com.worldcup.hotelbooking.catalog.roomtype.RoomTypeService;
 import com.worldcup.hotelbooking.common.response.PagedResponse;
@@ -117,7 +117,7 @@ public class BookingController {
     public ResponseEntity<CancellationPolicyResponseDto> getCancellationPolicy(@PathVariable Long id) {
         logger.info("GET request for cancellation policy for booking: {}", id);
 
-        CancellationResponse result = (bookingService).previewCancellation(id);
+        CancellationResponseDto result = (bookingService).previewCancellation(id);
 
         return ResponseEntity.ok(CancellationMapper.toDto(result));
     }
@@ -140,7 +140,7 @@ public class BookingController {
         }
 
         // Preview policy first to include in response
-        CancellationResponse policyResult = (bookingService).previewCancellation(id);
+        CancellationResponseDto policyResult = (bookingService).previewCancellation(id);
 
         // Cancel the booking (will throw exception if not allowed)
         Booking cancelledBooking = bookingService.cancelBooking(id, reason);
@@ -321,7 +321,7 @@ public class BookingController {
 
 
         // Preview to get bonus breakdown for the response
-        CancellationResponse policyResult =
+        CancellationResponseDto policyResult =
                 bookingService.previewManagerCancellation(id);
 
         // Perform the actual cancellation
@@ -342,7 +342,7 @@ public class BookingController {
             @PathVariable Long id) {
 
 
-        CancellationResponse policyResult =
+        CancellationResponseDto policyResult =
                 bookingService.previewManagerCancellation(id);
 
         // We can return the same DTO as the actual cancellation since it includes all the necessary info

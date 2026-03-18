@@ -102,7 +102,7 @@ class CancellationPolicyServiceImplTest {
                 new BigDecimal("400.00")
         );
 
-        CancellationResponse response = service.calculateCancellation(booking);
+        CancellationResponseDto response = service.calculateCancellation(booking);
 
         assertTrue(response.isCanCancel());
         assertEquals(100, response.getRefundPercentage());
@@ -120,7 +120,7 @@ class CancellationPolicyServiceImplTest {
                 new BigDecimal("400.00")
         );
 
-        CancellationResponse response = service.calculateCancellation(booking);
+        CancellationResponseDto response = service.calculateCancellation(booking);
 
         assertTrue(response.isCanCancel());
         assertEquals(75, response.getRefundPercentage());
@@ -138,7 +138,7 @@ class CancellationPolicyServiceImplTest {
                 new BigDecimal("400.00")
         );
 
-        CancellationResponse response = service.calculateCancellation(booking);
+        CancellationResponseDto response = service.calculateCancellation(booking);
 
         assertTrue(response.isCanCancel());
         assertEquals(50, response.getRefundPercentage());
@@ -156,7 +156,7 @@ class CancellationPolicyServiceImplTest {
                 new BigDecimal("400.00")
         );
 
-        CancellationResponse response = service.calculateCancellation(booking);
+        CancellationResponseDto response = service.calculateCancellation(booking);
 
         assertTrue(response.isCanCancel());
         assertEquals(25, response.getRefundPercentage());
@@ -174,7 +174,7 @@ class CancellationPolicyServiceImplTest {
                 new BigDecimal("400.00")
         );
 
-        CancellationResponse response = service.calculateCancellation(booking);
+        CancellationResponseDto response = service.calculateCancellation(booking);
 
         assertTrue(response.isCanCancel());
         assertEquals(0, response.getRefundPercentage());
@@ -196,7 +196,7 @@ class CancellationPolicyServiceImplTest {
                 new BigDecimal("400.00")
         );
 
-        CancellationResponse response = service.previewCancellation(booking);
+        CancellationResponseDto response = service.previewCancellation(booking);
 
         assertTrue(response.isCanCancel());
         assertEquals(75, response.getRefundPercentage());
@@ -212,7 +212,7 @@ class CancellationPolicyServiceImplTest {
                 new BigDecimal("400.00")
         );
 
-        CancellationResponse response = service.previewCancellation(booking);
+        CancellationResponseDto response = service.previewCancellation(booking);
 
         assertFalse(response.isCanCancel());
         assertEquals(0, BigDecimal.ZERO.compareTo(response.getRefundAmount()));
@@ -234,7 +234,7 @@ class CancellationPolicyServiceImplTest {
                 new BigDecimal("200.00")
         );
 
-        CancellationResponse response = service.calculateManagerCancellation(booking);
+        CancellationResponseDto response = service.calculateManagerCancellation(booking);
 
         assertTrue(response.isCanCancel());
         assertEquals(100, response.getRefundPercentage());
@@ -252,7 +252,7 @@ class CancellationPolicyServiceImplTest {
                 new BigDecimal("200.00")
         );
 
-        CancellationResponse response = service.calculateManagerCancellation(booking);
+        CancellationResponseDto response = service.calculateManagerCancellation(booking);
 
         assertEquals(0, new BigDecimal("50.00").compareTo(response.getBonusAmount()));
         assertTrue(response.getBonusTierDescription().contains("25%"));
@@ -266,7 +266,7 @@ class CancellationPolicyServiceImplTest {
                 new BigDecimal("200.00")
         );
 
-        CancellationResponse response = service.calculateManagerCancellation(booking);
+        CancellationResponseDto response = service.calculateManagerCancellation(booking);
 
         assertEquals(0, new BigDecimal("70.00").compareTo(response.getBonusAmount()));
         assertTrue(response.getBonusTierDescription().contains("35%"));
@@ -280,7 +280,7 @@ class CancellationPolicyServiceImplTest {
                 new BigDecimal("200.00")
         );
 
-        CancellationResponse response = service.calculateManagerCancellation(booking);
+        CancellationResponseDto response = service.calculateManagerCancellation(booking);
 
         assertEquals(0, new BigDecimal("80.00").compareTo(response.getBonusAmount()));
         assertTrue(response.getBonusTierDescription().contains("40%"));
@@ -294,7 +294,7 @@ class CancellationPolicyServiceImplTest {
                 new BigDecimal("200.00")
         );
 
-        CancellationResponse response = service.calculateManagerCancellation(booking);
+        CancellationResponseDto response = service.calculateManagerCancellation(booking);
 
         assertEquals(0, new BigDecimal("100.00").compareTo(response.getBonusAmount()));
         assertTrue(response.getBonusTierDescription().contains("50%"));
@@ -340,7 +340,7 @@ class CancellationPolicyServiceImplTest {
                 new BigDecimal("200.00")
         );
 
-        CancellationResponse response = service.previewManagerCancellation(booking);
+        CancellationResponseDto response = service.previewManagerCancellation(booking);
 
         assertFalse(response.isCanCancel());
         assertEquals(0, BigDecimal.ZERO.compareTo(response.getRefundAmount()));

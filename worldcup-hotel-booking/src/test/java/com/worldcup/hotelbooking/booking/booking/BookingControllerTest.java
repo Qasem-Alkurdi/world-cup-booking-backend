@@ -1,7 +1,7 @@
 package com.worldcup.hotelbooking.booking.booking;
 
 import com.worldcup.hotelbooking.booking.bookingroom.BookingRoom;
-import com.worldcup.hotelbooking.booking.cancellation.CancellationResponse;
+import com.worldcup.hotelbooking.booking.cancellation.CancellationResponseDto;
 import com.worldcup.hotelbooking.catalog.hotel.Hotel;
 import com.worldcup.hotelbooking.catalog.hotel.HotelService;
 import com.worldcup.hotelbooking.catalog.roomtype.RoomType;
@@ -180,7 +180,7 @@ class BookingControllerTest {
     @Test
     void getCancellationPolicy_shouldReturnPreview() throws Exception {
         // Arrange
-        CancellationResponse response = CancellationResponse.builder()
+        CancellationResponseDto response = CancellationResponseDto.builder()
                 .canCancel(true)
                 .refundAmount(BigDecimal.valueOf(300))
                 .cancellationFee(BigDecimal.valueOf(20))
@@ -203,7 +203,7 @@ class BookingControllerTest {
     @Test
     void cancelBooking_shouldCancelBookingSuccessfully() throws Exception {
         // Arrange
-        CancellationResponse policy = CancellationResponse.builder()
+        CancellationResponseDto policy = CancellationResponseDto.builder()
                 .canCancel(true)
                 .refundAmount(BigDecimal.valueOf(240))
                 .cancellationFee(BigDecimal.ZERO)

@@ -31,7 +31,7 @@ public class CancellationPolicyServiceImpl {
      *
      * @throws CancellationNotAllowedException if booking cannot be cancelled
      */
-    public CancellationResponse calculateCancellation(Booking booking) {
+    public CancellationResponseDto calculateCancellation(Booking booking) {
 
         // Rule 1: Cannot cancel if already cancelled
         if (booking.getStatus() == Booking.BookingStatus.CANCELLED) {
@@ -115,7 +115,7 @@ public class CancellationPolicyServiceImpl {
         logger.info("Cancellation policy applied: {} - Refund: ${} ({}%)",
                 policyApplied, refundAmount, refundPercentage);
 
-        return new CancellationResponse(
+        return new CancellationResponseDto(
                 true,  // Can cancel
                 refundAmount,
                 cancellationFee,
@@ -146,7 +146,7 @@ public class CancellationPolicyServiceImpl {
      *   bonus        = $100  (50% of $200)
      *   total payout = $300
      */
-    public CancellationResponse calculateManagerCancellation(Booking booking) {
+    public CancellationResponseDto calculateManagerCancellation(Booking booking) {
 
         // Same status guards as guest cancellation
         if (booking.getStatus() == Booking.BookingStatus.CANCELLED) {
@@ -191,7 +191,7 @@ public class CancellationPolicyServiceImpl {
         logger.info("Manager cancellation — days until check-in: {}, bonus: {}% (${}) — total payout: ${}",
                 daysUntilCheckIn, bonusPercentage, bonusAmount, baseRefund.add(bonusAmount));
 
-        return CancellationResponse.builder()
+        return CancellationResponseDto.builder()
                 .canCancel(true)
                 .refundAmount(baseRefund)
                 .cancellationFee(BigDecimal.ZERO)       // guest pays no fee
@@ -207,11 +207,11 @@ public class CancellationPolicyServiceImpl {
      * Get cancellation policy info without actually cancelling
      * Shows user what they would get if they cancel now
      */
-    public CancellationResponse previewCancellation(Booking booking) {
+    public CancellationResponseDto previewCancellation(Booking booking) {
         try {
             return calculateCancellation(booking);
         } catch (CancellationNotAllowedException e) {
-            return new CancellationResponse(
+            return new CancellationResponseDto(
                     false,  // Cannot cancel
                     BigDecimal.ZERO,
                     booking.getTotalPrice(),
@@ -224,11 +224,11 @@ public class CancellationPolicyServiceImpl {
         }
     }
 
-    public CancellationResponse previewManagerCancellation(Booking booking) {
+    public CancellationResponseDto previewManagerCancellation(Booking booking) {
         try {
             return calculateManagerCancellation(booking);
         } catch (CancellationNotAllowedException e) {
-            return new CancellationResponse(
+            return new CancellationResponseDto(
                     false,  // Cannot cancel
                     BigDecimal.ZERO,
                     booking.getTotalPrice(),

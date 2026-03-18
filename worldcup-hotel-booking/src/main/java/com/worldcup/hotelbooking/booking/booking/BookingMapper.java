@@ -1,7 +1,7 @@
 package com.worldcup.hotelbooking.booking.booking;
 
 import com.worldcup.hotelbooking.booking.bookingroom.BookingRoomMapper;
-import com.worldcup.hotelbooking.booking.cancellation.CancellationResponse;
+import com.worldcup.hotelbooking.booking.cancellation.CancellationResponseDto;
 import com.worldcup.hotelbooking.catalog.hotel.Hotel;
 import com.worldcup.hotelbooking.user.user.AppUser;
 
@@ -50,7 +50,7 @@ public class BookingMapper {
 
     public static BookingCancellationResponse toCancellationDto(
             Booking cancelledBooking,
-            CancellationResponse policyResult) {
+            CancellationResponseDto policyResult) {
 
         return new BookingCancellationResponse(
                 BookingMapper.toDto(cancelledBooking),
@@ -68,7 +68,7 @@ public class BookingMapper {
 
     public static BookingCancellationResponse toManagerCancellationDto(
             Booking cancelledBooking,
-            CancellationResponse policyResult) {
+            CancellationResponseDto policyResult) {
 
         return new BookingCancellationResponse(
                 BookingMapper.toDto(cancelledBooking),

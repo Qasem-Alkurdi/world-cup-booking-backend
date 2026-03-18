@@ -4,7 +4,7 @@ import com.worldcup.hotelbooking.availability_pricing.availability.AvailabilityS
 import com.worldcup.hotelbooking.availability_pricing.pricing.EnhancedPricingServiceImpl;
 import com.worldcup.hotelbooking.booking.bookingroom.BookingRoom;
 import com.worldcup.hotelbooking.booking.cancellation.CancellationPolicyServiceImpl;
-import com.worldcup.hotelbooking.booking.cancellation.CancellationResponse;
+import com.worldcup.hotelbooking.booking.cancellation.CancellationResponseDto;
 import com.worldcup.hotelbooking.payment.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -114,7 +114,7 @@ public class BookingServiceImpl implements BookingService {
                 .orElseThrow(() -> new BookingNotFoundException("Booking not found with id: " + id));
 
         // CHECK CANCELLATION POLICY
-        CancellationResponse cancellationResult = cancellationPolicyService.previewCancellation(booking);
+        CancellationResponseDto cancellationResult = cancellationPolicyService.previewCancellation(booking);
 
         if (!cancellationResult.isCanCancel()) {
             throw new IllegalStateException(cancellationResult.getPolicyMessage());
@@ -182,7 +182,7 @@ public class BookingServiceImpl implements BookingService {
      * Preview cancellation without actually cancelling
      * Shows user what refund they would get
      */
-    public CancellationResponse previewCancellation(Long bookingId) {
+    public CancellationResponseDto previewCancellation(Long bookingId) {
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new BookingNotFoundException("Booking not found with id: " + bookingId));
 
@@ -193,7 +193,7 @@ public class BookingServiceImpl implements BookingService {
      * Preview manager cancellation without actually cancelling.
      * Shows what bonus + refund the guest would receive if the manager cancels now.
      */
-    public CancellationResponse previewManagerCancellation(Long bookingId) {
+    public CancellationResponseDto previewManagerCancellation(Long bookingId) {
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new BookingNotFoundException("Booking not found with id: " + bookingId));
 
@@ -223,7 +223,7 @@ public class BookingServiceImpl implements BookingService {
 
         // Calculates 100% base refund + bonus tier — throws CancellationNotAllowedException
         // if status is CANCELLED, CHECKED_IN, or CHECKED_OUT (same guards as guest cancel)
-        CancellationResponse cancellationResult =
+        CancellationResponseDto cancellationResult =
                 cancellationPolicyService.calculateManagerCancellation(booking);
 
         BigDecimal baseRefund  = cancellationResult.getRefundAmount();
