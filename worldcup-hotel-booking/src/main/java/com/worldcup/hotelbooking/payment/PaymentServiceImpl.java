@@ -4,6 +4,8 @@ import com.worldcup.hotelbooking.booking.booking.Booking;
 import com.worldcup.hotelbooking.booking.booking.BookingRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -161,7 +163,18 @@ public class PaymentServiceImpl {
             // Update booking status to CONFIRMED
             Booking booking = payment.getBooking();
             booking.setAdditionalPaymentRequired(false);
+
+            // ── Clear the update deadline ─────────────────────────────────────
+            booking.setUpdatePaymentDeadline(null);
             bookingRepository.save(booking);
+
+            // ── Delete the inactive snapshot copy — payment was completed ─────
+            // We look up by bookingReference (the business key), not by id.
+            bookingRepository.findInactiveSnapshotByOriginalReference(booking.getBookingReference())
+                    .ifPresent(bookingRepository::delete);
+
+            logger.info("✅ Snapshot copy deleted for booking {} — additional payment completed",
+                    booking.getBookingReference());
 
 
             logger.info("Payment successful: {} for booking: {}",
@@ -291,14 +304,14 @@ public class PaymentServiceImpl {
     }
 
     @Transactional
-    public List<Payment> getUserPayments(Long userId) {
-        return paymentRepository.findByBooking_AppUser_Id(userId).stream().toList();
+    public Page<Payment> getUserPayments(Long userId, Pageable pageable) {
+        return paymentRepository.findByBooking_AppUser_Id(userId, pageable);
     }
 
     @Transactional
-    public List<Payment> getHotelPayments(Long hotelId) {
-        return paymentRepository.findByBooking_Hotel_Id(hotelId).stream()
-                .toList();
+    public Page<Payment> getHotelPayments(Long hotelId, Pageable pageable) {
+        return paymentRepository.findByBooking_Hotel_Id(hotelId, pageable);
+
     }
 
     // ========================================
@@ -361,23 +374,5 @@ public class PaymentServiceImpl {
                 UUID.randomUUID().toString().substring(0, 8).toUpperCase();
     }
 
-    private PaymentResponseDto buildPaymentResponse(Payment payment) {
-        return PaymentResponseDto.builder()
-                .id(payment.getId())
-                .paymentIntentId(payment.getPaymentIntentId())
-                .transactionReference(payment.getTransactionReference())
-                .bookingId(payment.getBooking().getId())
-                .bookingReference(payment.getBooking().getBookingReference())
-                .totalAmount_paidAmountWithAdditionalPaymentWithoutRefund(payment.getTotalAmount())
-                .currency(payment.getCurrency())
-                .status(payment.getStatus())
-                .paymentMethod(payment.getPaymentMethod())
-                .createdAt(payment.getCreatedAt())
-                .paidAt(payment.getPaidAt())
-                .failureReason(payment.getFailureReason())
-                .refundAmount(payment.getRefundAmount())
-                .refundedAt(payment.getRefundedAt())
-                .refundReason(payment.getRefundReason())
-                .build();
-    }
+
 }

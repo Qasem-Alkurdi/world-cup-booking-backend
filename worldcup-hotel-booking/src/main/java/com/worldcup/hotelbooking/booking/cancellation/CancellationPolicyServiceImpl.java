@@ -31,7 +31,7 @@ public class CancellationPolicyServiceImpl {
      *
      * @throws CancellationNotAllowedException if booking cannot be cancelled
      */
-    public CancellationResponseDto calculateCancellation(Booking booking) {
+    public CancellationResponse calculateCancellation(Booking booking) {
 
         // Rule 1: Cannot cancel if already cancelled
         if (booking.getStatus() == Booking.BookingStatus.CANCELLED) {
@@ -115,31 +115,128 @@ public class CancellationPolicyServiceImpl {
         logger.info("Cancellation policy applied: {} - Refund: ${} ({}%)",
                 policyApplied, refundAmount, refundPercentage);
 
-        return new CancellationResponseDto(
+        return new CancellationResponse(
                 true,  // Can cancel
                 refundAmount,
                 cancellationFee,
                 refundPercentage,
                 policyApplied,
-                daysUntilCheckIn
+                daysUntilCheckIn,
+                null,  // bonusAmount — not applicable for guest cancellations
+                null   // bonusTierDescription — not applicable for guest cancellations
         );
+    }
+
+    /**
+     * Calculate refund + compensation bonus when a HOTEL MANAGER cancels a guest's booking.
+     *
+     * Rules:
+     *  - Guest always receives 100% base refund (hotel's fault, never penalise the guest).
+     *  - On top of the base refund, a compensation bonus is added — the closer to check-in,
+     *    the higher the bonus, because the disruption is greater:
+     *
+     *      30+  days  →  +10%  (low inconvenience, courtesy bonus)
+     *      14-29 days  →  +25%
+     *       7-13 days  →  +35%
+     *        3-6 days  →  +40%
+     *        < 3 days  →  +50%  (maximum disruption)
+     *
+     * Example: booking $200, cancelled 2 days before check-in
+     *   base refund  = $200  (100%)
+     *   bonus        = $100  (50% of $200)
+     *   total payout = $300
+     */
+    public CancellationResponse calculateManagerCancellation(Booking booking) {
+
+        // Same status guards as guest cancellation
+        if (booking.getStatus() == Booking.BookingStatus.CANCELLED) {
+            throw new CancellationNotAllowedException("Booking is already cancelled.");
+        }
+        if (booking.getStatus() == Booking.BookingStatus.CHECKED_IN) {
+            throw new CancellationNotAllowedException(
+                    "Guest has already checked in. Contact hotel reception to resolve.");
+        }
+        if (booking.getStatus() == Booking.BookingStatus.CHECKED_OUT) {
+            throw new CancellationNotAllowedException("Booking is already completed (checked-out).");
+        }
+
+        long daysUntilCheckIn = ChronoUnit.DAYS.between(LocalDate.now(), booking.getCheckInDate());
+
+        BigDecimal baseRefund = booking.getTotalPrice();   // always 100%
+        int bonusPercentage;
+        String bonusTierDescription;
+
+        // Mirror-opposite of guest penalty tiers — worse disruption = higher bonus
+        if (daysUntilCheckIn >= 30) {
+            bonusPercentage      = 10;
+            bonusTierDescription = "10% courtesy bonus — 30+ days notice";
+        } else if (daysUntilCheckIn >= 14) {
+            bonusPercentage      = 25;
+            bonusTierDescription = "25% compensation bonus — 14-29 days notice";
+        } else if (daysUntilCheckIn >= 7) {
+            bonusPercentage      = 35;
+            bonusTierDescription = "35% compensation bonus — 7-13 days notice";
+        } else if (daysUntilCheckIn >= 3) {
+            bonusPercentage      = 40;
+            bonusTierDescription = "40% compensation bonus — 3-6 days notice";
+        } else {
+            bonusPercentage      = 50;
+            bonusTierDescription = "50% compensation bonus — less than 3 days notice";
+        }
+
+        BigDecimal bonusAmount = baseRefund
+                .multiply(BigDecimal.valueOf(bonusPercentage))
+                .divide(BigDecimal.valueOf(100), 2, java.math.RoundingMode.HALF_UP);
+
+        logger.info("Manager cancellation — days until check-in: {}, bonus: {}% (${}) — total payout: ${}",
+                daysUntilCheckIn, bonusPercentage, bonusAmount, baseRefund.add(bonusAmount));
+
+        return CancellationResponse.builder()
+                .canCancel(true)
+                .refundAmount(baseRefund)
+                .cancellationFee(BigDecimal.ZERO)       // guest pays no fee
+                .refundPercentage(100)
+                .policyMessage("Hotel-initiated cancellation — full refund + " + bonusTierDescription)
+                .daysUntilCheckIn(daysUntilCheckIn)
+                .bonusAmount(bonusAmount)
+                .bonusTierDescription(bonusTierDescription)
+                .build();
     }
 
     /**
      * Get cancellation policy info without actually cancelling
      * Shows user what they would get if they cancel now
      */
-    public CancellationResponseDto previewCancellation(Booking booking) {
+    public CancellationResponse previewCancellation(Booking booking) {
         try {
             return calculateCancellation(booking);
         } catch (CancellationNotAllowedException e) {
-            return new CancellationResponseDto(
+            return new CancellationResponse(
                     false,  // Cannot cancel
                     BigDecimal.ZERO,
                     booking.getTotalPrice(),
                     0,
                     e.getMessage(),
-                    0
+                    0,
+                    null,  // bonusAmount
+                    null   // bonusTierDescription
+            );
+        }
+    }
+
+    public CancellationResponse previewManagerCancellation(Booking booking) {
+        try {
+            return calculateManagerCancellation(booking);
+        } catch (CancellationNotAllowedException e) {
+            return new CancellationResponse(
+                    false,  // Cannot cancel
+                    BigDecimal.ZERO,
+                    booking.getTotalPrice(),
+                    0,
+                    e.getMessage(),
+                    0,
+                    null,  // bonusAmount
+                    null   // bonusTierDescription
             );
         }
     }

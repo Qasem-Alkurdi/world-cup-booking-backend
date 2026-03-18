@@ -2,11 +2,15 @@ package com.worldcup.hotelbooking.payment;
 
 import com.worldcup.hotelbooking.availability_pricing.pricing.PricingResponseDto;
 import com.worldcup.hotelbooking.booking.booking.BookingServiceImpl;
+import com.worldcup.hotelbooking.common.response.PagedResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -38,7 +42,7 @@ public class PaymentController {
     @PostMapping("/create-intent")
     @Operation(summary = "Create payment intent",
             description = "Create a payment intent for a booking. This is step 1 before processing payment.")
-   // @PreAuthorize("hasAnyRole('GUEST', 'MANAGER', 'ADMIN')")
+    @PreAuthorize("@paymentAuthorizationService.canCreatPayment(#request.bookingId, authentication)")
     public ResponseEntity<PaymentIntentResponseDto> createPaymentIntent(
             @Valid @RequestBody PaymentIntentRequestDto request) {
 
@@ -61,7 +65,7 @@ public class PaymentController {
     @PostMapping("/process")
     @Operation(summary = "Process payment",
             description = "Process payment for a payment intent. MOCK: Set simulateSuccess=false to test failure.")
-   // @PreAuthorize("hasAnyRole('GUEST', 'MANAGER', 'ADMIN')")
+   @PreAuthorize("@paymentAuthorizationService.canProcessPayment(request.getPaymentIntentId(), authentication)")
     public ResponseEntity<ProcessPaymentResponseDto> processPayment(
             @Valid @RequestBody ProcessPaymentRequestDto request) {
 
@@ -76,10 +80,11 @@ public class PaymentController {
         }
     }
 
+
     @PostMapping("/additional-payment")
     @Operation(summary = "Process additional payment for a booking",
             description = "Process an additional payment for a booking, such as for extra services or late check-out.")
-   // @PreAuthorize("hasAnyRole('GUEST', 'MANAGER', 'ADMIN')")
+        @PreAuthorize("@paymentAuthorizationService.canProcessPayment(request.getPaymentIntentId(), authentication)")
     public ResponseEntity<ProcessAddiPaymentResponseDto> processAdditionalPayment(
             @Valid @RequestBody ProcessPaymentRequestDto request) {
         logger.info("Processing additional payment for intent: {}", request.getPaymentIntentId());
@@ -118,7 +123,7 @@ public class PaymentController {
             description = "Process a manual refund for special cases. " +
                     "Normal cancellations use automatic refund via booking cancellation."
     )
-   // @PreAuthorize("hasRole('ADMIN') or @paymentSecurityService.canRefundPayment(#request.paymentId, authentication)")
+  @PreAuthorize("hasRole('ADMIN') or(hasRole('MANAGER') and @paymentAuthorizationService.canRefundPayment(#request.getPaymentId(),authentication) )") // Only ADMIN/MANAGER can access this endpoint
     public ResponseEntity<RefundResponseDto> manualRefund(
             @Valid @RequestBody RefundRequestDto request) {
 
@@ -140,7 +145,7 @@ public class PaymentController {
      */
     @GetMapping("/{id}")
     @Operation(summary = "Get payment by ID")
-  //  @PreAuthorize("hasRole('ADMIN') or @paymentSecurityService.canViewPayment(#id, authentication)")
+    @PreAuthorize("hasRole('ADMIN') or @paymentAuthorizationService.canViewPayment(#id, authentication)")
     public ResponseEntity<PaymentResponseDto> getPaymentById(@PathVariable Long id) {
         PaymentResponseDto response = PaymentMapper.toPaymentResponseDto(paymentService.getPaymentById(id));
         return ResponseEntity.ok(response);
@@ -153,7 +158,7 @@ public class PaymentController {
      */
     @GetMapping("/booking/{bookingId}")
     @Operation(summary = "Get payment by booking ID")
-   // @PreAuthorize("hasRole('ADMIN') or @bookingSecurityService.isBookingOwner(#bookingId, authentication)")
+    @PreAuthorize("hasRole('ADMIN') or @paymentAuthorizationService.canViewPaymentByBookingId(#bookingId, authentication)")
     public ResponseEntity<PaymentResponseDto> getPaymentByBookingId(@PathVariable Long bookingId) {
         PaymentResponseDto response = PaymentMapper.toPaymentResponseDto(paymentService.getPaymentByBookingId(bookingId));
         return ResponseEntity.ok(response);
@@ -166,10 +171,15 @@ public class PaymentController {
      */
     @GetMapping("/user/{userId}")
     @Operation(summary = "Get user's payment history")
-    //@PreAuthorize("hasRole('ADMIN') or #userId == authentication.principal.id")
-    public ResponseEntity<List<PaymentResponseDto>> getUserPayments(@PathVariable Long userId) {
-        List<PaymentResponseDto> payments = paymentService.getUserPayments(userId).stream().map(PaymentMapper::toPaymentResponseDto).toList();
-        return ResponseEntity.ok(payments);
+    @PreAuthorize("hasRole('ADMIN') or @paymentAuthorizationService.isCurrentUser(#userId, authentication)")
+    public PagedResponse<PaymentResponseDto> getUserPayments(@PathVariable Long userId,
+                                                             @PageableDefault(size = 10, sort = "totalAmount_paidAmountWithAdditionalPaymentWithoutRefund") Pageable pageable) {
+        Page<Payment> paymentsPage = paymentService.getUserPayments(userId, pageable);
+        List<PaymentResponseDto> payments = paymentsPage
+                                           .getContent()
+                                           .stream().map(PaymentMapper::toPaymentResponseDto).toList();
+        return PagedResponse.from(paymentsPage, payments);
+
     }
 
     /**
@@ -179,9 +189,14 @@ public class PaymentController {
      */
     @GetMapping("/hotel/{hotelId}")
     @Operation(summary = "Get hotel's payment history")
-    //@PreAuthorize("hasRole('ADMIN') or @hotelSecurityService.isHotelOwner(#hotelId, authentication)")
-    public ResponseEntity<List<PaymentResponseDto>> getHotelPayments(@PathVariable Long hotelId) {
-        List<PaymentResponseDto> payments = paymentService.getHotelPayments(hotelId).stream().map(PaymentMapper::toPaymentResponseDto).toList();
-        return ResponseEntity.ok(payments);
+    @PreAuthorize("hasRole('ADMIN') or @paymentAuthorizationService.isHimTheHotelOwnerOfTheBookings(#hotelId, authentication)")
+    public PagedResponse<PaymentResponseDto> getHotelPayments(@PathVariable Long hotelId,
+                                                              @PageableDefault(size = 10, sort = "totalAmount_paidAmountWithAdditionalPaymentWithoutRefund") Pageable pageable) {
+        Page<Payment> paymentsPage = paymentService.getHotelPayments(hotelId, pageable);
+        List<PaymentResponseDto> payments = paymentsPage
+                .getContent()
+                .stream().map(PaymentMapper::toPaymentResponseDto).toList();
+
+        return PagedResponse.from(paymentsPage, payments);
     }
 }

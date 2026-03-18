@@ -1,5 +1,7 @@
 package com.worldcup.hotelbooking.payment;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -26,7 +28,7 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
         JOIN FETCH b.appUser
         WHERE b.appUser.id = :userId
     """)
-    List<Payment> findByBooking_AppUser_Id(@Param("userId") Long userId);
+    Page<Payment> findByBooking_AppUser_Id(@Param("userId") Long userId, Pageable pageable);
 
     @Query("""
         SELECT p FROM Payment p
@@ -34,5 +36,5 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
         JOIN FETCH b.hotel
         WHERE b.hotel.id = :hotelId
     """)
-    List<Payment> findByBooking_Hotel_Id(@Param("hotelId") Long hotelId);
+    Page<Payment> findByBooking_Hotel_Id(@Param("hotelId") Long hotelId, Pageable pageable);
 }
