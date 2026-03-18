@@ -5,7 +5,9 @@ import com.worldcup.hotelbooking.auth.InvalidRefreshTokenException;
 import com.worldcup.hotelbooking.availability_pricing.match.MatchNotFoundException;
 import com.worldcup.hotelbooking.availability_pricing.stadium.StadiumNotFoundException;
 import com.worldcup.hotelbooking.booking.booking.BookingNotFoundException;
+import com.worldcup.hotelbooking.booking.booking.ModificationNotAllowedException;
 import com.worldcup.hotelbooking.booking.bookingroom.BookingRoomNotFoundException;
+import com.worldcup.hotelbooking.booking.cancellation.CancellationNotAllowedException;
 import com.worldcup.hotelbooking.catalog.hotel.exception.DeleteConflictException;
 import com.worldcup.hotelbooking.catalog.hotel.exception.HotelNotFoundException;
 import com.worldcup.hotelbooking.catalog.hotelphoto.exception.HotelPhotoNotFoundException;
@@ -32,6 +34,7 @@ import java.time.Instant;
 @ControllerAdvice
 public class GlobalExceptionHandler {
 
+    //For Booking and Payment
     @ExceptionHandler(PaymentException.class)
     public ResponseEntity<ApiError> handlePaymentNotFound(PaymentException ex, HttpServletRequest request) {
         ApiError body = new ApiError(
@@ -44,7 +47,7 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body);
     }
 
-    //For Booking
+
     @ExceptionHandler(BookingNotFoundException.class)
     public ResponseEntity<ApiError> handleBookingNotFound(BookingNotFoundException ex, HttpServletRequest request) {
         ApiError body = new ApiError(
@@ -100,6 +103,31 @@ public class GlobalExceptionHandler {
         );
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
     }
+
+    @ExceptionHandler(ModificationNotAllowedException.class)
+    public ResponseEntity<ApiError> handleModificationNotAllowed(ModificationNotAllowedException ex, HttpServletRequest request) {
+        ApiError body = new ApiError(
+                Instant.now().toString(),
+                403,
+                "Forbidden",
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(body);
+    }
+
+    @ExceptionHandler(CancellationNotAllowedException.class)
+    public ResponseEntity<ApiError> handleCancellationNotAllowed(CancellationNotAllowedException ex, HttpServletRequest request) {
+        ApiError body = new ApiError(
+                Instant.now().toString(),
+                403,
+                "Forbidden",
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(body);
+    }
+
 // catalog start
 
     // hotel start

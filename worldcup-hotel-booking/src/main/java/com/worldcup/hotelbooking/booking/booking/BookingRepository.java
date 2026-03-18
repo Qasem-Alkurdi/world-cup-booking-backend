@@ -1,5 +1,8 @@
 package com.worldcup.hotelbooking.booking.booking;
 
+import com.worldcup.hotelbooking.payment.Payment;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
@@ -18,6 +21,14 @@ left join fetch br.roomType
 where b.id = :id
 """)
      Optional<Booking> findByIdWithRooms(@Param("id") Long id);
+
+    @Query("""
+select b from Booking b
+left join fetch b.bookingRooms br
+left join fetch br.roomType
+where b.bookingReference = :bookingReference
+""")
+    Optional<Booking> findByBookingReferenceWithRooms(@Param("bookingReference") String bookingReference);
 
     @Query("""
 select b from Booking b
@@ -58,8 +69,9 @@ where b.hotel.id = :hotelId
             List<Booking.BookingStatus> statuses
     );
 
-    //  Booking findByBookingReference(String bookingReference);
+
 
     List<Booking> findByStatusAndCreatedAtBefore(Booking.BookingStatus status, LocalDateTime createdAt);
+
 
 }

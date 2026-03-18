@@ -212,7 +212,7 @@ public class BookingServiceImpl implements BookingService {
     }
 
     public Booking findBookingByReference(String bookingReference) {
-        return bookingRepository.findByBookingReference(bookingReference).orElseThrow(() -> new BookingNotFoundException("Booking not found with reference: " + bookingReference));
+        return bookingRepository.findByBookingReferenceWithRooms(bookingReference).orElseThrow(() -> new BookingNotFoundException("Booking not found with reference: " + bookingReference));
     }
 
     @Transactional

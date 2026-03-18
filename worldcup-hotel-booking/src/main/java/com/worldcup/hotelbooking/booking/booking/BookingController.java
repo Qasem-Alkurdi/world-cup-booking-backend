@@ -20,6 +20,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -49,12 +50,14 @@ public class BookingController {
 
     @Operation(summary = "Get booking by ID", description = "Retrieve a booking by its unique ID.")
     @GetMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN') or @bookingAuthorizationService.isHimTheBookingUser(#id, authentication) or(hasRole('MANAGER') and @bookingAuthorizationService.isHimTheHotelOwnerOfTheBooking(#id, authentication))")
     public BookingResponseDto getBookingById(@PathVariable Long id) {
         return BookingMapper.toDto(bookingService.getBookingById(id));
     }
 
     @Operation(summary = "Create a new booking", description = "Create a new booking with the provided details. The request must include user ID, hotel ID, check-in and check-out dates, and room details.")
     @PostMapping
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','GUEST')")
     public ResponseEntity<BookingResponseDto> createBooking(
             @Valid @RequestBody BookingRequestDto bookingRequest,
             UriComponentsBuilder uriBuilder) {
@@ -109,6 +112,8 @@ public class BookingController {
      * Example: GET /api/v1/bookings/123/cancellation-policy
      */
     @GetMapping("/{id}/cancellation-policy")
+    @Operation(summary = "Preview cancellation policy", description = "Preview the cancellation policy for a specific booking. This endpoint allows users to see the refund amount and policy details without actually cancelling the booking.")
+    @PreAuthorize("hasRole('ADMIN') or @bookingAuthorizationService.isHimTheBookingUser(#id, authentication) or(hasRole('MANAGER') and @bookingAuthorizationService.isHimTheHotelOwnerOfTheBooking(#id, authentication))")
     public ResponseEntity<CancellationPolicyResponseDto> getCancellationPolicy(@PathVariable Long id) {
         logger.info("GET request for cancellation policy for booking: {}", id);
 
@@ -123,6 +128,8 @@ public class BookingController {
      * Example: PUT /api/v1/bookings/123/cancel?reason=Travel+plans+changed
      */
     @PutMapping("/{id}/cancel")
+    @PreAuthorize("hasRole('ADMIN') or @bookingAuthorizationService.isHimTheBookingUser(#id, authentication)")
+    @Operation(summary = "Cancel a booking", description = "Cancel a specific booking by its ID. The cancellation reason must be provided as a query parameter. This endpoint will enforce the cancellation policy and return the refund amount and policy details in the response.")
     public ResponseEntity<BookingCancellationResponse> cancelBooking(
             @PathVariable Long id,
             @RequestParam String reason) {
@@ -144,18 +151,21 @@ public class BookingController {
 
     @Operation(summary = "Get booking rooms", description = "Retrieve the list of rooms associated with a specific booking by its ID.")
     @GetMapping("/{id}/rooms")
+    @PreAuthorize("hasRole('ADMIN') or @bookingAuthorizationService.isHimTheBookingUser(#id, authentication) or(hasRole('MANAGER') and @bookingAuthorizationService.isHimTheHotelOwnerOfTheBooking(#id, authentication))")
     public List<BookingRoomResponseDto> getBookingRooms(@PathVariable Long id) {
         return bookingService.getBookingById(id).getBookingRooms().stream().map(BookingRoomMapper::toDto).collect(toList());
     }
 
     @Operation(summary = "Get booking by reference", description = "Retrieve a booking using its unique booking reference code. This allows users to find their booking without needing the booking ID.")
     @GetMapping("/reference/{reference}")
+    @PreAuthorize("hasRole('ADMIN') or @bookingAuthorizationService.isHimTheBookingUser(#reference, authentication) or(hasRole('MANAGER') and @bookingAuthorizationService.isHimTheHotelOwnerOfTheBooking(#reference, authentication))")
     public BookingResponseDto getBookingByReference(@PathVariable String reference) {
         return BookingMapper.toDto(bookingService.findBookingByReference(reference));
     }
 
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN') or @bookingAuthorizationService.isHimTheBookingUser(#id, authentication)")
     public ResponseEntity<BookingResponseDto> updateBooking(
             @PathVariable long id,
             @RequestBody @Valid BookingRequestDto bookingRequest) {
@@ -185,6 +195,8 @@ public class BookingController {
     }
 
     @GetMapping("/my/history")
+    @Operation(summary = "Get my booking history", description = "Retrieve the booking history for the currently authenticated user. This endpoint returns a paginated list of past bookings made by the user.")
+    @PreAuthorize("hasRole('ADMIN') or @bookingAuthorizationService.isCurrentUser(#userId, authentication)")
     public ResponseEntity<PagedResponse<BookingResponseDto>> getMyHistory(
             @RequestParam Long userId,
             @PageableDefault(size = 10, sort = "id", direction = Sort.Direction.DESC)
@@ -204,6 +216,8 @@ public class BookingController {
     }
 
     @GetMapping("/hotel/{hotelId}/upcoming")
+    @Operation(summary = "Get upcoming bookings for a hotel", description = "Retrieve a paginated list of upcoming bookings for a specific hotel. This endpoint is intended for hotel managers to view future reservations.")
+    @PreAuthorize("hasRole('ADMIN') or (hasRole('MANAGER') and @bookingAuthorizationService.isHimTheHotelOwnerOfTheBookings(#hotelId, authentication))")
     public ResponseEntity<PagedResponse<BookingResponseDto>> getUpcoming(
             @PathVariable Long hotelId,
             @PageableDefault(size = 10, sort = "checkInDate")
@@ -223,6 +237,7 @@ public class BookingController {
     }
 
     @GetMapping
+    @PreAuthorize("hasRole('ADMIN') or (hasRole('MANAGER') and @bookingAuthorizationService.isHimTheHotelOwnerOfTheBookings(#hotelId, authentication))")
     public PagedResponse<BookingResponseDto> filterBookings(
             @RequestParam(required = false) Long userId,
             @RequestParam(required = false) Long hotelId,
@@ -255,12 +270,16 @@ public class BookingController {
 
 
     @PutMapping("/{id}/checkin")
+    @Operation(summary = "Check-in a booking", description = "Mark a specific booking as checked in. This endpoint is intended for hotel staff to update the status of a booking when the guest arrives.")
+    @PreAuthorize("hasRole('ADMIN') or (hasRole('MANAGER') and @bookingAuthorizationService.isHimTheHotelOwnerOfTheBooking(#id, authentication))")
     public ResponseEntity<BookingResponseDto> checkInBooking(@PathVariable Long id) {
         Booking checkedIn = bookingService.checkInBooking(id);
         return ResponseEntity.ok(BookingMapper.toDto(checkedIn));
     }
 
-        @PutMapping("/{id}/checkout")
+    @PutMapping("/{id}/checkout")
+    @Operation(summary = "Check-out a booking", description = "Mark a specific booking as checked out. This endpoint is intended for hotel staff to update the status of a booking when the guest departs.")
+    @PreAuthorize("hasRole('ADMIN') or (hasRole('MANAGER') and @bookingAuthorizationService.isHimTheHotelOwnerOfTheBooking(#id, authentication))")
     public ResponseEntity<BookingResponseDto> checkOutBooking(@PathVariable Long id) {
         Booking checkedOut = bookingService.checkOutBooking(id);
         return ResponseEntity.ok(BookingMapper.toDto(checkedOut));
