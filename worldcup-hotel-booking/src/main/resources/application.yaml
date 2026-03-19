@@ -2,7 +2,7 @@ spring:
   application:
     name: worldcup-hotel-booking
   profiles:
-    active: local
+    active: local,seed
   jpa:
     hibernate:
       ddl-auto: update

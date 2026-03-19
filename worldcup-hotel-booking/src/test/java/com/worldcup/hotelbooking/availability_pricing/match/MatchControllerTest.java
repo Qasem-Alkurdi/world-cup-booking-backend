@@ -101,8 +101,8 @@ class MatchControllerTest extends BaseIntegrationTest {
     void getAllMatches_public_shouldReturn200() throws Exception {
         mockMvc.perform(get("/matches"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].id").value(matchId))
-                .andExpect(jsonPath("$[0].homeTeam").value("Team A"));
+                .andExpect(jsonPath("$.content[0].id").value(matchId))
+                .andExpect(jsonPath("$.content[0].homeTeam").value("Team A"));
     }
 
     @Test
@@ -117,7 +117,7 @@ class MatchControllerTest extends BaseIntegrationTest {
     void getMatchesByStadium_public_shouldReturn200() throws Exception {
         mockMvc.perform(get("/matches/stadium/{stadiumId}", stadiumId))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].id").value(matchId));
+                .andExpect(jsonPath("$.content[0].id").value(matchId));
     }
 
     @Test

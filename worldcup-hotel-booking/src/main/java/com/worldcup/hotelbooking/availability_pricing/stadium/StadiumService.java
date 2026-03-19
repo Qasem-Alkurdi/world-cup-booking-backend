@@ -2,10 +2,10 @@ package com.worldcup.hotelbooking.availability_pricing.stadium;
 
 import com.worldcup.hotelbooking.availability_pricing.match.MatchRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -16,8 +16,11 @@ public class StadiumService {
     private final MatchRepository matchRepository;
 
     @Transactional(readOnly = true)
-    public List<Stadium> getAllStadiums() {
-        return stadiumRepository.findAll();
+    public Page<Stadium> getAllStadiums(String city, Pageable pageable) {
+        if (city != null && !city.isEmpty()) {
+            return stadiumRepository.findByCityContainingIgnoreCase(city, pageable);
+        }
+        return stadiumRepository.findAll(pageable);
     }
 
     @Transactional(readOnly = true)

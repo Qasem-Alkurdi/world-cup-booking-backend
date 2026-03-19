@@ -1,19 +1,24 @@
 package com.worldcup.hotelbooking.availability_pricing.match;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
-public interface MatchRepository extends JpaRepository<Match, Long> {
+public interface MatchRepository extends JpaRepository<Match, Long>,JpaSpecificationExecutor<Match>  {
 
     // Basic finder needed for stadium deletion check
     boolean existsByStadiumId(Long stadiumId);
 
     // Find matches by stadium ID (already covered by exists, but useful)
-    List<Match> findByStadiumId(Long stadiumId);
+    Page<Match> findByStadiumId(Long stadiumId, Pageable pageable);
+
+    Page<Match> findByStage(Match.MatchStage stage, Pageable pageable);
 
     /**
      * Find all matches happening between two dates
