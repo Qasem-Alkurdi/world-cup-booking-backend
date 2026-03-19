@@ -39,7 +39,7 @@ public class AuthService {
         this.externalProviderRepository = externalProviderRepository;
     }
 
-    @Transactional(readOnly = true)
+    @Transactional()
     public LoginResponse login(String username, String password) {
         AppUser user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new InvalidCredentialsException("Invalid credentials"));

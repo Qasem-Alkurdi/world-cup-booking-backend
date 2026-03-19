@@ -1,6 +1,8 @@
 package com.worldcup.hotelbooking.user.user;
 
 import com.worldcup.hotelbooking.booking.booking.BookingResponseDto;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -16,6 +18,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/users")
+@Tag(name = "Users", description = "User management and profile operations")
 public class AppUserController {
 
     private final AppUserService appUserService;
@@ -24,8 +27,8 @@ public class AppUserController {
         this.appUserService = appUserService;
     }
 
-    // Public: user registration
     @PostMapping
+    @Operation(summary = "Register a new user (public)")
     public ResponseEntity<AppUserResponseDto> createUser(
             @Valid @RequestBody AppUserRequestDto dto,
             UriComponentsBuilder uriBuilder) {
@@ -38,17 +41,17 @@ public class AppUserController {
                 .body(responseDto);
     }
 
-    // User themselves or admin
     @GetMapping("/{id}")
-        @PreAuthorize("hasRole('ADMIN') or #id == authentication.principal.claims['userId']")
+    @PreAuthorize("hasRole('ADMIN') or #id == authentication.principal.claims['userId']")
+    @Operation(summary = "Get user by ID (user themselves or admin)")
     public ResponseEntity<AppUserResponseDto> getUserById(@PathVariable Long id) {
         AppUser user = appUserService.getUserById(id);
         return ResponseEntity.ok(AppUserMapper.toDto(user));
     }
 
-    // Admin only
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Get all users with pagination (Admin only)")
     public ResponseEntity<Page<AppUserResponseDto>> getAllUsers(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
@@ -64,9 +67,9 @@ public class AppUserController {
         return ResponseEntity.ok(responsePage);
     }
 
-    // Admin only (or could be user themselves with email check, but simpler to keep admin)
     @GetMapping("/email/{email}")
     @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Get user by email (Admin only)")
     public ResponseEntity<AppUserResponseDto> getUserByEmail(@PathVariable String email) {
         return appUserService.getUserByEmail(email)
                 .map(AppUserMapper::toDto)
@@ -74,9 +77,9 @@ public class AppUserController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    // User themselves or admin
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN') or #id == authentication.principal.claims['userId']")
+    @Operation(summary = "Update user fully (user themselves or admin)")
     public ResponseEntity<AppUserResponseDto> updateUser(
             @PathVariable Long id,
             @Valid @RequestBody AppUserRequestDto dto) {
@@ -85,9 +88,9 @@ public class AppUserController {
         return ResponseEntity.ok(AppUserMapper.toDto(updatedUser));
     }
 
-    // User themselves or admin
     @PatchMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN') or #id == authentication.principal.claims['userId']")
+    @Operation(summary = "Partial update of user fields (user themselves or admin)")
     public ResponseEntity<AppUserResponseDto> partialUpdateUser(
             @PathVariable Long id,
             @RequestBody Map<String, Object> updates) {
@@ -96,25 +99,25 @@ public class AppUserController {
         return ResponseEntity.ok(AppUserMapper.toDto(updatedUser));
     }
 
-    // User themselves or admin
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN') or #id == authentication.principal.claims['userId']")
+    @Operation(summary = "Delete user (user themselves or admin)")
     public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
         appUserService.deleteUser(id);
         return ResponseEntity.noContent().build();
     }
 
-    // User themselves or admin
     @GetMapping("/{id}/bookings")
     @PreAuthorize("hasRole('ADMIN') or #id == authentication.principal.claims['userId']")
+    @Operation(summary = "Get all bookings of a user (user themselves or admin)")
     public ResponseEntity<List<BookingResponseDto>> getUserBookings(@PathVariable Long id) {
         List<BookingResponseDto> bookings = appUserService.getUserBookings(id);
         return ResponseEntity.ok(bookings);
     }
 
-    // Admin only (search users)
     @GetMapping("/search")
     @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Search users by username or email (Admin only)")
     public ResponseEntity<List<AppUserResponseDto>> searchUsers(
             @RequestParam(required = false) String username,
             @RequestParam(required = false) String email) {
@@ -126,9 +129,9 @@ public class AppUserController {
         return ResponseEntity.ok(responseDto);
     }
 
-    // Admin only – update user roles
     @PutMapping("/{id}/roles")
     @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Update user roles (Admin only)")
     public ResponseEntity<AppUserResponseDto> updateUserRoles(
             @PathVariable Long id,
             @Valid @RequestBody UserRoleUpdateDto dto) {

@@ -2,6 +2,9 @@ package com.worldcup.hotelbooking.availability_pricing.match;
 
 import com.worldcup.hotelbooking.availability_pricing.stadium.StadiumService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,8 +22,11 @@ public class MatchService {
     // Basic CRUD
 
     @Transactional(readOnly = true)
-    public List<Match> getAllMatches() {
-        return matchRepository.findAll();
+    public Page<Match> getAllMatches(Pageable pageable, Match.MatchStage stage) {
+        if (stage != null) {
+            return matchRepository.findByStage(stage, pageable);
+        }
+        return matchRepository.findAll(pageable);
     }
 
     @Transactional(readOnly = true)
@@ -74,12 +80,36 @@ public class MatchService {
     }
 
     @Transactional(readOnly = true)
-    public List<Match> getMatchesByStadium(Long stadiumId) {
-        return matchRepository.findByStadiumId(stadiumId);
+    public Page<Match> getMatchesByStadium(Long stadiumId, Pageable pageable) {
+        return matchRepository.findByStadiumId(stadiumId, pageable);
     }
 
     @Transactional(readOnly = true)
     public boolean existsByStadiumId(Long stadiumId) {
         return matchRepository.existsByStadiumId(stadiumId);
+    }
+
+
+    public Page<Match> searchMatches(
+            Match.MatchStage stage,
+            LocalDateTime startDate,
+            LocalDateTime endDate,
+            String city,
+            Long stadiumId,
+            String team,
+            Boolean derby,
+            Boolean opening,
+            Pageable pageable) {
+
+        Specification<Match> spec = Specification
+                .where(MatchSpecification.hasStage(stage))
+                .and(MatchSpecification.dateBetween(startDate, endDate))
+                .and(MatchSpecification.hasCity(city))
+                .and(MatchSpecification.hasStadiumId(stadiumId))
+                .and(MatchSpecification.teamContains(team))
+                .and(MatchSpecification.isDerby(derby))
+                .and(MatchSpecification.isOpeningMatch(opening));
+
+        return matchRepository.findAll(spec, pageable);
     }
 }
