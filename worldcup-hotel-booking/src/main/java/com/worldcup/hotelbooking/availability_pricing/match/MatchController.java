@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -29,7 +30,7 @@ public class MatchController {
     @GetMapping
     @Operation(summary = "Get all matches with pagination and optional stage filter")
     public ResponseEntity<Page<Match>> getAllMatches(
-            @PageableDefault(size = 20, sort = "matchDateTime") Pageable pageable,
+            @ParameterObject @PageableDefault(size = 20, sort = "matchDateTime") Pageable pageable,
             @RequestParam(required = false) Match.MatchStage stage) {
 
         Page<Match> page = matchService.getAllMatches(pageable, stage);
