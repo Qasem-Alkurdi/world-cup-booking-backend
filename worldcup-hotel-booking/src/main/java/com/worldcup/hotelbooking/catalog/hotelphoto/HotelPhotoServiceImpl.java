@@ -6,6 +6,9 @@ import com.worldcup.hotelbooking.catalog.hotel.exception.HotelNotFoundException;
 import com.worldcup.hotelbooking.catalog.hotelphoto.exception.HotelPhotoNotFoundException;
 import com.worldcup.hotelbooking.catalog.hotelphoto.exception.InvalidPhotoOrderException;
 import com.worldcup.hotelbooking.catalog.storage.PhotoStorageService;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -54,6 +57,21 @@ public class HotelPhotoServiceImpl implements HotelPhotoService {
         }
     }
 
+    /**
+     * Adding a photo changes the ordered list and may assign a new primary.
+     * Evict hotelPhotos so listPhotos returns fresh data, and evict hotelList /
+     * hotelById because the catalog search embeds the primary photo URL.
+     */
+
+//    @Caching(evict = {
+//            @CacheEvict(value = "hotelById",        key = "#id"),
+//           @CacheEvict(value = "hotelList",        allEntries = true),
+//           @CacheEvict(value = "myHotels",         allEntries = true),
+//            @CacheEvict(value = "hotelPhotos",      key = "#id"),
+//            @CacheEvict(value = "roomTypesByHotel", key = "#id"),
+//            @CacheEvict(value = "roomTypeById",     allEntries = true),
+//           @CacheEvict(value = "roomTypePhotos",   allEntries = true)
+//   })
     @Override
     public HotelPhoto addPhoto(Long hotelId, MultipartFile file, String caption, Integer sortOrder) {
         Hotel hotel = getActiveApprovedHotel(hotelId);
@@ -88,7 +106,12 @@ public class HotelPhotoServiceImpl implements HotelPhotoService {
         return saved;
     }
 
+    /**
+     * Returns the ordered photo list for a hotel.
+     * Cached by hotelId — evicted by any mutation that changes the list or order.
+     */
     @Override
+    //@Cacheable(value = "hotelPhotos", key = "#hotelId")
     @Transactional(readOnly = true)
     public List<HotelPhoto> listPhotos(Long hotelId) {
         getActiveApprovedHotel(hotelId);
@@ -96,6 +119,15 @@ public class HotelPhotoServiceImpl implements HotelPhotoService {
     }
 
     @Override
+//    @Caching(evict = {
+//            @CacheEvict(value = "hotelById",        key = "#id"),
+//            @CacheEvict(value = "hotelList",        allEntries = true),
+//            @CacheEvict(value = "myHotels",         allEntries = true),
+//            @CacheEvict(value = "hotelPhotos",      key = "#id"),
+//            @CacheEvict(value = "roomTypesByHotel", key = "#id"),
+//            @CacheEvict(value = "roomTypeById",     allEntries = true),
+//            @CacheEvict(value = "roomTypePhotos",   allEntries = true)
+//    })
     public void deletePhoto(Long hotelId, Long photoId) {
         getActiveApprovedHotel(hotelId);
 
@@ -122,6 +154,15 @@ public class HotelPhotoServiceImpl implements HotelPhotoService {
     }
 
     @Override
+//    @Caching(evict = {
+//            @CacheEvict(value = "hotelById",        key = "#id"),
+//            @CacheEvict(value = "hotelList",        allEntries = true),
+//            @CacheEvict(value = "myHotels",         allEntries = true),
+//            @CacheEvict(value = "hotelPhotos",      key = "#id"),
+//            @CacheEvict(value = "roomTypesByHotel", key = "#id"),
+//            @CacheEvict(value = "roomTypeById",     allEntries = true),
+//            @CacheEvict(value = "roomTypePhotos",   allEntries = true)
+//    })
     public void setPrimaryPhoto(Long hotelId, Long photoId) {
         getActiveApprovedHotel(hotelId);
 
@@ -135,7 +176,13 @@ public class HotelPhotoServiceImpl implements HotelPhotoService {
         }
     }
 
+    /**
+     * Reordering changes the displayed sequence.
+     * The primary photo does not change here, so hotelList / hotelById do NOT need
+     * eviction — only the ordered list itself (hotelPhotos) is stale.
+     */
     @Override
+    //@CacheEvict(value = "hotelPhotos", key = "#hotelId")
     public void reorderPhotos(Long hotelId, List<Long> photoIds) {
         getActiveApprovedHotel(hotelId);
 

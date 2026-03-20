@@ -158,6 +158,20 @@
             <version>8.0.0</version>
         </dependency>
 
+        <!-- Add these two to your pom.xml — that's all you need for Caffeine -->
+
+        <!-- 1. Enables @EnableCaching, @Cacheable, @CacheEvict etc. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-cache</artifactId>
+        </dependency>
+
+        <!-- 2. Caffeine itself — version managed by Spring Boot BOM, no version tag needed -->
+        <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
+        </dependency>
+
 
     </dependencies>
 
