@@ -1,6 +1,7 @@
 package com.worldcup.hotelbooking.security;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.*;
 import org.springframework.stereotype.Service;
@@ -13,6 +14,7 @@ import java.util.UUID;
 public class JwtTokenService {
 
     private final JwtEncoder jwtEncoder;
+    private final JwtDecoder jwtDecoder;
     private final String issuer;
     private final long accessTokenMinutes;
     @Value("${security.jwt.refresh-token-days}")
@@ -20,9 +22,11 @@ public class JwtTokenService {
 
     public JwtTokenService(
             JwtEncoder jwtEncoder,
+            JwtDecoder jwtDecoder,
             @Value("${security.jwt.issuer}") String issuer,
             @Value("${security.jwt.access-token-minutes}") long accessTokenMinutes) {
         this.jwtEncoder = jwtEncoder;
+        this.jwtDecoder = jwtDecoder;
         this.issuer = issuer;
         this.accessTokenMinutes = accessTokenMinutes;
     }
@@ -56,4 +60,14 @@ public class JwtTokenService {
     public long getRefreshTokenExpiryInSeconds() {
         return refreshTokenDays * 24 * 60 * 60;
     }
+
+    public Long extractUserId(String token) {
+        try {
+            Jwt jwt = jwtDecoder.decode(token);
+            return jwt.getClaim("userId");
+        } catch (JwtException e) {
+            return null;
+        }
+    }
+
 }
