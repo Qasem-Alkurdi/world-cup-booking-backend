@@ -4,6 +4,8 @@ import com.worldcup.hotelbooking.booking.booking.Booking;
 import com.worldcup.hotelbooking.booking.booking.BookingRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -76,6 +78,12 @@ public class PaymentServiceImpl {
      * Process payment - MOCK implementation
      * Simulates payment gateway processing
      */
+    @Caching(evict = {
+            @CacheEvict(value = "bookingById",        key = "#id"),
+            @CacheEvict(value = "bookingByReference", allEntries = true),
+            @CacheEvict(value = "hotelUpcoming",      allEntries = true),
+            @CacheEvict(value = "guestHistory",       allEntries = true)
+    })
     @Transactional
     public Payment processPayment(ProcessPaymentRequestDto request) {// in real app, we would not have the simulateSuccess field, it's just for testing different scenarios , because any one can send that process done from teh frontend and we want to make sure that we can test both success and failure scenarios and the right way is to sure from stripe or any other payment gateway that the payment is done and we can not trust the frontend to send us that information because it can be easily manipulated, so we need to have a way to simulate both scenarios for testing purposes
         logger.info("Processing payment for intent: {}", request.getPaymentIntentId());//I pass Dto becuase I need the simulateSuccess field to test both scenarios, in the real world we would only pass the payment
@@ -130,6 +138,12 @@ public class PaymentServiceImpl {
 
     @Transactional
     // Additional payment processing for extra services or late check-out
+    @Caching(evict = {
+            @CacheEvict(value = "bookingById",        key = "#id"),
+            @CacheEvict(value = "bookingByReference", allEntries = true),
+            @CacheEvict(value = "hotelUpcoming",      allEntries = true),
+            @CacheEvict(value = "guestHistory",       allEntries = true)
+    })
     public Payment processAdditionalPayment(ProcessPaymentRequestDto request) {
         logger.info("Processing payment for intent: {}", request.getPaymentIntentId());
 
@@ -206,6 +220,12 @@ public class PaymentServiceImpl {
    // ...existing code...
 
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = "bookingById",        key = "#id"),
+            @CacheEvict(value = "bookingByReference", allEntries = true),
+            @CacheEvict(value = "hotelUpcoming",      allEntries = true),
+            @CacheEvict(value = "guestHistory",       allEntries = true)
+    })
     public Payment refundPayment(RefundRequestDto request) {
 
         logger.info("Processing refund for payment: {}", request.getPaymentId());

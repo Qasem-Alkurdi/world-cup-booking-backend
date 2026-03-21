@@ -1,5 +1,6 @@
 package com.worldcup.hotelbooking.common.exception;
 
+import com.nimbusds.jose.jwk.source.RateLimitReachedException;
 import com.worldcup.hotelbooking.auth.InvalidCredentialsException;
 import com.worldcup.hotelbooking.auth.InvalidRefreshTokenException;
 import com.worldcup.hotelbooking.availability_pricing.match.MatchNotFoundException;
@@ -126,6 +127,18 @@ public class GlobalExceptionHandler {
                 request.getRequestURI()
         );
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(body);
+    }
+
+    @ExceptionHandler(RateLimitReachedException.class)
+    public ResponseEntity<ApiError> handleRateLimitReached(RateLimitReachedException ex, HttpServletRequest request) {
+        ApiError body = new ApiError(
+                Instant.now().toString(),
+                429,
+                "Too Many Requests",
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(body);
     }
 
 // catalog start

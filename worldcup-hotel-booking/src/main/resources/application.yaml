@@ -13,7 +13,6 @@ spring:
     open-in-view: false
   flyway:
     baseline-on-migrate: true
-  # ✅ OAuth2 client configuration must be under spring.security.oauth2.client
   security:
     oauth2:
       client:
@@ -27,6 +26,22 @@ spring:
           google:
             issuer-uri: https://accounts.google.com
 
+  # Cache provider — Caffeine for local/dev, override per profile if needed
+  cache:
+    type: caffeine
+    cache-names:
+      - hotelList
+      - hotelById
+      - myHotels
+      - hotelPhotos
+      - roomTypesByHotel
+      - roomTypeById
+      - roomTypePhotos
+      - bookingById
+      - bookingByReference
+      - guestHistory
+      - hotelUpcoming
+
 springdoc:
   swagger-ui:
     path: /swagger-ui.html
@@ -38,13 +53,28 @@ logging:
   level:
     org.springdoc: DEBUG
 
-# Top-level app configuration
 app:
   storage:
     upload-dir: uploads
     public-base-url: /uploads
     max-file-size-bytes: 5242880
   frontend-url: http://localhost:3000
+
+  # TTL values in minutes — shared with the whole team via git
+  # Change a number here, it applies everywhere without touching code
+  cache:
+    ttl:
+      hotel-list: 10
+      hotel-by-id: 10
+      my-hotels: 10
+      hotel-photos: 10
+      room-types-by-hotel: 10
+      room-type-by-id: 10
+      room-type-photos: 10
+      booking-by-id: 5
+      booking-by-reference: 5
+      guest-history: 5
+      hotel-upcoming: 5
 
 security:
   jwt:

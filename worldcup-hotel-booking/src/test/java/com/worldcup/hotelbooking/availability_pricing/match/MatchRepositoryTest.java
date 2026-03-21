@@ -1,13 +1,17 @@
 package com.worldcup.hotelbooking.availability_pricing.match;
 
+import com.worldcup.hotelbooking.auth.RateLimitService;
 import com.worldcup.hotelbooking.availability_pricing.stadium.Stadium;
 import com.worldcup.hotelbooking.availability_pricing.stadium.StadiumRepository;
+import com.worldcup.hotelbooking.security.JwtTokenService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
+import org.springframework.cache.CacheManager;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -23,6 +27,15 @@ class MatchRepositoryTest {
 
     @Autowired
     private StadiumRepository stadiumRepository;
+
+    @MockitoBean
+    private RateLimitService rateLimitService;
+
+    @MockitoBean
+    private JwtTokenService jwtTokenService;
+
+    @MockitoBean                          // ← add this
+    private CacheManager cacheManager;
 
     private Stadium stadium;
     private Match match1, match2;

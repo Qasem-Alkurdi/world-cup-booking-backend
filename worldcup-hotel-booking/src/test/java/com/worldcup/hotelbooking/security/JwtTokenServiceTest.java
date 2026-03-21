@@ -6,6 +6,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -24,11 +25,14 @@ class JwtTokenServiceTest {
     @Mock
     private JwtEncoder jwtEncoder;
 
+    @Mock
+    private JwtDecoder jwtDecoder;
+
     private JwtTokenService tokenService;
 
     @BeforeEach
     void setUp() {
-        tokenService = new JwtTokenService(jwtEncoder, "test-issuer", 15);
+        tokenService = new JwtTokenService(jwtEncoder,jwtDecoder ,"test-issuer", 15);
         ReflectionTestUtils.setField(tokenService, "refreshTokenDays", 7L);
     }
 

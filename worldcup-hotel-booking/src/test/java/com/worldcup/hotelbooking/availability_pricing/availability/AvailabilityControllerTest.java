@@ -1,15 +1,18 @@
 package com.worldcup.hotelbooking.availability_pricing.availability;
 
 
+import com.worldcup.hotelbooking.auth.RateLimitService;
 import com.worldcup.hotelbooking.booking.booking.BookingController;
 import com.worldcup.hotelbooking.catalog.storage.StaticResourceConfig;
 import com.worldcup.hotelbooking.catalog.storage.StorageProperties;
+import com.worldcup.hotelbooking.security.JwtTokenService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.security.oauth2.client.autoconfigure.OAuth2ClientAutoConfiguration;
 import org.springframework.boot.security.oauth2.client.autoconfigure.servlet.OAuth2ClientWebSecurityAutoConfiguration;
 import org.springframework.boot.security.oauth2.server.resource.autoconfigure.servlet.OAuth2ResourceServerAutoConfiguration;
 import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.cache.CacheManager;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -45,6 +48,14 @@ class AvailabilityControllerTest {
 
     @MockitoBean
     private AvailabilityServiceImpl availabilityService;
+    @MockitoBean
+    private RateLimitService rateLimitService;
+
+    @MockitoBean
+    private JwtTokenService jwtTokenService;
+
+    @MockitoBean                          // ← add this
+    private CacheManager cacheManager;
 
     @Test
     void checkRoomTypeAvailability_shouldReturnTrue_whenServiceReturnsTrue() throws Exception {

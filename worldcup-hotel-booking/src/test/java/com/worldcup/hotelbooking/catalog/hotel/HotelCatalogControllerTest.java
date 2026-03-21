@@ -1,8 +1,10 @@
 package com.worldcup.hotelbooking.catalog.hotel;
 
+import com.worldcup.hotelbooking.auth.RateLimitService;
 import com.worldcup.hotelbooking.catalog.hotel.dto.UpdateHotelPatchRequest;
 import com.worldcup.hotelbooking.catalog.hotel.exception.HotelNotFoundException;
 import com.worldcup.hotelbooking.catalog.storage.StaticResourceConfig;
+import com.worldcup.hotelbooking.security.JwtTokenService;
 import com.worldcup.hotelbooking.user.user.AppUser;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -16,6 +18,7 @@ import org.springframework.boot.security.oauth2.client.autoconfigure.servlet.OAu
 import org.springframework.boot.security.oauth2.server.resource.autoconfigure.servlet.OAuth2ResourceServerAutoConfiguration;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.cache.CacheManager;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.FilterType;
 import org.springframework.http.MediaType;
@@ -53,6 +56,16 @@ class HotelCatalogControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
+
+
+    @MockitoBean
+    private RateLimitService rateLimitService;
+
+    @MockitoBean
+    private JwtTokenService jwtTokenService;
+
+    @MockitoBean                          // ← add this
+    private CacheManager cacheManager;
 
     @MockitoBean
     private HotelService service;
