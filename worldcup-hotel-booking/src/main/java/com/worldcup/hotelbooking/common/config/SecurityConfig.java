@@ -42,11 +42,13 @@ public class SecurityConfig {
     private final CustomAccessDeniedHandler accessDeniedHandler;
     private final OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler;
 
-    public SecurityConfig(AppUserDetailsService appUserDetailsService, CustomAuthenticationEntryPoint authenticationEntryPoint,
-                          CustomAccessDeniedHandler accessDeniedHandler,OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler) {
-        this.appUserDetailsService = appUserDetailsService;
-        this.authenticationEntryPoint = authenticationEntryPoint;
-        this.accessDeniedHandler = accessDeniedHandler;
+    public SecurityConfig(AppUserDetailsService appUserDetailsService,
+                          CustomAuthenticationEntryPoint authenticationEntryPoint,
+                          CustomAccessDeniedHandler accessDeniedHandler,
+                          OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler) {
+        this.appUserDetailsService              = appUserDetailsService;
+        this.authenticationEntryPoint           = authenticationEntryPoint;
+        this.accessDeniedHandler                = accessDeniedHandler;
         this.oAuth2AuthenticationSuccessHandler = oAuth2AuthenticationSuccessHandler;
     }
 
@@ -78,9 +80,7 @@ public class SecurityConfig {
         JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
         converter.setJwtGrantedAuthoritiesConverter(jwt -> {
             List<String> roles = jwt.getClaimAsStringList("roles");
-            if (roles == null) {
-                return Collections.emptyList();
-            }
+            if (roles == null) return Collections.emptyList();
             return roles.stream()
                     .map(role -> new SimpleGrantedAuthority("ROLE_" + role))
                     .collect(Collectors.toList());
@@ -92,18 +92,19 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
-                // Allow session creation only when needed (for OAuth2 login flow)
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
+                .sessionManagement(session -> session
+                        .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
                 .authorizeHttpRequests(auth -> auth
-                        // Public endpoints
                         .requestMatchers("/auth/**").permitAll()
-                        .requestMatchers("/users").permitAll()                // registration
-                        .requestMatchers("/login", "/login.html").permitAll() // custom login pages
-                        .requestMatchers("/oauth2/**").permitAll()            // OAuth2 endpoints
+                        .requestMatchers("/users").permitAll()
+                        .requestMatchers("/login", "/login.html").permitAll()
+                        .requestMatchers("/oauth2/**").permitAll()
                         .requestMatchers("/swagger-ui/**", "/api-docs/**", "/swagger-ui.html").permitAll()
                         .requestMatchers("/uploads/**").permitAll()
 
-                        // Public catalog / hotel reads
+                        // ── WebSocket handshake — SockJS needs these open ──
+                        .requestMatchers("/ws/**").permitAll()
+
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/catalog/hotels/**").permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/hotels").permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/hotels/*").permitAll()
@@ -116,9 +117,10 @@ public class SecurityConfig {
                         .requestMatchers("/matches/**").permitAll()
 
                         .anyRequest().authenticated()
-                ).oauth2Login(oauth2 -> oauth2
-                        .loginPage("/login")                                   // your custom login page
-                        .successHandler(oAuth2AuthenticationSuccessHandler)    // custom handler (must be a bean)
+                )
+                .oauth2Login(oauth2 -> oauth2
+                        .loginPage("/login")
+                        .successHandler(oAuth2AuthenticationSuccessHandler)
                 )
                 .oauth2ResourceServer(oauth2 -> oauth2
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter()))
