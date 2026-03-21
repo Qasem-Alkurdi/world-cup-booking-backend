@@ -17,6 +17,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.locationtech.jts.geom.Point;
 
+import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -155,6 +156,10 @@ public class Hotel {
     @OrderBy("sortOrder ASC, createdAt ASC")
     @JsonIgnore
     private List<HotelPhoto> photos = new ArrayList<>();
+    @Column(name = "average_rating", precision = 3, scale = 2)
+    private BigDecimal averageRating = BigDecimal.ZERO;
+    @Column(name = "review_count", nullable = false)
+    private int reviewCount = 0;
 
     // --- getters/setters/constructors ---
     public void addBooking(Booking booking) {
@@ -184,5 +189,4 @@ public class Hotel {
     public void removeRoomType(RoomType roomType) {
         this.roomTypes.remove(roomType);
     }
-
 }
