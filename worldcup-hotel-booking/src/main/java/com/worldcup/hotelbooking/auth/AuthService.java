@@ -1,9 +1,9 @@
 package com.worldcup.hotelbooking.auth;
 
+import com.worldcup.hotelbooking.security.JwtTokenService;
 import com.worldcup.hotelbooking.security.RefreshToken;
 import com.worldcup.hotelbooking.security.RefreshTokenRepository;
 import com.worldcup.hotelbooking.user.user.*;
-import com.worldcup.hotelbooking.security.JwtTokenService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -30,7 +30,7 @@ public class AuthService {
                        PasswordEncoder passwordEncoder,
                        JwtTokenService tokenService,
                        RefreshTokenRepository refreshTokenRepository,
-                       @Value("${security.jwt.refresh-token-days}") long refreshTokenDays,ExternalProviderRepository externalProviderRepository) {
+                       @Value("${security.jwt.refresh-token-days}") long refreshTokenDays, ExternalProviderRepository externalProviderRepository) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.tokenService = tokenService;
