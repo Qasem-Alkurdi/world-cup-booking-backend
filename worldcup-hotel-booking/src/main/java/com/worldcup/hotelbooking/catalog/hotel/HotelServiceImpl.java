@@ -21,6 +21,7 @@ import java.util.List;
 import static com.worldcup.hotelbooking.booking.booking.Booking.BookingStatus.CONFIRMED;
 import static com.worldcup.hotelbooking.booking.booking.Booking.BookingStatus.PENDING;
 import static com.worldcup.hotelbooking.catalog.hotel.HotelStatus.APPROVED;
+import static com.worldcup.hotelbooking.catalog.hotel.HotelStatus.PENDING_APPROVAL;
 
 @Service
 @Transactional
@@ -42,7 +43,7 @@ public class HotelServiceImpl implements HotelService {
      * Cache the full approved-hotel list.
      * Evicted whenever any hotel is created, updated, or soft-deleted.
      */
-   // @Cacheable(value = "hotelList")
+    @Cacheable(value = "hotelList")
     @Transactional(readOnly = true)
     @Override
     public List<Hotel> findAll() {
@@ -53,7 +54,7 @@ public class HotelServiceImpl implements HotelService {
      * Cache a single hotel by its id.
      * Evicted when that specific hotel is replaced, patched, or deleted.
      */
-    //@Cacheable(value = "hotelById", key = "#id")
+    @Cacheable(value = "hotelById", key = "#id")
     @Transactional(readOnly = true)
     @Override
     public Hotel findById(Long id) {
@@ -65,10 +66,10 @@ public class HotelServiceImpl implements HotelService {
      * Creating a hotel adds a new entry to the list and to the owner's personal list.
      * hotelById does NOT need eviction — the new hotel has never been cached yet.
      */
-//    @Caching(evict = {
-//            @CacheEvict(value = "hotelList",    allEntries = true),
-//            @CacheEvict(value = "myHotels",     allEntries = true)
-//    })
+    @Caching(evict = {
+            @CacheEvict(value = "hotelList", allEntries = true),
+            @CacheEvict(value = "myHotels", allEntries = true)
+    })
     @Override
     public Hotel create(Hotel hotel, Long ownerId) {
         AppUser owner = userRepository.findById(ownerId)
@@ -90,19 +91,19 @@ public class HotelServiceImpl implements HotelService {
      * Full replacement — all hotel fields change.
      * Evict the exact id from hotelById, and blow away the list/owner caches
      * because name, city etc. that appear in list responses may have changed.
-     *
+     * <p>
      * Cross-service evictions:
-     *   - roomTypesByHotel / roomTypeById : RoomType entities hold a Hotel reference — if the
-     *     hotel object changes, any cached RoomType that embeds it becomes stale.
+     * - roomTypesByHotel / roomTypeById : RoomType entities hold a Hotel reference — if the
+     * hotel object changes, any cached RoomType that embeds it becomes stale.
      */
 
-//    @Caching(evict = {
-//            @CacheEvict(value = "hotelById",        key = "#id"),
-//            @CacheEvict(value = "hotelList",        allEntries = true),
-//            @CacheEvict(value = "myHotels",         allEntries = true),
-//            @CacheEvict(value = "roomTypesByHotel", key = "#id"),
-//            @CacheEvict(value = "roomTypeById",     allEntries = true)
-//    })
+    @Caching(evict = {
+            @CacheEvict(value = "hotelById", key = "#id"),
+            @CacheEvict(value = "hotelList", allEntries = true),
+            @CacheEvict(value = "myHotels", allEntries = true),
+            @CacheEvict(value = "roomTypesByHotel", key = "#id"),
+            @CacheEvict(value = "roomTypeById", allEntries = true)
+    })
     @Override
     public Hotel replace(Long id, Hotel hotel) {
         Hotel current = repository
@@ -116,7 +117,6 @@ public class HotelServiceImpl implements HotelService {
                 "owner",
                 "status",
                 "isDeleted",
-                "deleted",
                 "deletedAt",
                 "createdAt",
                 "updatedAt",
@@ -132,18 +132,18 @@ public class HotelServiceImpl implements HotelService {
     /**
      * Partial update — same eviction footprint as replace.
      * Any of the patched fields (name, city, amenities) may appear in cached responses.
-     *
+     * <p>
      * Cross-service evictions:
-     *   - roomTypesByHotel / roomTypeById : same reason as replace — RoomType embeds Hotel.
+     * - roomTypesByHotel / roomTypeById : same reason as replace — RoomType embeds Hotel.
      */
     @Override
-//    @Caching(evict = {
-//            @CacheEvict(value = "hotelById",        key = "#id"),
-//            @CacheEvict(value = "hotelList",        allEntries = true),
-//            @CacheEvict(value = "myHotels",         allEntries = true),
-//            @CacheEvict(value = "roomTypesByHotel", key = "#id"),
-//            @CacheEvict(value = "roomTypeById",     allEntries = true)
-//    })
+    @Caching(evict = {
+            @CacheEvict(value = "hotelById", key = "#id"),
+            @CacheEvict(value = "hotelList", allEntries = true),
+            @CacheEvict(value = "myHotels", allEntries = true),
+            @CacheEvict(value = "roomTypesByHotel", key = "#id"),
+            @CacheEvict(value = "roomTypeById", allEntries = true)
+    })
     public Hotel updatePartial(Long id, UpdateHotelPatchRequest dto) {
         Hotel current = repository
                 .findByIdAndStatusAndIsDeletedFalse(id, APPROVED)
@@ -177,26 +177,26 @@ public class HotelServiceImpl implements HotelService {
 
     /**
      * Soft delete — hotel vanishes from all list and single-entity caches.
-     *
+     * <p>
      * Cross-service evictions:
-     *   - hotelPhotos      : HotelPhotoServiceImpl caches photos by hotelId; stale after deletion.
-     *   - roomTypesByHotel : RoomTypeServiceImpl caches room types by hotelId; stale after deletion.
-     *   - roomTypeById     : individual room type entries all belong to this hotel; all stale.
-     *   - roomTypePhotos   : RoomTypePhotoServiceImpl caches room type photos; stale after deletion.
-     *
+     * - hotelPhotos      : HotelPhotoServiceImpl caches photos by hotelId; stale after deletion.
+     * - roomTypesByHotel : RoomTypeServiceImpl caches room types by hotelId; stale after deletion.
+     * - roomTypeById     : individual room type entries all belong to this hotel; all stale.
+     * - roomTypePhotos   : RoomTypePhotoServiceImpl caches room type photos; stale after deletion.
+     * <p>
      * roomTypeById and roomTypePhotos use allEntries = true because we have only the hotel id here —
      * we cannot cheaply enumerate every roomTypeId under this hotel to evict them by key.
      */
-//    @Override
-//    @Caching(evict = {
-//            @CacheEvict(value = "hotelById",        key = "#id"),
-//            @CacheEvict(value = "hotelList",        allEntries = true),
-//            @CacheEvict(value = "myHotels",         allEntries = true),
-//            @CacheEvict(value = "hotelPhotos",      key = "#id"),
-//            @CacheEvict(value = "roomTypesByHotel", key = "#id"),
-//            @CacheEvict(value = "roomTypeById",     allEntries = true),
-//            @CacheEvict(value = "roomTypePhotos",   allEntries = true)
-//    })
+    @Override
+    @Caching(evict = {
+            @CacheEvict(value = "hotelById", key = "#id"),
+            @CacheEvict(value = "hotelList", allEntries = true),
+            @CacheEvict(value = "myHotels", allEntries = true),
+            @CacheEvict(value = "hotelPhotos", key = "#id"),
+            @CacheEvict(value = "roomTypesByHotel", key = "#id"),
+            @CacheEvict(value = "roomTypeById", allEntries = true),
+            @CacheEvict(value = "roomTypePhotos", allEntries = true)
+    })
     public void deleteById(Long id) {
         Hotel hotel = repository.findByIdAndStatusAndIsDeletedFalse(id, APPROVED)
                 .orElseThrow(() -> new HotelNotFoundException(id));
@@ -214,7 +214,7 @@ public class HotelServiceImpl implements HotelService {
      * Evicted whenever any hotel is created, updated, or deleted
      * (because the owner's list membership or hotel data may have changed).
      */
-   // @Cacheable(value = "myHotels", key = "#ownerId")
+    @Cacheable(value = "myHotels", key = "#ownerId")
     @Transactional(readOnly = true)
     @Override
     public List<Hotel> getMyHotels(Long ownerId) {
@@ -222,5 +222,11 @@ public class HotelServiceImpl implements HotelService {
                 .orElseThrow(() -> new AppUserNotFoundException("User not found with id: " + ownerId));
 
         return repository.findByOwnerAndStatusAndIsDeletedFalse(owner, APPROVED);
+    }
+
+    public List<Hotel> GetPENDINGHotels(Long ownerId) {
+        AppUser owner = userRepository.findById(ownerId)
+                .orElseThrow(() -> new AppUserNotFoundException("User not found with id: " + ownerId));
+        return repository.findByOwnerAndStatusAndIsDeletedFalse(owner, PENDING_APPROVAL);
     }
 }
