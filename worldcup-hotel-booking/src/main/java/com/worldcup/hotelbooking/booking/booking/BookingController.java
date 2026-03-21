@@ -237,10 +237,10 @@ public class BookingController {
     }
 
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN') or (hasRole('MANAGER') and @bookingAuthorizationService.isHimTheHotelOwnerOfTheBookings(#hotelId, authentication))")
+    @PreAuthorize("hasRole('ADMIN')")
     public PagedResponse<BookingResponseDto> filterBookings(
             @RequestParam(required = false) Long userId,
-            @RequestParam(required = false) Long hotelId,
+            @RequestParam(required =false) Long hotelId,
             @RequestParam(required = false) Booking.BookingStatus status,
             @RequestParam(required = false) LocalDate fromDate,
             @RequestParam(required = false) LocalDate toDate,
@@ -267,6 +267,71 @@ public class BookingController {
 
     }
 
+    @GetMapping("/manager/search/hotel/{hotelId}")
+    @PreAuthorize("hasRole('ADMIN') or (hasRole('MANAGER') and @bookingAuthorizationService.isHimTheHotelOwnerOfTheBookings(#hotelId, authentication))")
+    @Operation(summary = "Search bookings for a hotel", description = "Search and filter bookings for a specific hotel. This endpoint allows hotel managers to apply various filters such as user ID, booking status, date range, and price range to find specific bookings.")
+    public PagedResponse<BookingResponseDto> filterBookingsForManager(
+            @PathVariable Long hotelId,
+            @RequestParam(required = false) Long userId,
+            @RequestParam(required = false) Booking.BookingStatus status,
+            @RequestParam(required = false) LocalDate fromDate,
+            @RequestParam(required = false) LocalDate toDate,
+            @RequestParam(required = false) Double minPrice,
+            @RequestParam(required = false) Double maxPrice,
+            @PageableDefault(size = 10, sort = "checkInDate")
+            Pageable pageable
+    ) {
+        Page<Booking> page = bookingService.filterBookings(
+                userId,
+                hotelId,
+                status,
+                fromDate,
+                toDate,
+                minPrice,
+                maxPrice,
+                pageable);
+
+        List<BookingResponseDto> content = page.getContent()
+                .stream()
+                .map(BookingMapper::toDto)
+                .toList();
+
+        return PagedResponse.from(page, content);
+
+    }
+
+    @GetMapping("/guest/search/user/{userId}")
+    @PreAuthorize("hasRole('ADMIN') or @bookingAuthorizationService.isCurrentUser(#userId, authentication)")
+    @Operation(summary = "Search my bookings", description = "Search and filter bookings for the currently authenticated user. This endpoint allows guests to apply various filters such as hotel ID, booking status, date range, and price range to find specific bookings in their history.")
+    public PagedResponse<BookingResponseDto> filterBookingsForGuest(
+            @PathVariable Long userId,
+            @RequestParam(required = false) Long hotelId,
+            @RequestParam(required = false) Booking.BookingStatus status,
+            @RequestParam(required = false) LocalDate fromDate,
+            @RequestParam(required = false) LocalDate toDate,
+            @RequestParam(required = false) Double minPrice,
+            @RequestParam(required = false) Double maxPrice,
+            @PageableDefault(size = 10, sort = "checkInDate")
+            Pageable pageable
+    ) {
+        Page<Booking> page = bookingService.filterBookings(
+                userId,
+                hotelId,
+                status,
+                fromDate,
+                toDate,
+                minPrice,
+                maxPrice,
+                pageable);
+
+        List<BookingResponseDto> content = page.getContent()
+                .stream()
+                .map(BookingMapper::toDto)
+                .toList();
+
+        return PagedResponse.from(page, content);
+
+    }
 
 
     @PutMapping("/{id}/checkin")

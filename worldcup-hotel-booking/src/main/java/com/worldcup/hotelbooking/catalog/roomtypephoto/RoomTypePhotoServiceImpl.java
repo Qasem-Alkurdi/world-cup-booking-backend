@@ -8,6 +8,8 @@ import com.worldcup.hotelbooking.catalog.roomtype.RoomTypeRepository;
 import com.worldcup.hotelbooking.catalog.roomtype.exception.RoomTypeNotFoundException;
 import com.worldcup.hotelbooking.catalog.roomtypephoto.exception.RoomTypePhotoNotFoundException;
 import com.worldcup.hotelbooking.catalog.storage.PhotoStorageService;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -65,6 +67,15 @@ public class RoomTypePhotoServiceImpl implements RoomTypePhotoService {
         }
     }
 
+    //    @Caching(evict = {
+//            @CacheEvict(value = "hotelById",        key = "#id"),
+//            @CacheEvict(value = "hotelList",        allEntries = true),
+//            @CacheEvict(value = "myHotels",         allEntries = true),
+//            @CacheEvict(value = "hotelPhotos",      key = "#id"),
+//            @CacheEvict(value = "roomTypesByHotel", key = "#id"),
+//            @CacheEvict(value = "roomTypeById",     allEntries = true),
+//            @CacheEvict(value = "roomTypePhotos",   allEntries = true)
+//    })
     @Override
     public RoomTypePhoto addPhoto(Long hotelId, Long roomTypeId, MultipartFile file, String caption, Integer sortOrder) {
         validateHotel(hotelId);
@@ -101,7 +112,14 @@ public class RoomTypePhotoServiceImpl implements RoomTypePhotoService {
         return saved;
     }
 
+
+    /**
+     * Returns the ordered photo list for a room type.
+     * Cached by composite key hotelId + roomTypeId — evicted by any mutation to this
+     * room type's photos.
+     */
     @Override
+   // @Cacheable(value = "roomTypePhotos", key = "#hotelId + '_' + #roomTypeId")
     @Transactional(readOnly = true)
     public List<RoomTypePhoto> listPhotos(Long hotelId, Long roomTypeId) {
         validateHotel(hotelId);
@@ -110,6 +128,15 @@ public class RoomTypePhotoServiceImpl implements RoomTypePhotoService {
         return roomTypePhotoRepository.findByRoomTypeIdOrderBySortOrderAscCreatedAtAsc(roomTypeId);
     }
 
+    //    @Caching(evict = {
+//            @CacheEvict(value = "hotelById",        key = "#id"),
+//            @CacheEvict(value = "hotelList",        allEntries = true),
+//            @CacheEvict(value = "myHotels",         allEntries = true),
+//            @CacheEvict(value = "hotelPhotos",      key = "#id"),
+//            @CacheEvict(value = "roomTypesByHotel", key = "#id"),
+//            @CacheEvict(value = "roomTypeById",     allEntries = true),
+//            @CacheEvict(value = "roomTypePhotos",   allEntries = true)
+//    })
     @Override
     public void deletePhoto(Long hotelId, Long roomTypeId, Long photoId) {
         validateHotel(hotelId);
@@ -139,6 +166,15 @@ public class RoomTypePhotoServiceImpl implements RoomTypePhotoService {
         }
     }
 
+    //    @Caching(evict = {
+//            @CacheEvict(value = "hotelById",        key = "#id"),
+//            @CacheEvict(value = "hotelList",        allEntries = true),
+//            @CacheEvict(value = "myHotels",         allEntries = true),
+//            @CacheEvict(value = "hotelPhotos",      key = "#id"),
+//            @CacheEvict(value = "roomTypesByHotel", key = "#id"),
+//            @CacheEvict(value = "roomTypeById",     allEntries = true),
+//            @CacheEvict(value = "roomTypePhotos",   allEntries = true)
+//    })
     @Override
     public void setPrimaryPhoto(Long hotelId, Long roomTypeId, Long photoId) {
         validateHotel(hotelId);
@@ -155,7 +191,13 @@ public class RoomTypePhotoServiceImpl implements RoomTypePhotoService {
         }
     }
 
+    /**
+     * Reordering changes display sequence only — the primary photo does not change,
+     * so roomTypeById and roomTypesByHotel are NOT affected.
+     * Only the ordered photo list (roomTypePhotos) needs eviction.
+     */
     @Override
+    //@CacheEvict(value = "roomTypePhotos", key = "#hotelId + '_' + #roomTypeId")
     public void reorderPhotos(Long hotelId, Long roomTypeId, List<Long> photoIds) {
         validateHotel(hotelId);
         getRoomTypeOrThrow(hotelId, roomTypeId);
