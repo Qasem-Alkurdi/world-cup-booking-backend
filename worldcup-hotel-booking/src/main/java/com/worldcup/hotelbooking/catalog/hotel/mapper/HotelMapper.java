@@ -111,6 +111,8 @@ public class HotelMapper {
                 h.isHasAirportShuttle(),
                 h.isHasAccessibleFacilities(),
                 h.isPetFriendly(),
+                h.getAverageRating(),
+                h.getReviewCount(),
                 h.getCreatedAt(),
                 h.getUpdatedAt()
         );

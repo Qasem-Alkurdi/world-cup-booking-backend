@@ -46,9 +46,9 @@ public class SecurityConfig {
                           CustomAuthenticationEntryPoint authenticationEntryPoint,
                           CustomAccessDeniedHandler accessDeniedHandler,
                           OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler) {
-        this.appUserDetailsService              = appUserDetailsService;
-        this.authenticationEntryPoint           = authenticationEntryPoint;
-        this.accessDeniedHandler                = accessDeniedHandler;
+        this.appUserDetailsService = appUserDetailsService;
+        this.authenticationEntryPoint = authenticationEntryPoint;
+        this.accessDeniedHandler = accessDeniedHandler;
         this.oAuth2AuthenticationSuccessHandler = oAuth2AuthenticationSuccessHandler;
     }
 
@@ -101,7 +101,8 @@ public class SecurityConfig {
                         .requestMatchers("/oauth2/**").permitAll()
                         .requestMatchers("/swagger-ui/**", "/api-docs/**", "/swagger-ui.html").permitAll()
                         .requestMatchers("/uploads/**").permitAll()
-
+                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/hotels/*/reviews").permitAll()
+                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/hotels/*/reviews/summary").permitAll()
                         // ── WebSocket handshake — SockJS needs these open ──
                         .requestMatchers("/ws/**").permitAll()
 
