@@ -15,6 +15,7 @@ import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.List;
 
@@ -83,7 +84,8 @@ public class HotelServiceImpl implements HotelService {
         hotel.setOwner(owner);
         hotel.setStatus(APPROVED);
         hotel.setDeleted(false);
-
+        hotel.setReviewCount(0);
+        hotel.setAverageRating(BigDecimal.ZERO);
         return repository.save(hotel);
     }
 

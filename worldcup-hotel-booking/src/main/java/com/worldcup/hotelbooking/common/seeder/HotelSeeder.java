@@ -18,6 +18,7 @@ import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -114,7 +115,8 @@ public class HotelSeeder implements CommandLineRunner {
         hotel.setHasAirportShuttle(seed.hasAirportShuttle);
         hotel.setHasAccessibleFacilities(seed.hasAccessibleFacilities);
         hotel.setPetFriendly(seed.petFriendly);
-
+        hotel.setReviewCount(0);
+        hotel.setAverageRating(BigDecimal.ZERO);
         return hotel;
     }
 
