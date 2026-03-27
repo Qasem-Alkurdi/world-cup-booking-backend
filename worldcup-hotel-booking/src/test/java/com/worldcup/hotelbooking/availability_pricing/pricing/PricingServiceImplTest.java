@@ -4,6 +4,7 @@ package com.worldcup.hotelbooking.availability_pricing.pricing;
 import com.worldcup.hotelbooking.availability_pricing.match.Match;
 import com.worldcup.hotelbooking.availability_pricing.stadium.Stadium;
 import com.worldcup.hotelbooking.catalog.hotel.Hotel;
+import com.worldcup.hotelbooking.catalog.hotel.HotelRepository;
 import com.worldcup.hotelbooking.catalog.roomtype.RoomType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -28,6 +29,8 @@ class PricingServiceImplTest {
     @Mock
     private PricingConfig pricingConfig;
     @Mock
+    private HotelRepository hotelRepository;
+    @Mock
     private PricingConfig.DistanceMultipliers distanceMultipliers;
     @Mock
     private PricingConfig.MatchMultipliers matchMultipliers;
@@ -40,7 +43,7 @@ class PricingServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        pricingService = new PricingServiceImpl(pricingConfig);
+        pricingService = new PricingServiceImpl(pricingConfig, hotelRepository);
 
         when(pricingConfig.getDistance()).thenReturn(distanceMultipliers);
         when(pricingConfig.getMatch()).thenReturn(matchMultipliers);

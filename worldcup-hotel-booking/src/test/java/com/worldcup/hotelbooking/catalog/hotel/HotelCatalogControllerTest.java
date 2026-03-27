@@ -1,6 +1,6 @@
 package com.worldcup.hotelbooking.catalog.hotel;
 
-import com.worldcup.hotelbooking.auth.RateLimitService;
+import com.worldcup.hotelbooking.security.RateLimitService;
 import com.worldcup.hotelbooking.catalog.hotel.dto.UpdateHotelPatchRequest;
 import com.worldcup.hotelbooking.catalog.hotel.exception.HotelNotFoundException;
 import com.worldcup.hotelbooking.catalog.storage.StaticResourceConfig;

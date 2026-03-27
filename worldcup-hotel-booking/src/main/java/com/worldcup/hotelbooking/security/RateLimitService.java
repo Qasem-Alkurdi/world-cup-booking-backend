@@ -1,4 +1,4 @@
-package com.worldcup.hotelbooking.auth;
+package com.worldcup.hotelbooking.security;
 
 import io.github.bucket4j.*;
 import org.springframework.stereotype.Component;

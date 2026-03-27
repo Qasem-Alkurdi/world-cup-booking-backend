@@ -65,7 +65,7 @@ public class PaymentController {
     @PostMapping("/process")
     @Operation(summary = "Process payment",
             description = "Process payment for a payment intent. MOCK: Set simulateSuccess=false to test failure.")
-   @PreAuthorize("@paymentAuthorizationService.canProcessPayment(request.getPaymentIntentId(), authentication)")
+   @PreAuthorize("@paymentAuthorizationService.canProcessPayment(#request.getPaymentIntentId(), authentication)")
     public ResponseEntity<ProcessPaymentResponseDto> processPayment(
             @Valid @RequestBody ProcessPaymentRequestDto request) {
 
@@ -84,7 +84,7 @@ public class PaymentController {
     @PostMapping("/additional-payment")
     @Operation(summary = "Process additional payment for a booking",
             description = "Process an additional payment for a booking, such as for extra services or late check-out.")
-        @PreAuthorize("@paymentAuthorizationService.canProcessPayment(request.getPaymentIntentId(), authentication)")
+        @PreAuthorize("@paymentAuthorizationService.canProcessPayment(#request.getPaymentIntentId(), authentication)")
     public ResponseEntity<ProcessAddiPaymentResponseDto> processAdditionalPayment(
             @Valid @RequestBody ProcessPaymentRequestDto request) {
         logger.info("Processing additional payment for intent: {}", request.getPaymentIntentId());
@@ -156,7 +156,7 @@ public class PaymentController {
      *
      * GET /payments/booking/{bookingId}
      */
-    @GetMapping("/booking/{bookingId}")
+    @GetMapping("/bookings/{bookingId}")
     @Operation(summary = "Get payment by booking ID")
     @PreAuthorize("hasRole('ADMIN') or @paymentAuthorizationService.canViewPaymentByBookingId(#bookingId, authentication)")
     public ResponseEntity<PaymentResponseDto> getPaymentByBookingId(@PathVariable Long bookingId) {
@@ -169,11 +169,11 @@ public class PaymentController {
      *
      * GET /payments/user/{userId}
      */
-    @GetMapping("/user/{userId}")
+    @GetMapping("/users/{userId}")
     @Operation(summary = "Get user's payment history")
     @PreAuthorize("hasRole('ADMIN') or @paymentAuthorizationService.isCurrentUser(#userId, authentication)")
     public PagedResponse<PaymentResponseDto> getUserPayments(@PathVariable Long userId,
-                                                             @PageableDefault(size = 10, sort = "totalAmount_paidAmountWithAdditionalPaymentWithoutRefund") Pageable pageable) {
+                                                             @PageableDefault(size = 10, sort = "totalAmount") Pageable pageable) {
         Page<Payment> paymentsPage = paymentService.getUserPayments(userId, pageable);
         List<PaymentResponseDto> payments = paymentsPage
                                            .getContent()
@@ -187,7 +187,7 @@ public class PaymentController {
      *
      * GET /payments/hotel/{hotelId}
      */
-    @GetMapping("/hotel/{hotelId}")
+    @GetMapping("/hotels/{hotelId}")
     @Operation(summary = "Get hotel's payment history")
     @PreAuthorize("hasRole('ADMIN') or @paymentAuthorizationService.isHimTheHotelOwnerOfTheBookings(#hotelId, authentication)")
     public PagedResponse<PaymentResponseDto> getHotelPayments(@PathVariable Long hotelId,

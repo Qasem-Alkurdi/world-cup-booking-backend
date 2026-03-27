@@ -1,8 +1,7 @@
 package com.worldcup.hotelbooking.availability_pricing.availability;
 
 
-import com.worldcup.hotelbooking.auth.RateLimitService;
-import com.worldcup.hotelbooking.booking.booking.BookingController;
+import com.worldcup.hotelbooking.security.RateLimitService;
 import com.worldcup.hotelbooking.catalog.storage.StaticResourceConfig;
 import com.worldcup.hotelbooking.catalog.storage.StorageProperties;
 import com.worldcup.hotelbooking.security.JwtTokenService;
@@ -15,7 +14,6 @@ import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.cache.CacheManager;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
-import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;

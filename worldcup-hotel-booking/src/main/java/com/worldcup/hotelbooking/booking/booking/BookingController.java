@@ -21,6 +21,8 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -57,7 +59,7 @@ public class BookingController {
 
     @Operation(summary = "Create a new booking", description = "Create a new booking with the provided details. The request must include user ID, hotel ID, check-in and check-out dates, and room details.")
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','GUEST')")
+    @PreAuthorize("hasRole('ADMIN') or @bookingAuthorizationService.isCurrentUser(#bookingRequest.userId, authentication) or @bookingAuthorizationService.isHimTheHotelOwnerOfTheBookingUsingTheHotelId(#bookingRequest.hotelId,authentication)" )
     public ResponseEntity<BookingResponseDto> createBooking(
             @Valid @RequestBody BookingRequestDto bookingRequest,
             UriComponentsBuilder uriBuilder) {
@@ -195,13 +197,17 @@ public class BookingController {
     }
 
     @GetMapping("/my/history")
-    @Operation(summary = "Get my booking history", description = "Retrieve the booking history for the currently authenticated user. This endpoint returns a paginated list of past bookings made by the user.")
-    @PreAuthorize("hasRole('ADMIN') or @bookingAuthorizationService.isCurrentUser(#userId, authentication)")
+    @Operation(
+            summary = "Get my booking history",
+            description = "Retrieve the booking history for the currently authenticated user. This endpoint returns a paginated list of bookings made by the logged-in user."
+    )
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<PagedResponse<BookingResponseDto>> getMyHistory(
-            @RequestParam Long userId,
+            @AuthenticationPrincipal Jwt jwt,
             @PageableDefault(size = 10, sort = "id", direction = Sort.Direction.DESC)
             Pageable pageable
     ) {
+        Long userId = extractUserId(jwt);
 
         Page<Booking> page = bookingService.getGuestHistory(userId, pageable);
 
@@ -210,9 +216,29 @@ public class BookingController {
                 .map(BookingMapper::toDto)
                 .toList();
 
-        return ResponseEntity.ok(
-                PagedResponse.from(page, content)
-        );
+        return ResponseEntity.ok(PagedResponse.from(page, content));
+    }
+
+    private Long extractUserId(Jwt jwt) {
+        Object userIdClaim = jwt.getClaim("userId");
+
+        if (userIdClaim == null) {
+            throw new IllegalStateException("userId claim is missing from token");
+        }
+
+        if (userIdClaim instanceof Integer integerValue) {
+            return integerValue.longValue();
+        }
+
+        if (userIdClaim instanceof Long longValue) {
+            return longValue;
+        }
+
+        if (userIdClaim instanceof String stringValue) {
+            return Long.parseLong(stringValue);
+        }
+
+        throw new IllegalStateException("userId claim has unsupported type");
     }
 
     @GetMapping("/hotel/{hotelId}/upcoming")
@@ -364,7 +390,7 @@ public class BookingController {
      *
      * PUT /bookings/123/manager-cancel?reason=Hotel+renovation
      */
-    @PutMapping("/{id}/manager-cancel")
+    @PutMapping("/{id}/manager-cancel/reason/{reason}")
     @PreAuthorize("hasRole('ADMIN') or (hasRole('MANAGER') and @bookingAuthorizationService.isHimTheHotelOwnerOfTheBooking(#id, authentication))")
     @Operation(
             summary = "Manager cancels a guest booking",
@@ -376,7 +402,7 @@ public class BookingController {
                     """)
     public ResponseEntity<BookingCancellationResponse> cancelBookingByManager(
             @PathVariable Long id,
-            @RequestParam String reason) {
+            @PathVariable String reason) {
 
         logger.info("Manager '{}' requesting cancellation of booking id={}", id);
 

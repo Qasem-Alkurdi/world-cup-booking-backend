@@ -1,6 +1,6 @@
 package com.worldcup.hotelbooking.user.user;
 
-import com.worldcup.hotelbooking.auth.RateLimitService;
+import com.worldcup.hotelbooking.security.RateLimitService;
 import com.worldcup.hotelbooking.security.JwtTokenService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

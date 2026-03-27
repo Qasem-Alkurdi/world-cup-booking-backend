@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.nio.channels.FileChannel;
 import java.util.List;
 import java.util.Optional;
 
@@ -37,4 +38,6 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
         WHERE b.hotel.id = :hotelId
     """)
     Page<Payment> findByBooking_Hotel_Id(@Param("hotelId") Long hotelId, Pageable pageable);
+
+
 }

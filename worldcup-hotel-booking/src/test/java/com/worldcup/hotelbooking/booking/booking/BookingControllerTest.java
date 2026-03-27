@@ -1,6 +1,6 @@
 package com.worldcup.hotelbooking.booking.booking;
 
-import com.worldcup.hotelbooking.auth.RateLimitService;
+import com.worldcup.hotelbooking.security.RateLimitService;
 import com.worldcup.hotelbooking.booking.bookingroom.BookingRoom;
 import com.worldcup.hotelbooking.booking.cancellation.CancellationResponse;
 import com.worldcup.hotelbooking.catalog.hotel.Hotel;

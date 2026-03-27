@@ -1,4 +1,4 @@
-package com.worldcup.hotelbooking.auth;
+package com.worldcup.hotelbooking.security;
 
 public class RateLimitExceededException extends RuntimeException {
     public RateLimitExceededException() {
