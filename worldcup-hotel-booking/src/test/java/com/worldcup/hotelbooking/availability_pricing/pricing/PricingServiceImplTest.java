@@ -4,6 +4,7 @@ package com.worldcup.hotelbooking.availability_pricing.pricing;
 import com.worldcup.hotelbooking.availability_pricing.match.Match;
 import com.worldcup.hotelbooking.availability_pricing.stadium.Stadium;
 import com.worldcup.hotelbooking.catalog.hotel.Hotel;
+import com.worldcup.hotelbooking.catalog.hotel.HotelRepository;
 import com.worldcup.hotelbooking.catalog.roomtype.RoomType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -28,6 +29,8 @@ class PricingServiceImplTest {
     @Mock
     private PricingConfig pricingConfig;
     @Mock
+    private HotelRepository hotelRepository;
+    @Mock
     private PricingConfig.DistanceMultipliers distanceMultipliers;
     @Mock
     private PricingConfig.MatchMultipliers matchMultipliers;
@@ -40,7 +43,12 @@ class PricingServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        pricingService = new PricingServiceImpl(pricingConfig);
+        pricingService = new PricingServiceImpl(pricingConfig, hotelRepository);
+
+        // Mock the distance calculation for different test scenarios
+        when(hotelRepository.calculateDistanceInMeters(1L, 1L)).thenReturn(1000.0); // 1 km (walking distance)
+        when(hotelRepository.calculateDistanceInMeters(1L, 2L)).thenReturn(6670.0); // ~6.67 km (medium distance)
+        when(hotelRepository.calculateDistanceInMeters(1L, 3L)).thenReturn(13340.0); // ~13.34 km (far distance)
 
         when(pricingConfig.getDistance()).thenReturn(distanceMultipliers);
         when(pricingConfig.getMatch()).thenReturn(matchMultipliers);
@@ -57,17 +65,17 @@ class PricingServiceImplTest {
     void calculateDynamicPrice_shouldReturnCorrectPrice_withPopularTeamBonusDerbyAndWalkingDistance() {
         // Arrange
         RoomType roomType = createRoomType(BigDecimal.valueOf(100), "Deluxe");
-        Hotel hotel = createHotel(30.0000, 31.0000);
+        Hotel hotel = createHotel(30.0000, 31.0000, 1L);
         Match match = createMatch(
                 "Brazil",
                 "Morocco",
                 Match.MatchStage.FINAL,
-                LocalDateTime.of(2026, 7, 3, 20, 0),
+                LocalDateTime.of(2026, 6, 28, 20, 0), // Friday
                 true,
                 true,
-                createStadium(30.0100, 31.0000)
+                createStadium(30.0100, 31.0000, 1L)
         );
-        LocalDate bookingDate = LocalDate.of(2026, 6, 28);
+        LocalDate bookingDate = LocalDate.of(2026, 6, 23);
         int occupancy = 95;
 
         // Expected multipliers:
@@ -88,53 +96,53 @@ class PricingServiceImplTest {
     void calculateDynamicPrice_shouldApplyPopularTeamAndDerbyBonuses_whenNotOpeningMatch() {
         // Arrange
         RoomType roomType = createRoomType(BigDecimal.valueOf(100), "Standard");
-        Hotel hotel = createHotel(30.0000, 31.0000);
+        Hotel hotel = createHotel(30.0000, 31.0000, 1L);
         Match match = createMatch(
                 "Brazil",
                 "Argentina",
                 Match.MatchStage.SEMI_FINAL,
-                LocalDateTime.of(2026, 7, 2, 20, 0),
+                LocalDateTime.of(2026, 7, 8, 20, 0), // Wednesday
                 false,
                 true,
-                createStadium(30.0200, 31.0000)
+                createStadium(30.0200, 31.0000, 2L)
         );
         LocalDate bookingDate = LocalDate.of(2026, 6, 22);
         int occupancy = 80;
 
         // Expected multipliers:
-        // distance <= 2km => 2.5
+        // distance 6.67km => medium 1.5
         // semi-final 3.0 + popular 0.3 + derby 0.5 = 3.8
-        // occupancy 80 => 1.5, days until match 10 => 1.3, average => 1.4
-        // Thursday => 1.2
-        // final price = 100 * 2.5 * 3.8 * 1.4 * 1.2 = 1596.00
+        // occupancy 80 => 1.5, days until match 17 => 1.0, average => 1.25
+        // Wednesday => 1.0
+        // final price = 100 * 1.5 * 3.8 * 1.25 * 1.0 = 712.50
 
         // Act
         BigDecimal result = pricingService.calculateDynamicPrice(roomType, hotel, match, bookingDate, occupancy);
 
         // Assert
-        assertEquals(0, BigDecimal.valueOf(1276.80).compareTo(result));
+        assertEquals(0, BigDecimal.valueOf(712.50).compareTo(result));
     }
 
     @Test
     void calculateDynamicPrice_shouldUseMediumDistanceStandardDemandAndWeekdayMultiplier() {
         // Arrange
         RoomType roomType = createRoomType(BigDecimal.valueOf(200), "Suite");
-        Hotel hotel = createHotel(30.0000, 31.0000);
+        Hotel hotel = createHotel(30.0000, 31.0000, 1L);
         Match match = createMatch(
                 "Japan",
                 "Mexico",
                 Match.MatchStage.GROUP_STAGE_2,
-                LocalDateTime.of(2026, 7, 1, 18, 0),
+                LocalDateTime.of(2026, 7, 1, 18, 0), // Wednesday
                 false,
                 false,
-                createStadium(30.0600, 31.0000)
+                createStadium(30.0600, 31.0000, 2L)
         );
         LocalDate bookingDate = LocalDate.of(2026, 6, 11);
         int occupancy = 45;
 
         // Expected multipliers:
-        // distance around 6.67km => medium 1.5
-        // group stage 2 => 1.4
+        // distance 6.67km => medium 1.5
+        // group stage 2 => 1.4 (no bonuses as not opening, not derby, not popular team combo)
         // occupancy 45 => 1.1, days until match 20 => 1.0, average => 1.05
         // Wednesday => 1.0
         // final price = 200 * 1.5 * 1.4 * 1.05 * 1.0 = 441.00
@@ -150,15 +158,15 @@ class PricingServiceImplTest {
     void getPricingBreakdown_shouldReturnCorrectBreakdownValues() {
         // Arrange
         RoomType roomType = createRoomType(BigDecimal.valueOf(150), "Premium");
-        Hotel hotel = createHotel(30.0000, 31.0000);
+        Hotel hotel = createHotel(30.0000, 31.0000, 1L);
         Match match = createMatch(
                 "Brazil",
                 "Germany",
                 Match.MatchStage.QUARTER_FINAL,
-                LocalDateTime.of(2026, 7, 4, 21, 0),
+                LocalDateTime.of(2026, 7, 4, 21, 0), // Saturday
                 false,
                 true,
-                createStadium(30.1200, 31.0000)
+                createStadium(30.1200, 31.0000, 3L)
         );
         LocalDate bookingDate = LocalDate.of(2026, 6, 26);
         int occupancy = 65;
@@ -236,15 +244,17 @@ class PricingServiceImplTest {
         return roomType;
     }
 
-    private Hotel createHotel(double latitude, double longitude) {
+    private Hotel createHotel(double latitude, double longitude, Long id) {
         Hotel hotel = new Hotel();
+        hotel.setId(id);
         hotel.setLatitude(latitude);
         hotel.setLongitude(longitude);
         return hotel;
     }
 
-    private Stadium createStadium(double latitude, double longitude) {
+    private Stadium createStadium(double latitude, double longitude, Long id) {
         Stadium stadium = new Stadium();
+        stadium.setId(id);
         stadium.setName("Test Stadium");
         stadium.setLatitude(latitude);
         stadium.setLongitude(longitude);

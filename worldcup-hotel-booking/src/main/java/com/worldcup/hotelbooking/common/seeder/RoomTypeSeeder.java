@@ -18,7 +18,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Component
-@Order(3)
+@Order(5)
 @Profile("seed")
 @RequiredArgsConstructor
 @Slf4j

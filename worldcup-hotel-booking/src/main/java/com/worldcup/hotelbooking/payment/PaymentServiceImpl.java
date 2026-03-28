@@ -79,7 +79,7 @@ public class PaymentServiceImpl {
      * Simulates payment gateway processing
      */
     @Caching(evict = {
-            @CacheEvict(value = "bookingById",        key = "#id"),
+            @CacheEvict(value = "bookingById",        key = "#result.booking.id"),
             @CacheEvict(value = "bookingByReference", allEntries = true),
             @CacheEvict(value = "hotelUpcoming",      allEntries = true),
             @CacheEvict(value = "guestHistory",       allEntries = true)
@@ -139,7 +139,7 @@ public class PaymentServiceImpl {
     @Transactional
     // Additional payment processing for extra services or late check-out
     @Caching(evict = {
-            @CacheEvict(value = "bookingById",        key = "#id"),
+            @CacheEvict(value = "bookingById",        key = "#result.booking.id"),
             @CacheEvict(value = "bookingByReference", allEntries = true),
             @CacheEvict(value = "hotelUpcoming",      allEntries = true),
             @CacheEvict(value = "guestHistory",       allEntries = true)
@@ -221,7 +221,7 @@ public class PaymentServiceImpl {
 
     @Transactional
     @Caching(evict = {
-            @CacheEvict(value = "bookingById",        key = "#id"),
+            @CacheEvict(value = "bookingById",        key = "#result.booking.id"),
             @CacheEvict(value = "bookingByReference", allEntries = true),
             @CacheEvict(value = "hotelUpcoming",      allEntries = true),
             @CacheEvict(value = "guestHistory",       allEntries = true)

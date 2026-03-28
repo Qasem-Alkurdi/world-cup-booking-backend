@@ -20,6 +20,7 @@ import com.worldcup.hotelbooking.catalog.roomtype.exception.RoomTypeNotFoundExce
 import com.worldcup.hotelbooking.catalog.roomtypephoto.exception.RoomTypePhotoNotFoundException;
 import com.worldcup.hotelbooking.catalog.storage.exception.InvalidPhotoFileException;
 import com.worldcup.hotelbooking.catalog.storage.exception.StorageOperationException;
+import com.worldcup.hotelbooking.chat.ConversationNotFoundException;
 import com.worldcup.hotelbooking.payment.PaymentException;
 import com.worldcup.hotelbooking.user.user.AppUserNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -140,6 +141,19 @@ public class GlobalExceptionHandler {
         );
         return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(body);
     }
+
+    @ExceptionHandler(ConversationNotFoundException.class)
+    public ResponseEntity<ApiError> handleConversationNotFound(ConversationNotFoundException ex, HttpServletRequest request) {
+        ApiError body = new ApiError(
+                Instant.now().toString(),
+                404,
+                "Not Found",
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body);
+    }
+
 
 // catalog start
 

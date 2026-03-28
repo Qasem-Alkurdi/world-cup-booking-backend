@@ -5,6 +5,8 @@ import com.worldcup.hotelbooking.availability_pricing.pricing.EnhancedPricingSer
 import com.worldcup.hotelbooking.booking.bookingroom.BookingRoom;
 import com.worldcup.hotelbooking.booking.cancellation.CancellationPolicyServiceImpl;
 import com.worldcup.hotelbooking.booking.cancellation.CancellationResponse;
+import com.worldcup.hotelbooking.catalog.hotel.HotelRepository;
+import com.worldcup.hotelbooking.catalog.query.hotel.HotelCatalogServiceImpl;
 import com.worldcup.hotelbooking.payment.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,13 +40,14 @@ public class BookingServiceImpl implements BookingService {
     private final PaymentRepository paymentRepository;
     private final PaymentServiceImpl paymentService;
 
+
     public BookingServiceImpl(
             BookingRepository bookingRepository,
             EnhancedPricingServiceImpl enhancedPricingService,
             CancellationPolicyServiceImpl cancellationPolicyService,
             AvailabilityServiceImpl availabilityService,
             PaymentRepository paymentRepository,
-            PaymentServiceImpl paymentService) {
+            PaymentServiceImpl paymentService){
         this.bookingRepository = bookingRepository;
         this.enhancedPricingService = enhancedPricingService;
         this.cancellationPolicyService = cancellationPolicyService;
@@ -667,6 +670,8 @@ public class BookingServiceImpl implements BookingService {
     }
 
     private void validateCanModify(Booking booking, Booking request) {
+        if(booking.getAppUser().getId() != request.getAppUser().getId())
+            throw new ModificationNotAllowedException("Cannot modify another user's booking");
         if (booking.getHotel().getId() != request.getHotel().getId())
             throw new ModificationNotAllowedException("Cannot modify the hotel");
 
@@ -839,4 +844,5 @@ public class BookingServiceImpl implements BookingService {
             paymentRepository.save(payment);
         }
     }
+
 }

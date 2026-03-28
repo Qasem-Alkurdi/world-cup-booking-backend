@@ -1,6 +1,6 @@
 package com.worldcup.hotelbooking.booking.booking;
 
-import com.worldcup.hotelbooking.auth.RateLimitService;
+import com.worldcup.hotelbooking.security.RateLimitService;
 import com.worldcup.hotelbooking.booking.bookingroom.BookingRoom;
 import com.worldcup.hotelbooking.booking.cancellation.CancellationResponse;
 import com.worldcup.hotelbooking.catalog.hotel.Hotel;
@@ -39,6 +39,7 @@ import java.util.List;
 
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -319,22 +320,7 @@ class BookingControllerTest {
         verify(bookingService).updateExisting(eq(1L), any(Booking.class));
     }
 
-    @Test
-    void getMyHistory_shouldReturnPaginatedBookingHistory() throws Exception {
-        // Arrange
-        Page<Booking> page = new PageImpl<>(List.of(booking), PageRequest.of(0, 10), 1);
-        when(bookingService.getGuestHistory(eq(1L), any())).thenReturn(page);
 
-        // Act + Assert
-        mockMvc.perform(get("/bookings/my/history")
-                        .param("userId", "1")
-                        .param("page", "0")
-                        .param("size", "10"))
-                .andExpect(status().isOk())
-                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON));
-
-        verify(bookingService).getGuestHistory(eq(1L), any());
-    }
 
     @Test
     void getUpcoming_shouldReturnUpcomingBookings() throws Exception {

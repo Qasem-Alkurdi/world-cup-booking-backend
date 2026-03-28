@@ -2,6 +2,7 @@ package com.worldcup.hotelbooking.availability_pricing.pricing;
 
 import com.worldcup.hotelbooking.availability_pricing.match.Match;
 import com.worldcup.hotelbooking.catalog.hotel.Hotel;
+import com.worldcup.hotelbooking.catalog.hotel.HotelRepository;
 import com.worldcup.hotelbooking.catalog.roomtype.RoomType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,9 +25,11 @@ public class PricingServiceImpl {
     );
 
     private final PricingConfig config;
+    private final HotelRepository hotelRepository;
 
-    public PricingServiceImpl(PricingConfig config) {
+    public PricingServiceImpl(PricingConfig config, HotelRepository hotelRepository) {
         this.config = config;
+        this.hotelRepository = hotelRepository;
     }
 
     /**
@@ -73,8 +76,8 @@ public class PricingServiceImpl {
      */
     private double calculateDistanceMultiplier(Hotel hotel, Match match) {
         double distance = calculateDistance(
-                hotel.getLatitude(), hotel.getLongitude(),
-                match.getStadium().getLatitude(), match.getStadium().getLongitude()
+                hotel.getId(),
+                match.getStadium().getId()
         );
 
         if (distance <= 2) {
@@ -213,19 +216,14 @@ public class PricingServiceImpl {
      * Calculate distance between two points using Haversine formula
      * Returns distance in kilometers
      */
-    private double calculateDistance(double lat1, double lon1, double lat2, double lon2) {
-        final int EARTH_RADIUS = 6371; // Radius in kilometers
+    private double calculateDistance(Long hotelId, Long stadiumId) {
+        Double distanceMeters = hotelRepository.calculateDistanceInMeters(hotelId, stadiumId);
 
-        double latDistance = Math.toRadians(lat2 - lat1);
-        double lonDistance = Math.toRadians(lon2 - lon1);
+        if (distanceMeters == null) {
+            throw new IllegalStateException("Distance calculation failed");
+        }
 
-        double a = Math.sin(latDistance / 2) * Math.sin(latDistance / 2)
-                + Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2))
-                * Math.sin(lonDistance / 2) * Math.sin(lonDistance / 2);
-
-        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
-        return EARTH_RADIUS * c;
+        return distanceMeters / 1000.0;
     }
 
     /**
@@ -267,8 +265,8 @@ public class PricingServiceImpl {
                 demandMultiplier,
                 timeMultiplier,
                 finalPrice,
-                calculateDistance(hotel.getLatitude(), hotel.getLongitude(),
-                        match.getStadium().getLatitude(), match.getStadium().getLongitude())
+                calculateDistance(hotel.getId(),
+                        match.getStadium().getId())
         );
     }
 }

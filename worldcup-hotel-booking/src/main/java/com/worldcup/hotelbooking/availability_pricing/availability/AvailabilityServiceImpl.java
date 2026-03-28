@@ -8,6 +8,7 @@ import com.worldcup.hotelbooking.catalog.roomtype.RoomType;
 import com.worldcup.hotelbooking.catalog.roomtype.RoomTypeRepository;
 import com.worldcup.hotelbooking.catalog.roomtype.exception.RoomTypeNotFoundException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 
@@ -22,14 +23,17 @@ public class AvailabilityServiceImpl {
     }
 
     // @GetMapping("/availability/room-type/{id} ?checkIn=2026-06-10 &checkOut=2026-06-12"")
+    @Transactional
     public boolean checkRoomTypeAvailability(Long roomTypeId, LocalDate checkIn, LocalDate checkOut) {
         return roomTypeRepository.findById(roomTypeId).orElseThrow(() -> new RoomTypeNotFoundException(roomTypeId)).getTotalRooms() - bookingRoomRepository.countBookedRooms(roomTypeId, checkIn, checkOut) > 0;
     }
 
+    @Transactional
     public int getAvailableRooms(Long roomTypeId, LocalDate checkIn, LocalDate checkOut) {
         return roomTypeRepository.findById(roomTypeId).orElseThrow(() -> new RoomTypeNotFoundException(roomTypeId)).getTotalRooms() - bookingRoomRepository.countBookedRooms(roomTypeId, checkIn, checkOut);
     }
 
+    @Transactional
     public boolean isNumberOfGuestsValid(Booking booking) {
         int numberOfValidAdults = 0;
         int numberOfValidChildren = 0;
@@ -40,6 +44,7 @@ public class AvailabilityServiceImpl {
         return booking.getNumberOfAdults() <= numberOfValidAdults && booking.getNumberOfChildren() <= numberOfValidChildren;
     }
 
+    @Transactional
     public boolean checkAvailability(Long roomTypeId, java.time.LocalDate checkIn, java.time.LocalDate checkOut, int rooms) {
         int bookedRooms = bookingRoomRepository.countBookedRooms(roomTypeId, checkIn, checkOut);
         int availableRooms =
@@ -52,6 +57,7 @@ public class AvailabilityServiceImpl {
     }
 
 
+    @Transactional
     public boolean checkAvailabilityOfHotel(Hotel hotel, LocalDate checkIn, LocalDate checkout) {
         boolean b = false;
         for (RoomType roomType : hotel.getRoomTypes()) {

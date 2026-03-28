@@ -49,9 +49,9 @@ public class PaymentAuthorizationService {
                 .orElse(false);
     }
 
-    public boolean canViewPayment(String paymentIntentId, Authentication authentication) {
+    public boolean canViewPayment(Long Id, Authentication authentication) {
         Long authUserId = extractUserId(authentication);
-        return authUserId != null && paymentRepository.findByPaymentIntentId(paymentIntentId)
+        return authUserId != null && paymentRepository.findById(Id)
                 .map(payment -> payment.getBooking() != null &&
                         ((payment.getBooking().getAppUser() != null &&
                                 payment.getBooking().getAppUser().getId() != null &&

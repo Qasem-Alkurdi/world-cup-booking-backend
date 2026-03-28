@@ -1,6 +1,6 @@
 package com.worldcup.hotelbooking.availability_pricing.match;
 
-import com.worldcup.hotelbooking.auth.RateLimitService;
+import com.worldcup.hotelbooking.security.RateLimitService;
 import com.worldcup.hotelbooking.availability_pricing.stadium.Stadium;
 import com.worldcup.hotelbooking.availability_pricing.stadium.StadiumRepository;
 import com.worldcup.hotelbooking.security.JwtTokenService;

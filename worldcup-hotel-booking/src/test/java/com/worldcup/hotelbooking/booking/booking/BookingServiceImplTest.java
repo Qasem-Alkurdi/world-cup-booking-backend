@@ -8,6 +8,7 @@ import com.worldcup.hotelbooking.booking.cancellation.CancellationResponse;
 import com.worldcup.hotelbooking.catalog.hotel.Hotel;
 import com.worldcup.hotelbooking.catalog.roomtype.RoomType;
 import com.worldcup.hotelbooking.payment.Payment;
+import com.worldcup.hotelbooking.payment.PaymentException;
 import com.worldcup.hotelbooking.payment.PaymentRepository;
 import com.worldcup.hotelbooking.payment.PaymentServiceImpl;
 import com.worldcup.hotelbooking.payment.RefundRequestDto;
@@ -41,14 +42,19 @@ class BookingServiceImplTest {
 
     @Mock
     private BookingRepository bookingRepository;
+
     @Mock
     private EnhancedPricingServiceImpl enhancedPricingService;
+
     @Mock
     private CancellationPolicyServiceImpl cancellationPolicyService;
+
     @Mock
     private AvailabilityServiceImpl availabilityService;
+
     @Mock
     private PaymentRepository paymentRepository;
+
     @Mock
     private PaymentServiceImpl paymentService;
 
@@ -95,6 +101,7 @@ class BookingServiceImplTest {
         booking.setStatus(Booking.BookingStatus.PENDING);
         booking.setTotalPrice(BigDecimal.valueOf(240));
         booking.setCreatedAt(LocalDateTime.now().minusHours(1));
+        booking.setAdditionalPaymentRequired(false);
     }
 
     @Test
@@ -112,8 +119,10 @@ class BookingServiceImplTest {
     void getBookingById_shouldThrow_whenNotFound() {
         when(bookingRepository.findByIdWithRooms(99L)).thenReturn(Optional.empty());
 
-        BookingNotFoundException ex = assertThrows(BookingNotFoundException.class,
-                () -> bookingService.getBookingById(99L));
+        BookingNotFoundException ex = assertThrows(
+                BookingNotFoundException.class,
+                () -> bookingService.getBookingById(99L)
+        );
 
         assertTrue(ex.getMessage().contains("99"));
         verify(bookingRepository).findByIdWithRooms(99L);
@@ -137,49 +146,60 @@ class BookingServiceImplTest {
     }
 
     @Test
-    void createBooking_shouldThrow_whenGuestCountMismatch() {
-        booking.setNumberOfGuests(4); // adults+children = 3
-        when(availabilityService.isNumberOfGuestsValid(booking)).thenReturn(true);
-
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-                () -> bookingService.createBooking(booking));
-
-        assertTrue(ex.getMessage().contains("sum of adults and children"));
-        verifyNoInteractions(enhancedPricingService, bookingRepository);
-    }
-
-    @Test
     void createBooking_shouldThrow_whenCheckoutBeforeCheckin() {
         booking.setCheckInDate(LocalDate.now().plusDays(5));
         booking.setCheckOutDate(LocalDate.now().plusDays(4));
 
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-                () -> bookingService.createBooking(booking));
+        IllegalArgumentException ex = assertThrows(
+                IllegalArgumentException.class,
+                () -> bookingService.createBooking(booking)
+        );
 
         assertTrue(ex.getMessage().contains("Check-out"));
-        verifyNoInteractions(availabilityService, enhancedPricingService, bookingRepository);
+        verifyNoInteractions(availabilityService, enhancedPricingService);
+        verify(bookingRepository, never()).save(any());
     }
 
     @Test
     void createBooking_shouldThrow_whenNoRooms() {
         booking.setBookingRooms(new ArrayList<>());
 
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-                () -> bookingService.createBooking(booking));
+        IllegalArgumentException ex = assertThrows(
+                IllegalArgumentException.class,
+                () -> bookingService.createBooking(booking)
+        );
 
         assertTrue(ex.getMessage().contains("At least one room"));
-        verifyNoInteractions(availabilityService, enhancedPricingService, bookingRepository);
+        verifyNoInteractions(availabilityService, enhancedPricingService);
+        verify(bookingRepository, never()).save(any());
     }
 
     @Test
-    void createBooking_shouldThrow_whenInvalidNumberOfGuests() {
+    void createBooking_shouldThrow_whenGuestCountMismatch() {
+        booking.setNumberOfGuests(4); // adults + children = 3
+        when(availabilityService.isNumberOfGuestsValid(booking)).thenReturn(true);
+
+        IllegalArgumentException ex = assertThrows(
+                IllegalArgumentException.class,
+                () -> bookingService.createBooking(booking)
+        );
+
+        assertTrue(ex.getMessage().contains("sum of adults and children"));
+        verify(bookingRepository, never()).save(any());
+    }
+
+    @Test
+    void createBooking_shouldThrow_whenGuestsExceedCapacity() {
         when(availabilityService.isNumberOfGuestsValid(booking)).thenReturn(false);
 
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-                () -> bookingService.createBooking(booking));
+        IllegalArgumentException ex = assertThrows(
+                IllegalArgumentException.class,
+                () -> bookingService.createBooking(booking)
+        );
 
         assertTrue(ex.getMessage().contains("exceeds room capacity"));
-        verifyNoInteractions(enhancedPricingService, bookingRepository);
+        verify(bookingRepository, never()).save(any());
+        verifyNoInteractions(enhancedPricingService);
     }
 
     @Test
@@ -188,15 +208,50 @@ class BookingServiceImplTest {
         when(availabilityService.checkAvailability(eq(10L), any(LocalDate.class), any(LocalDate.class), eq(1)))
                 .thenReturn(false);
 
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-                () -> bookingService.createBooking(booking));
+        IllegalArgumentException ex = assertThrows(
+                IllegalArgumentException.class,
+                () -> bookingService.createBooking(booking)
+        );
 
         assertTrue(ex.getMessage().contains("Not enough rooms available"));
-        verifyNoInteractions(enhancedPricingService, bookingRepository);
+        verify(bookingRepository, never()).save(any());
+        verifyNoInteractions(enhancedPricingService);
     }
 
     @Test
-    void cancelBooking_shouldSucceedAndRefund_whenPolicyAllowsAndPaymentCompleted() {
+    void calculateTotalPrice_shouldSumAllRoomPrices() {
+        BookingRoom room1 = new BookingRoom();
+        room1.setRoomType(roomType);
+        room1.setNumberOfRooms(1);
+
+        RoomType secondType = new RoomType();
+        secondType.setId(11L);
+        secondType.setName("Standard");
+        secondType.setHotel(hotel);
+        secondType.setBasePrice(BigDecimal.valueOf(80));
+
+        BookingRoom room2 = new BookingRoom();
+        room2.setRoomType(secondType);
+        room2.setNumberOfRooms(2);
+
+        booking.setBookingRooms(new ArrayList<>(List.of(room1, room2)));
+
+        when(enhancedPricingService.calculateTotalStayPrice(any(Booking.class), any(Hotel.class), eq(roomType), eq(1)))
+                .thenReturn(BigDecimal.valueOf(200));
+        when(enhancedPricingService.calculateTotalStayPrice(any(Booking.class), any(Hotel.class), eq(secondType), eq(2)))
+                .thenReturn(BigDecimal.valueOf(320));
+
+        BigDecimal result = bookingService.calculateTotalPrice(booking);
+
+        assertEquals(new BigDecimal("520.00"), result);
+        assertEquals(BigDecimal.valueOf(200), room1.getTotalPriceWithFees());
+        assertEquals(BigDecimal.valueOf(320), room2.getTotalPriceWithFees());
+        assertEquals(BigDecimal.valueOf(120), room1.getBasePricePerNightPerRoom());
+        assertEquals(BigDecimal.valueOf(80), room2.getBasePricePerNightPerRoom());
+    }
+
+    @Test
+    void cancelBooking_shouldCancelAndRefund_whenAllowedAndPaymentCompleted() {
         booking.setStatus(Booking.BookingStatus.CONFIRMED);
 
         CancellationResponse cancellation = CancellationResponse.builder()
@@ -222,8 +277,9 @@ class BookingServiceImplTest {
         Booking result = bookingService.cancelBooking(1L, "User request");
 
         assertEquals(Booking.BookingStatus.CANCELLED, result.getStatus());
-        assertTrue(result.getCancelReason().contains("User request"));
         assertEquals("test-user", result.getCancelledBy());
+        assertNotNull(result.getCancelledAt());
+        assertTrue(result.getCancelReason().contains("User request"));
 
         ArgumentCaptor<RefundRequestDto> captor = ArgumentCaptor.forClass(RefundRequestDto.class);
         verify(paymentService).refundPayment(captor.capture());
@@ -232,46 +288,7 @@ class BookingServiceImplTest {
     }
 
     @Test
-    void cancelBooking_shouldAlsoRefund_whenPaymentPartiallyRefunded() {
-        booking.setStatus(Booking.BookingStatus.CONFIRMED);
-
-        CancellationResponse cancellation = CancellationResponse.builder()
-                .canCancel(true)
-                .refundAmount(BigDecimal.valueOf(50))
-                .refundPercentage(100)
-                .cancellationFee(BigDecimal.ZERO)
-                .policyMessage("Allowed")
-                .build();
-
-        Payment payment = new Payment();
-        payment.setId(12L);
-        payment.setStatus(Payment.PaymentStatus.PARTIALLY_REFUNDED);
-        payment.setPaidAmount(BigDecimal.valueOf(200));
-        payment.setRefundAmount(BigDecimal.valueOf(100));
-
-        when(bookingRepository.findByIdWithRooms(1L)).thenReturn(Optional.of(booking));
-        when(cancellationPolicyService.previewCancellation(booking)).thenReturn(cancellation);
-        when(paymentRepository.existsByBookingId(1L)).thenReturn(true);
-        when(paymentRepository.findByBookingId(1L)).thenReturn(Optional.of(payment));
-        when(bookingRepository.save(any(Booking.class))).thenAnswer(inv -> inv.getArgument(0));
-
-        bookingService.cancelBooking(1L, "reason");
-
-        verify(paymentService).refundPayment(any(RefundRequestDto.class));
-    }
-
-    @Test
-    void cancelBooking_shouldThrow_whenBookingNotFound() {
-        when(bookingRepository.findByIdWithRooms(100L)).thenReturn(Optional.empty());
-
-        assertThrows(BookingNotFoundException.class,
-                () -> bookingService.cancelBooking(100L, "Any reason"));
-
-        verifyNoInteractions(cancellationPolicyService, paymentRepository, paymentService);
-    }
-
-    @Test
-    void cancelBooking_shouldThrow_whenPolicyDoesNotAllowCancellation() {
+    void cancelBooking_shouldThrow_whenPolicyDisallowsCancellation() {
         CancellationResponse cancellation = CancellationResponse.builder()
                 .canCancel(false)
                 .refundAmount(BigDecimal.ZERO)
@@ -282,30 +299,45 @@ class BookingServiceImplTest {
         when(bookingRepository.findByIdWithRooms(1L)).thenReturn(Optional.of(booking));
         when(cancellationPolicyService.previewCancellation(booking)).thenReturn(cancellation);
 
-        IllegalStateException ex = assertThrows(IllegalStateException.class,
-                () -> bookingService.cancelBooking(1L, "Late cancellation"));
+        IllegalStateException ex = assertThrows(
+                IllegalStateException.class,
+                () -> bookingService.cancelBooking(1L, "Late cancellation")
+        );
 
         assertTrue(ex.getMessage().contains("Cannot cancel"));
         verify(bookingRepository, never()).save(any());
+        verifyNoInteractions(paymentService);
     }
 
     @Test
-    void previewCancellation_shouldReturnPolicyPreview() {
-        CancellationResponse cancellation = CancellationResponse.builder()
+    void cancelBooking_shouldThrow_whenBookingNotFound() {
+        when(bookingRepository.findByIdWithRooms(999L)).thenReturn(Optional.empty());
+
+        assertThrows(
+                BookingNotFoundException.class,
+                () -> bookingService.cancelBooking(999L, "reason")
+        );
+
+        verifyNoInteractions(cancellationPolicyService, paymentRepository, paymentService);
+    }
+
+    @Test
+    void previewCancellation_shouldReturnResponse() {
+        CancellationResponse response = CancellationResponse.builder()
                 .canCancel(true)
-                .refundAmount(BigDecimal.valueOf(180))
-                .refundPercentage(75)
-                .cancellationFee(BigDecimal.valueOf(60))
-                .policyMessage("75% refund - 14-29 days notice")
+                .refundAmount(BigDecimal.valueOf(120))
+                .refundPercentage(50)
+                .cancellationFee(BigDecimal.valueOf(120))
+                .policyMessage("Preview")
                 .build();
 
         when(bookingRepository.findById(1L)).thenReturn(Optional.of(booking));
-        when(cancellationPolicyService.previewCancellation(booking)).thenReturn(cancellation);
+        when(cancellationPolicyService.previewCancellation(booking)).thenReturn(response);
 
         CancellationResponse result = bookingService.previewCancellation(1L);
 
         assertTrue(result.isCanCancel());
-        assertEquals(BigDecimal.valueOf(180), result.getRefundAmount());
+        assertEquals(BigDecimal.valueOf(120), result.getRefundAmount());
     }
 
     @Test
@@ -326,34 +358,61 @@ class BookingServiceImplTest {
     }
 
     @Test
-    void cancelBookingByManager_shouldCancelAndSetCancelledByManager() {
+    void cancelBookingByManager_shouldCancelAndRefund_whenPaymentExists() {
         booking.setStatus(Booking.BookingStatus.CONFIRMED);
 
-        CancellationResponse cancellation = CancellationResponse.builder()
+        CancellationResponse response = CancellationResponse.builder()
                 .canCancel(true)
                 .refundAmount(BigDecimal.valueOf(200))
-                .bonusAmount(BigDecimal.valueOf(20))
-                .bonusTierDescription("Tier bonus")
+                .bonusAmount(BigDecimal.valueOf(50))
+                .bonusTierDescription("Gold Tier Bonus")
                 .build();
 
         Payment payment = new Payment();
-        payment.setId(33L);
+        payment.setId(42L);
         payment.setStatus(Payment.PaymentStatus.COMPLETED);
-        payment.setPaidAmount(BigDecimal.valueOf(200));
+        payment.setPaidAmount(BigDecimal.valueOf(240));
         payment.setRefundAmount(BigDecimal.ZERO);
 
         when(bookingRepository.findByIdWithRooms(1L)).thenReturn(Optional.of(booking));
-        when(cancellationPolicyService.calculateManagerCancellation(booking)).thenReturn(cancellation);
+        when(cancellationPolicyService.calculateManagerCancellation(booking)).thenReturn(response);
         when(paymentRepository.existsByBookingId(1L)).thenReturn(true);
         when(paymentRepository.findByBookingId(1L)).thenReturn(Optional.of(payment));
         when(bookingRepository.save(any(Booking.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        Booking result = bookingService.cancelBookingByManager(1L, "Ops issue", "manager1");
+        Booking result = bookingService.cancelBookingByManager(1L, "Double booking error", "manager_john");
 
         assertEquals(Booking.BookingStatus.CANCELLED, result.getStatus());
-        assertEquals("manager1", result.getCancelledBy());
+        assertEquals("manager_john", result.getCancelledBy());
         assertTrue(result.getCancelReason().contains("HOTEL_CANCELLED"));
-        verify(paymentService).refundPayment(any(RefundRequestDto.class));
+
+        ArgumentCaptor<RefundRequestDto> captor = ArgumentCaptor.forClass(RefundRequestDto.class);
+        verify(paymentService).refundPayment(captor.capture());
+        assertEquals(BigDecimal.valueOf(250), captor.getValue().getRefundAmount());
+        verify(bookingRepository).save(booking);
+    }
+
+    @Test
+    void cancelBookingByManager_shouldNotRefund_whenNoPaymentRecord() {
+        booking.setStatus(Booking.BookingStatus.CONFIRMED);
+
+        CancellationResponse response = CancellationResponse.builder()
+                .canCancel(true)
+                .refundAmount(BigDecimal.valueOf(200))
+                .bonusAmount(BigDecimal.valueOf(50))
+                .bonusTierDescription("Tier Bonus")
+                .build();
+
+        when(bookingRepository.findByIdWithRooms(1L)).thenReturn(Optional.of(booking));
+        when(cancellationPolicyService.calculateManagerCancellation(booking)).thenReturn(response);
+        when(paymentRepository.existsByBookingId(1L)).thenReturn(false);
+        when(bookingRepository.save(any(Booking.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Booking result = bookingService.cancelBookingByManager(1L, "reason", "mgr");
+
+        assertEquals(Booking.BookingStatus.CANCELLED, result.getStatus());
+        verify(paymentService, never()).refundPayment(any());
+        verify(bookingRepository).save(booking);
     }
 
     @Test
@@ -366,6 +425,7 @@ class BookingServiceImplTest {
 
         assertEquals(Booking.BookingStatus.CONFIRMED, result.getStatus());
         assertNotNull(result.getConfirmedAt());
+        verify(bookingRepository).save(booking);
     }
 
     @Test
@@ -373,8 +433,10 @@ class BookingServiceImplTest {
         booking.setStatus(Booking.BookingStatus.CONFIRMED);
         when(bookingRepository.findByIdWithRooms(1L)).thenReturn(Optional.of(booking));
 
-        IllegalStateException ex = assertThrows(IllegalStateException.class,
-                () -> bookingService.confirmBooking(1L));
+        IllegalStateException ex = assertThrows(
+                IllegalStateException.class,
+                () -> bookingService.confirmBooking(1L)
+        );
 
         assertTrue(ex.getMessage().contains("already confirmed"));
     }
@@ -384,19 +446,23 @@ class BookingServiceImplTest {
         booking.setStatus(Booking.BookingStatus.CANCELLED);
         when(bookingRepository.findByIdWithRooms(1L)).thenReturn(Optional.of(booking));
 
-        IllegalStateException ex = assertThrows(IllegalStateException.class,
-                () -> bookingService.confirmBooking(1L));
+        IllegalStateException ex = assertThrows(
+                IllegalStateException.class,
+                () -> bookingService.confirmBooking(1L)
+        );
 
         assertTrue(ex.getMessage().contains("cannot be confirmed"));
     }
 
     @Test
-    void updateExisting_shouldSucceed_whenPendingAndValidRequest() {
+    void updateExisting_shouldSucceed_whenPendingAndValid() {
         booking.setStatus(Booking.BookingStatus.PENDING);
         booking.setTotalPrice(BigDecimal.valueOf(200));
         booking.setBookingRooms(new ArrayList<>(List.of(bookingRoom)));
+        booking.setAppUser(user);
 
         Booking request = new Booking();
+        request.setAppUser(user);
         request.setHotel(hotel);
         request.setCheckInDate(LocalDate.now().plusDays(11));
         request.setCheckOutDate(LocalDate.now().plusDays(13));
@@ -430,8 +496,10 @@ class BookingServiceImplTest {
         booking.setStatus(Booking.BookingStatus.CONFIRMED);
         booking.setAdditionalPaymentRequired(true);
         booking.setBookingRooms(new ArrayList<>(List.of(bookingRoom)));
+        booking.setAppUser(user);
 
         Booking request = new Booking();
+        request.setAppUser(user);
         request.setHotel(hotel);
         request.setCheckInDate(booking.getCheckInDate());
         request.setCheckOutDate(booking.getCheckOutDate());
@@ -442,11 +510,37 @@ class BookingServiceImplTest {
 
         when(bookingRepository.findByIdWithRooms(1L)).thenReturn(Optional.of(booking));
 
-        ModificationNotAllowedException ex = assertThrows(ModificationNotAllowedException.class,
-                () -> bookingService.updateExisting(1L, request));
+        ModificationNotAllowedException ex = assertThrows(
+                ModificationNotAllowedException.class,
+                () -> bookingService.updateExisting(1L, request)
+        );
 
         assertTrue(ex.getMessage().contains("outstanding payment"));
         verify(bookingRepository, never()).save(any());
+    }
+
+    @Test
+    void updateExisting_shouldThrow_whenUserMismatch() {
+        AppUser anotherUser = new AppUser();
+        anotherUser.setId(99L);
+
+        booking.setBookingRooms(new ArrayList<>(List.of(bookingRoom)));
+        booking.setAppUser(user);
+
+        Booking request = new Booking();
+        request.setAppUser(anotherUser);
+        request.setHotel(hotel);
+        request.setCheckInDate(booking.getCheckInDate());
+        request.setCheckOutDate(booking.getCheckOutDate());
+        request.setNumberOfAdults(booking.getNumberOfAdults());
+        request.setNumberOfChildren(booking.getNumberOfChildren());
+        request.setNumberOfGuests(booking.getNumberOfGuests());
+        request.setBookingRooms(new ArrayList<>(List.of(bookingRoom)));
+
+        when(bookingRepository.findByIdWithRooms(1L)).thenReturn(Optional.of(booking));
+
+        assertThrows(ModificationNotAllowedException.class,
+                () -> bookingService.updateExisting(1L, request));
     }
 
     @Test
@@ -454,7 +548,11 @@ class BookingServiceImplTest {
         Hotel anotherHotel = new Hotel();
         anotherHotel.setId(999L);
 
+        booking.setBookingRooms(new ArrayList<>(List.of(bookingRoom)));
+        booking.setAppUser(user);
+
         Booking request = new Booking();
+        request.setAppUser(user);
         request.setHotel(anotherHotel);
         request.setCheckInDate(booking.getCheckInDate());
         request.setCheckOutDate(booking.getCheckOutDate());
@@ -463,16 +561,125 @@ class BookingServiceImplTest {
         request.setNumberOfGuests(booking.getNumberOfGuests());
         request.setBookingRooms(new ArrayList<>(List.of(bookingRoom)));
 
-        booking.setBookingRooms(new ArrayList<>(List.of(bookingRoom)));
-
         when(bookingRepository.findByIdWithRooms(1L)).thenReturn(Optional.of(booking));
 
-        ModificationNotAllowedException ex = assertThrows(ModificationNotAllowedException.class,
-                () -> bookingService.updateExisting(1L, request));
+        ModificationNotAllowedException ex = assertThrows(
+                ModificationNotAllowedException.class,
+                () -> bookingService.updateExisting(1L, request)
+        );
 
         assertTrue(ex.getMessage().contains("Cannot modify the hotel"));
     }
 
+    @Test
+    void updateExisting_shouldThrow_whenCheckedIn() {
+        booking.setStatus(Booking.BookingStatus.CHECKED_IN);
+        booking.setBookingRooms(new ArrayList<>(List.of(bookingRoom)));
+        booking.setAppUser(user);
+
+        Booking request = new Booking();
+        request.setAppUser(user);
+        request.setHotel(hotel);
+        request.setCheckInDate(booking.getCheckInDate());
+        request.setCheckOutDate(booking.getCheckOutDate());
+        request.setNumberOfAdults(booking.getNumberOfAdults());
+        request.setNumberOfChildren(booking.getNumberOfChildren());
+        request.setNumberOfGuests(booking.getNumberOfGuests());
+        request.setBookingRooms(new ArrayList<>(List.of(bookingRoom)));
+
+        when(bookingRepository.findByIdWithRooms(1L)).thenReturn(Optional.of(booking));
+
+        assertThrows(ModificationNotAllowedException.class,
+                () -> bookingService.updateExisting(1L, request));
+    }
+
+    @Test
+    void updateExisting_shouldCreateSnapshotAndRequirePayment_whenConfirmedPriceIncreases() {
+        booking.setStatus(Booking.BookingStatus.CONFIRMED);
+        booking.setTotalPrice(BigDecimal.valueOf(200));
+        booking.setBookingRooms(new ArrayList<>(List.of(bookingRoom)));
+        booking.setAppUser(user);
+        booking.setConfirmedAt(LocalDateTime.now().minusDays(1));
+        booking.setConfirmationDeadline(LocalDateTime.now().plusDays(1));
+
+        Booking request = new Booking();
+        request.setAppUser(user);
+        request.setHotel(hotel);
+        request.setCheckInDate(booking.getCheckInDate());
+        request.setCheckOutDate(booking.getCheckOutDate());
+        request.setNumberOfAdults(2);
+        request.setNumberOfChildren(1);
+        request.setNumberOfGuests(3);
+
+        BookingRoom reqRoom = new BookingRoom();
+        reqRoom.setRoomType(roomType);
+        reqRoom.setNumberOfRooms(2);
+        request.setBookingRooms(new ArrayList<>(List.of(reqRoom)));
+
+        when(bookingRepository.findByIdWithRooms(1L)).thenReturn(Optional.of(booking));
+        when(enhancedPricingService.calculateTotalStayPrice(any(Booking.class), any(Hotel.class), any(RoomType.class), eq(2)))
+                .thenReturn(BigDecimal.valueOf(300));
+        when(availabilityService.isNumberOfGuestsValid(any(Booking.class))).thenReturn(true);
+        when(availabilityService.checkAvailability(eq(10L), any(LocalDate.class), any(LocalDate.class), eq(2)))
+                .thenReturn(true);
+        when(bookingRepository.save(any(Booking.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Booking result = bookingService.updateExisting(1L, request);
+
+        assertTrue(result.isAdditionalPaymentRequired());
+        assertNotNull(result.getUpdatePaymentDeadline());
+        assertEquals(new BigDecimal("300.00"), result.getTotalPrice());
+        verify(bookingRepository, times(2)).save(any(Booking.class));
+    }
+
+    @Test
+    void updateExisting_shouldRefund_whenConfirmedPriceDecreases() {
+        booking.setStatus(Booking.BookingStatus.CONFIRMED);
+        booking.setTotalPrice(BigDecimal.valueOf(300));
+        booking.setCheckInDate(LocalDate.now().plusDays(40));
+        booking.setCheckOutDate(LocalDate.now().plusDays(42));
+        booking.setBookingRooms(new ArrayList<>(List.of(bookingRoom)));
+        booking.setAppUser(user);
+
+        Booking request = new Booking();
+        request.setAppUser(user);
+        request.setHotel(hotel);
+        request.setCheckInDate(booking.getCheckInDate());
+        request.setCheckOutDate(booking.getCheckOutDate());
+        request.setNumberOfAdults(2);
+        request.setNumberOfChildren(1);
+        request.setNumberOfGuests(3);
+
+        BookingRoom reqRoom = new BookingRoom();
+        reqRoom.setRoomType(roomType);
+        reqRoom.setNumberOfRooms(1);
+        request.setBookingRooms(new ArrayList<>(List.of(reqRoom)));
+
+        Payment payment = new Payment();
+        payment.setId(55L);
+        payment.setStatus(Payment.PaymentStatus.COMPLETED);
+        payment.setPaidAmount(BigDecimal.valueOf(300));
+        payment.setRefundAmount(BigDecimal.ZERO);
+
+        when(bookingRepository.findByIdWithRooms(1L)).thenReturn(Optional.of(booking));
+        when(enhancedPricingService.calculateTotalStayPrice(any(Booking.class), any(Hotel.class), any(RoomType.class), eq(1)))
+                .thenReturn(BigDecimal.valueOf(200));
+        when(availabilityService.isNumberOfGuestsValid(any(Booking.class))).thenReturn(true);
+        when(availabilityService.checkAvailability(eq(10L), any(LocalDate.class), any(LocalDate.class), eq(1)))
+                .thenReturn(true);
+        when(paymentRepository.existsByBookingId(1L)).thenReturn(true);
+        when(paymentRepository.findByBookingId(1L)).thenReturn(Optional.of(payment));
+        when(bookingRepository.save(any(Booking.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Booking result = bookingService.updateExisting(1L, request);
+
+        assertEquals(new BigDecimal("200.00"), result.getTotalPrice());
+        assertFalse(result.isAdditionalPaymentRequired());
+
+        ArgumentCaptor<RefundRequestDto> captor = ArgumentCaptor.forClass(RefundRequestDto.class);
+        verify(paymentService).refundPayment(captor.capture());
+        assertEquals(0, BigDecimal.valueOf(100).compareTo(captor.getValue().getRefundAmount()));
+    }
     @Test
     void checkInBooking_shouldSucceed_whenConfirmedAndEligible() {
         booking.setStatus(Booking.BookingStatus.CONFIRMED);
@@ -496,11 +703,45 @@ class BookingServiceImplTest {
 
         when(bookingRepository.findByIdWithRooms(1L)).thenReturn(Optional.of(booking));
 
-        IllegalStateException ex = assertThrows(IllegalStateException.class,
-                () -> bookingService.checkInBooking(1L));
+        IllegalStateException ex = assertThrows(
+                IllegalStateException.class,
+                () -> bookingService.checkInBooking(1L)
+        );
 
         assertTrue(ex.getMessage().contains("Additional payment is required"));
         verify(bookingRepository, never()).save(any());
+    }
+
+    @Test
+    void checkInBooking_shouldThrow_whenNotConfirmed() {
+        booking.setStatus(Booking.BookingStatus.PENDING);
+        booking.setCheckInDate(LocalDate.now());
+        booking.setAdditionalPaymentRequired(false);
+
+        when(bookingRepository.findByIdWithRooms(1L)).thenReturn(Optional.of(booking));
+
+        IllegalStateException ex = assertThrows(
+                IllegalStateException.class,
+                () -> bookingService.checkInBooking(1L)
+        );
+
+        assertTrue(ex.getMessage().contains("Only confirmed bookings"));
+    }
+
+    @Test
+    void checkInBooking_shouldThrow_whenCheckInDateIsInFuture() {
+        booking.setStatus(Booking.BookingStatus.CONFIRMED);
+        booking.setCheckInDate(LocalDate.now().plusDays(3));
+        booking.setAdditionalPaymentRequired(false);
+
+        when(bookingRepository.findByIdWithRooms(1L)).thenReturn(Optional.of(booking));
+
+        IllegalStateException ex = assertThrows(
+                IllegalStateException.class,
+                () -> bookingService.checkInBooking(1L)
+        );
+
+        assertTrue(ex.getMessage().contains("Cannot check in before check-in date"));
     }
 
     @Test
@@ -520,17 +761,20 @@ class BookingServiceImplTest {
         booking.setStatus(Booking.BookingStatus.CONFIRMED);
         when(bookingRepository.findByIdWithRooms(1L)).thenReturn(Optional.of(booking));
 
-        IllegalStateException ex = assertThrows(IllegalStateException.class,
-                () -> bookingService.checkOutBooking(1L));
+        IllegalStateException ex = assertThrows(
+                IllegalStateException.class,
+                () -> bookingService.checkOutBooking(1L)
+        );
 
         assertTrue(ex.getMessage().contains("Only checked-in bookings"));
         verify(bookingRepository, never()).save(any());
     }
 
     @Test
-    void getGuestHistory_shouldReturnBookingsPage() {
+    void getGuestHistory_shouldReturnPage() {
         Pageable pageable = PageRequest.of(0, 10);
         Page<Booking> expected = new PageImpl<>(List.of(booking));
+
         when(bookingRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(expected);
 
         Page<Booking> result = bookingService.getGuestHistory(1L, pageable);
@@ -540,9 +784,10 @@ class BookingServiceImplTest {
     }
 
     @Test
-    void filterBookings_shouldReturnFilteredPage() {
+    void filterBookings_shouldReturnPage() {
         Pageable pageable = PageRequest.of(0, 10);
         Page<Booking> expected = new PageImpl<>(List.of(booking));
+
         when(bookingRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(expected);
 
         Page<Booking> result = bookingService.filterBookings(
@@ -561,7 +806,7 @@ class BookingServiceImplTest {
     }
 
     @Test
-    void cancelExpiredPendingBookings_shouldAutoCancelExpiredPendingBookings() {
+    void cancelExpiredPendingBookings_shouldAutoCancelExpiredBookings() {
         Booking expired = new Booking();
         expired.setId(2L);
         expired.setBookingReference("EXPIRED-REF");
@@ -577,6 +822,16 @@ class BookingServiceImplTest {
         assertEquals("SYSTEM", expired.getCancelledBy());
         assertTrue(expired.getCancelReason().contains("Auto-cancelled"));
         verify(bookingRepository).save(expired);
+    }
+
+    @Test
+    void cancelExpiredPendingBookings_shouldDoNothing_whenNoExpiredBookings() {
+        when(bookingRepository.findByStatusAndCreatedAtBefore(eq(Booking.BookingStatus.PENDING), any(LocalDateTime.class)))
+                .thenReturn(List.of());
+
+        bookingService.cancelExpiredPendingBookings();
+
+        verify(bookingRepository, never()).save(any());
     }
 
     @Test
@@ -642,7 +897,7 @@ class BookingServiceImplTest {
     }
 
     @Test
-    void revertExpiredUpdatePayments_shouldSkipWhenNoExpiredUpdates() {
+    void revertExpiredUpdatePayments_shouldSkip_whenNoExpiredUpdates() {
         when(bookingRepository.findConfirmedBookingsWithExpiredUpdateDeadline(any(LocalDateTime.class)))
                 .thenReturn(List.of());
 

@@ -105,7 +105,7 @@ public class ChatController {
     @PostMapping("/conversations/{conversationId}/messages")
     @PreAuthorize("""
             hasRole('ADMIN')
-            or @bookingAuthorizationService.isConversationParticipant(#conversationId, authentication)
+            or(hasRole('MANAGER') and @bookingAuthorizationService.isConversationParticipant(#conversationId, authentication))
             """)
     @Operation(
             summary  = "Reply in a conversation (manager)",

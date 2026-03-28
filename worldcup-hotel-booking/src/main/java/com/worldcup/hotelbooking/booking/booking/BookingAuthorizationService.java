@@ -45,6 +45,15 @@ public class BookingAuthorizationService {
                 .orElse(false);
     }
 
+    public boolean isHimTheHotelOwnerOfTheBookingUsingTheHotelId(Long hotelId, Authentication authentication) {
+        Long authUserId = extractUserId(authentication);
+        return authUserId != null && hotelRepository.findById(hotelId)
+                .map(hotel -> hotel.getOwner() != null &&
+                        hotel.getOwner().getId() != null &&
+                        hotel.getOwner().getId().equals(authUserId))
+                .orElse(false);
+    }
+
     public boolean isHimTheBookingUser(String reference, Authentication authentication) {
         Long authUserId = extractUserId(authentication);
         return authUserId != null && bookingRepository.findByBookingReferenceWithRooms(reference)
