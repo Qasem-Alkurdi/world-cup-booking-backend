@@ -55,7 +55,9 @@ public class HotelController {
             @ApiResponse(responseCode = "403", description = "Access denied", content = @Content)
     })
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN') or (hasRole('MANAGER') and @hotelAuthorizationService.canCreateHotelForOwner(#body.ownerId, authentication))")
+    @PreAuthorize(
+            "hasRole('ADMIN') or @hotelAuthorizationService.canCreateHotelForOwner(#body.ownerId, authentication)"
+    )
     public ResponseEntity<HotelResponseDto> create(
             @Valid @RequestBody CreateHotelRequestDto body,
             UriComponentsBuilder uriBuilder
