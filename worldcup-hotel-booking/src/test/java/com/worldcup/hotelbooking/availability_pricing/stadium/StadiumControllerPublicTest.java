@@ -1,6 +1,8 @@
 package com.worldcup.hotelbooking.availability_pricing.stadium;
 
 import com.worldcup.hotelbooking.BaseIntegrationTest;
+import com.worldcup.hotelbooking.tournament.stadium.Stadium;
+import com.worldcup.hotelbooking.tournament.stadium.StadiumRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

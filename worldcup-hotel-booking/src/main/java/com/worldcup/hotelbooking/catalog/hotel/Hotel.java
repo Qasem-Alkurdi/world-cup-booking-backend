@@ -6,7 +6,7 @@ import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.worldcup.hotelbooking.booking.booking.Booking;
 import com.worldcup.hotelbooking.catalog.hotelphoto.HotelPhoto;
 import com.worldcup.hotelbooking.catalog.roomtype.RoomType;
-import com.worldcup.hotelbooking.user.user.AppUser;
+import com.worldcup.hotelbooking.user.AppUser;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;

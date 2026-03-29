@@ -2,7 +2,7 @@ package com.worldcup.hotelbooking.catalog.security;
 
 import com.worldcup.hotelbooking.catalog.hotel.HotelRepository;
 import com.worldcup.hotelbooking.catalog.roomtype.RoomTypeRepository;
-import com.worldcup.hotelbooking.user.user.AppUserRepository;
+import com.worldcup.hotelbooking.user.AppUserRepository;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;

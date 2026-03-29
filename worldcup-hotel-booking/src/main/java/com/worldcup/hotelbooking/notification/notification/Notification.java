@@ -1,6 +1,6 @@
 package com.worldcup.hotelbooking.notification.notification;
 
-import com.worldcup.hotelbooking.user.user.AppUser;
+import com.worldcup.hotelbooking.user.AppUser;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;

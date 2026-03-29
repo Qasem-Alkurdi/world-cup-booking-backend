@@ -10,8 +10,8 @@ import com.worldcup.hotelbooking.catalog.roomtype.RoomTypeService;
 import com.worldcup.hotelbooking.catalog.storage.StaticResourceConfig;
 import com.worldcup.hotelbooking.catalog.storage.StorageProperties;
 import com.worldcup.hotelbooking.security.JwtTokenService;
-import com.worldcup.hotelbooking.user.user.AppUser;
-import com.worldcup.hotelbooking.user.user.AppUserService;
+import com.worldcup.hotelbooking.user.AppUser;
+import com.worldcup.hotelbooking.user.AppUserService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,7 +39,6 @@ import java.util.List;
 
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;

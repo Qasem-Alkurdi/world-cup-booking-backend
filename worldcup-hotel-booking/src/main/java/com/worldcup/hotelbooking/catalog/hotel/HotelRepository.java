@@ -1,6 +1,6 @@
 package com.worldcup.hotelbooking.catalog.hotel;
 
-import com.worldcup.hotelbooking.user.user.AppUser;
+import com.worldcup.hotelbooking.user.AppUser;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;

@@ -3,6 +3,7 @@ package com.worldcup.hotelbooking.user.user;
 import com.worldcup.hotelbooking.booking.booking.Booking;
 import com.worldcup.hotelbooking.booking.booking.BookingResponseDto;
 import com.worldcup.hotelbooking.notification.notification.NotificationService;
+import com.worldcup.hotelbooking.user.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -20,6 +21,8 @@ import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -35,6 +38,8 @@ class AppUserServiceImplTest {
 
     @InjectMocks
     private AppUserServiceImpl userService;
+    @Mock
+    private PasswordValidator passwordValidator;
 
     @Captor
     private ArgumentCaptor<AppUser> userCaptor;
@@ -188,5 +193,34 @@ class AppUserServiceImplTest {
 
         assertThat(bookings).hasSize(1);
         // You may want to verify mapping, but that's tested elsewhere.
+    }
+    @Test
+    void shouldThrowExceptionWhenPasswordValidationFails() {
+        AppUserRequestDto dto = new AppUserRequestDto("user", "user@example.com", "weak");
+        doThrow(new PasswordValidationException(java.util.List.of("Password too weak")))
+                .when(passwordValidator).validate("weak");
+
+        assertThrows(PasswordValidationException.class, () -> userService.createUser(dto));
+
+        verify(passwordValidator).validate("weak");
+        verify(userRepository, never()).save(any());
+        verify(passwordEncoder, never()).encode(any());
+    }
+
+    @Test
+    void shouldSaveUserWhenPasswordIsValid() {
+        AppUserRequestDto dto = new AppUserRequestDto("user", "user@example.com", "StrongP@ss123");
+        AppUser user = new AppUser();
+        user.setUsername(dto.username());
+        user.setEmail(dto.email());
+        when(passwordEncoder.encode("StrongP@ss123")).thenReturn("encodedHash");
+        when(userRepository.save(any(AppUser.class))).thenReturn(user);
+
+        AppUser result = userService.createUser(dto);
+
+        verify(passwordValidator).validate("StrongP@ss123");
+        verify(passwordEncoder).encode("StrongP@ss123");
+        verify(userRepository).save(any(AppUser.class));
+        assertEquals("user", result.getUsername());
     }
 }

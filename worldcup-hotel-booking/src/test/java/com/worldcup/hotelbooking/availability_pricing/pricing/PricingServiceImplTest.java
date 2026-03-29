@@ -1,8 +1,8 @@
 
 package com.worldcup.hotelbooking.availability_pricing.pricing;
 
-import com.worldcup.hotelbooking.availability_pricing.match.Match;
-import com.worldcup.hotelbooking.availability_pricing.stadium.Stadium;
+import com.worldcup.hotelbooking.tournament.match.Match;
+import com.worldcup.hotelbooking.tournament.stadium.Stadium;
 import com.worldcup.hotelbooking.catalog.hotel.Hotel;
 import com.worldcup.hotelbooking.catalog.hotel.HotelRepository;
 import com.worldcup.hotelbooking.catalog.roomtype.RoomType;

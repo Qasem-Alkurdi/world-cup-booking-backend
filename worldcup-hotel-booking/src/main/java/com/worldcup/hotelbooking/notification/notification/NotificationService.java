@@ -1,6 +1,6 @@
 package com.worldcup.hotelbooking.notification.notification;
 
-import com.worldcup.hotelbooking.user.user.AppUser;
+import com.worldcup.hotelbooking.user.AppUser;
 
 public interface NotificationService {
     void sendWelcomeNotification(AppUser user);

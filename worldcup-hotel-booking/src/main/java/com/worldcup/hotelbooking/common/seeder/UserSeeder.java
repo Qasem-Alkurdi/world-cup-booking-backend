@@ -1,8 +1,8 @@
 package com.worldcup.hotelbooking.common.seeder;
 
-import com.worldcup.hotelbooking.user.user.AppUser;
-import com.worldcup.hotelbooking.user.user.AppUserRepository;
-import com.worldcup.hotelbooking.user.user.Role;
+import com.worldcup.hotelbooking.user.AppUser;
+import com.worldcup.hotelbooking.user.AppUserRepository;
+import com.worldcup.hotelbooking.user.Role;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

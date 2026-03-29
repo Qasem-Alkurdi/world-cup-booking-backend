@@ -1,14 +1,16 @@
 package com.worldcup.hotelbooking.availability_pricing.match;
 
 import com.worldcup.hotelbooking.BaseIntegrationTest;
-import com.worldcup.hotelbooking.availability_pricing.stadium.Stadium;
-import com.worldcup.hotelbooking.availability_pricing.stadium.StadiumRepository;
+import com.worldcup.hotelbooking.tournament.stadium.Stadium;
+import com.worldcup.hotelbooking.tournament.stadium.StadiumRepository;
 import com.worldcup.hotelbooking.auth.LoginRequest;
 import com.worldcup.hotelbooking.auth.LoginResponse;
 import com.worldcup.hotelbooking.security.RefreshTokenRepository;
-import com.worldcup.hotelbooking.user.user.AppUser;
-import com.worldcup.hotelbooking.user.user.AppUserRepository;
-import com.worldcup.hotelbooking.user.user.Role;
+import com.worldcup.hotelbooking.tournament.match.Match;
+import com.worldcup.hotelbooking.tournament.match.MatchRepository;
+import com.worldcup.hotelbooking.user.AppUser;
+import com.worldcup.hotelbooking.user.AppUserRepository;
+import com.worldcup.hotelbooking.user.Role;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

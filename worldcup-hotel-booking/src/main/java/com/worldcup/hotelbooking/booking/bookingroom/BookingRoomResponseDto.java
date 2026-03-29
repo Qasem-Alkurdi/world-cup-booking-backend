@@ -1,12 +1,14 @@
 package com.worldcup.hotelbooking.booking.bookingroom;
 
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
-import lombok.Data;
+
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 
 @Getter
+@NoArgsConstructor
 @JsonPropertyOrder({
         "roomTypeName",
         "numberOfRooms",

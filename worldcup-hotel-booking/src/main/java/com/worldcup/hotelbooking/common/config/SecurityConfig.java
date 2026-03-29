@@ -4,7 +4,7 @@ import com.nimbusds.jose.jwk.source.ImmutableSecret;
 import com.worldcup.hotelbooking.security.CustomAccessDeniedHandler;
 import com.worldcup.hotelbooking.security.CustomAuthenticationEntryPoint;
 import com.worldcup.hotelbooking.security.OAuth2AuthenticationSuccessHandler;
-import com.worldcup.hotelbooking.user.user.AppUserDetailsService;
+import com.worldcup.hotelbooking.user.AppUserDetailsService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

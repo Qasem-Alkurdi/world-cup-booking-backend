@@ -1,11 +1,13 @@
 spring:
-  application:
-    name: worldcup-hotel-booking
-  profiles:
-    active: local,seed
+  datasource:
+    url: jdbc:postgresql://localhost:5432/worldcup
+    username: postgres
+    password: google123google
+    driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
       ddl-auto: update
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
     properties:
       hibernate:
         show_sql: true
@@ -75,6 +77,8 @@ app:
       booking-by-reference: 5
       guest-history: 5
       hotel-upcoming: 5
+  password:
+    min-length: 12
 
 security:
   jwt:

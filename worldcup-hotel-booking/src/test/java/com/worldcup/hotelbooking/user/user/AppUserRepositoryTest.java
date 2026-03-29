@@ -2,11 +2,15 @@ package com.worldcup.hotelbooking.user.user;
 
 import com.worldcup.hotelbooking.security.RateLimitService;
 import com.worldcup.hotelbooking.security.JwtTokenService;
+import com.worldcup.hotelbooking.user.AppUser;
+import com.worldcup.hotelbooking.user.AppUserRepository;
+import com.worldcup.hotelbooking.user.Role;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
+import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
 import org.springframework.cache.CacheManager;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -19,6 +23,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @DataJpaTest
 @ActiveProfiles("test")
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)   // use real DB
 class AppUserRepositoryTest {
 
     @Autowired
@@ -30,7 +35,7 @@ class AppUserRepositoryTest {
     @MockitoBean
     private JwtTokenService jwtTokenService;
 
-    @MockitoBean                          // ← add this
+    @MockitoBean
     private CacheManager cacheManager;
 
     private AppUser user1, user2;

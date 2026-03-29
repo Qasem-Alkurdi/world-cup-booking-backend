@@ -10,7 +10,7 @@ import com.worldcup.hotelbooking.booking.cancellation.CancellationResponse;
 import com.worldcup.hotelbooking.catalog.hotel.HotelService;
 import com.worldcup.hotelbooking.catalog.roomtype.RoomTypeService;
 import com.worldcup.hotelbooking.common.response.PagedResponse;
-import com.worldcup.hotelbooking.user.user.AppUserService;
+import com.worldcup.hotelbooking.user.AppUserService;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;

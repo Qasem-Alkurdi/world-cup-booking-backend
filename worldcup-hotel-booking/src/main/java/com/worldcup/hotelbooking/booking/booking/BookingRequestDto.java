@@ -7,12 +7,14 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import lombok.Data;
 import lombok.Getter;
+import lombok.Setter;
 
 import java.time.LocalDate;
 import java.util.Date;
 import java.util.List;
 
 @Getter
+@Setter
 public class BookingRequestDto {
 
     @NotNull(message = "Hotel ID cannot be null")

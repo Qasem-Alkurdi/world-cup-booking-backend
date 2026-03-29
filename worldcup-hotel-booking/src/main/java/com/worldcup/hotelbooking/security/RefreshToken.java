@@ -1,6 +1,6 @@
 package com.worldcup.hotelbooking.security;
 
-import com.worldcup.hotelbooking.user.user.AppUser;
+import com.worldcup.hotelbooking.user.AppUser;
 import jakarta.persistence.*;
 import java.time.Instant;
 

@@ -3,7 +3,7 @@ package com.worldcup.hotelbooking.auth;
 import com.worldcup.hotelbooking.security.JwtTokenService;
 import com.worldcup.hotelbooking.security.RefreshToken;
 import com.worldcup.hotelbooking.security.RefreshTokenRepository;
-import com.worldcup.hotelbooking.user.user.*;
+import com.worldcup.hotelbooking.user.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -14,7 +14,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.Instant;
-import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
@@ -45,6 +44,7 @@ class AuthServiceTest {
     private AppUser testUser;
     private final String rawPassword = "password";
     private final String encodedPassword = "encoded";
+    private AppUserService appUserServiceMock;
 
     @BeforeEach
     void setUp() {
@@ -61,7 +61,8 @@ class AuthServiceTest {
                 tokenService,
                 refreshTokenRepository,
                 7L,
-                externalProviderRepository
+                externalProviderRepository,
+                appUserServiceMock
         );
     }
 

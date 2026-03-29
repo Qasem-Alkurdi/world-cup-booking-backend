@@ -8,6 +8,7 @@ import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.cache.caffeine.CaffeineCacheManager;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.web.client.RestTemplate;
 
 import java.time.Duration;
 
@@ -30,6 +31,7 @@ public class CacheConfig {
         private int bookingByReference = 5;
         private int guestHistory       = 5;
         private int hotelUpcoming      = 5;
+        private int hibpSuffixes       = 60;
 
         public int getHotelList()          { return hotelList; }
         public void setHotelList(int v)    { hotelList = v; }
@@ -63,6 +65,9 @@ public class CacheConfig {
 
         public int getHotelUpcoming()            { return hotelUpcoming; }
         public void setHotelUpcoming(int v)      { hotelUpcoming = v; }
+
+        public int getHibpSuffixes() { return hibpSuffixes; }
+        public void setHibpSuffixes(int v) { hibpSuffixes = v; }
     }
 
     @Bean
@@ -102,6 +107,9 @@ public class CacheConfig {
 
         manager.registerCustomCache("hotelUpcoming",
                 buildCaffeine(ttl.getHotelUpcoming(), 500).build());
+
+        manager.registerCustomCache("hibpSuffixes",
+                buildCaffeine(ttl.getHibpSuffixes(), 1000).build());
 
         return manager;
     }

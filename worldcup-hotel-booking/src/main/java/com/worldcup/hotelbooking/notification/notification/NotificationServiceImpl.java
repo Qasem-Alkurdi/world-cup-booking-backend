@@ -1,11 +1,12 @@
 package com.worldcup.hotelbooking.notification.notification;
 
 
-import com.worldcup.hotelbooking.user.user.AppUser;
+import com.worldcup.hotelbooking.user.AppUser;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
@@ -21,6 +22,7 @@ public class NotificationServiceImpl implements NotificationService {
 
     @Async
     @Override
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void sendWelcomeNotification(AppUser user) {
         String subject = "Welcome to WorldCup Hotel Booking!";
         String content = "Dear " + user.getUsername() + ",\n\nThank you for registering. We hope you enjoy your stay!";

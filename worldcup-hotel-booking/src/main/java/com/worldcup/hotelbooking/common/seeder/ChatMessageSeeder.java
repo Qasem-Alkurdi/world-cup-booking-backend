@@ -4,7 +4,7 @@ import com.worldcup.hotelbooking.chat.ChatMessage;
 import com.worldcup.hotelbooking.chat.ChatMessageRepository;
 import com.worldcup.hotelbooking.chat.Conversation;
 import com.worldcup.hotelbooking.chat.ConversationRepository;
-import com.worldcup.hotelbooking.user.user.AppUser;
+import com.worldcup.hotelbooking.user.AppUser;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;

@@ -4,10 +4,10 @@ import com.worldcup.hotelbooking.booking.booking.BookingRepository;
 import com.worldcup.hotelbooking.catalog.hotel.dto.UpdateHotelPatchRequest;
 import com.worldcup.hotelbooking.catalog.hotel.exception.DeleteConflictException;
 import com.worldcup.hotelbooking.catalog.hotel.exception.HotelNotFoundException;
-import com.worldcup.hotelbooking.user.user.AppUser;
-import com.worldcup.hotelbooking.user.user.AppUserNotFoundException;
-import com.worldcup.hotelbooking.user.user.AppUserRepository;
-import com.worldcup.hotelbooking.user.user.Role;
+import com.worldcup.hotelbooking.user.AppUser;
+import com.worldcup.hotelbooking.user.AppUserNotFoundException;
+import com.worldcup.hotelbooking.user.AppUserRepository;
+import com.worldcup.hotelbooking.user.Role;
 import org.springframework.beans.BeanUtils;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
@@ -118,7 +118,7 @@ public class HotelServiceImpl implements HotelService {
                 "id",
                 "owner",
                 "status",
-                "isDeleted",
+                "deleted",
                 "deletedAt",
                 "createdAt",
                 "updatedAt",

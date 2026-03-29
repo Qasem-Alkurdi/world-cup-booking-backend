@@ -1,7 +1,7 @@
 package com.worldcup.hotelbooking.common.seeder;
 
-import com.worldcup.hotelbooking.availability_pricing.stadium.Stadium;
-import com.worldcup.hotelbooking.availability_pricing.stadium.StadiumRepository;
+import com.worldcup.hotelbooking.tournament.stadium.Stadium;
+import com.worldcup.hotelbooking.tournament.stadium.StadiumRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;

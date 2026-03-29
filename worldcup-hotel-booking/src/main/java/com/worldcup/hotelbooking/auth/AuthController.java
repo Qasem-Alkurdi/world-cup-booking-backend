@@ -1,10 +1,13 @@
 package com.worldcup.hotelbooking.auth;
 
+import com.worldcup.hotelbooking.user.AppUserRequestDto;
+import com.worldcup.hotelbooking.user.RegistrationResponseDto;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.util.UriComponentsBuilder;
 
 @RestController
 @RequestMapping("/auth")
@@ -15,6 +18,20 @@ public class AuthController {
 
     public AuthController(AuthService authService) {
         this.authService = authService;
+    }
+
+
+    @PostMapping("/register")
+    @Operation(summary = "Register a new user")
+    public ResponseEntity<RegistrationResponseDto> register(
+            @Valid @RequestBody AppUserRequestDto dto,
+            UriComponentsBuilder uriBuilder) {
+
+        RegistrationResponseDto created = authService.register(dto);
+
+        return ResponseEntity
+                .created(uriBuilder.path("/users/{id}").buildAndExpand(created.id()).toUri())
+                .body(created);
     }
 
     @PostMapping("/login")

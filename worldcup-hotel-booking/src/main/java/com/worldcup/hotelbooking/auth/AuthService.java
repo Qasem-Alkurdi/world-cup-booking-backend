@@ -3,7 +3,7 @@ package com.worldcup.hotelbooking.auth;
 import com.worldcup.hotelbooking.security.JwtTokenService;
 import com.worldcup.hotelbooking.security.RefreshToken;
 import com.worldcup.hotelbooking.security.RefreshTokenRepository;
-import com.worldcup.hotelbooking.user.user.*;
+import com.worldcup.hotelbooking.user.*;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -25,18 +25,28 @@ public class AuthService {
     private final RefreshTokenRepository refreshTokenRepository;
     private final long refreshTokenDays;
     private final ExternalProviderRepository externalProviderRepository;
+    private final AppUserService appUserService;   // new
 
     public AuthService(AppUserRepository userRepository,
                        PasswordEncoder passwordEncoder,
                        JwtTokenService tokenService,
                        RefreshTokenRepository refreshTokenRepository,
-                       @Value("${security.jwt.refresh-token-days}") long refreshTokenDays, ExternalProviderRepository externalProviderRepository) {
+                       @Value("${security.jwt.refresh-token-days}") long refreshTokenDays,
+                       ExternalProviderRepository externalProviderRepository,
+                       AppUserService appUserService) {   // added
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.tokenService = tokenService;
         this.refreshTokenRepository = refreshTokenRepository;
         this.refreshTokenDays = refreshTokenDays;
         this.externalProviderRepository = externalProviderRepository;
+        this.appUserService = appUserService;
+    }
+
+    @Transactional
+    public RegistrationResponseDto register(AppUserRequestDto dto) {
+        AppUser createdUser = appUserService.createUser(dto);
+        return AppUserMapper.toRegistrationDto(createdUser);
     }
 
     @Transactional()

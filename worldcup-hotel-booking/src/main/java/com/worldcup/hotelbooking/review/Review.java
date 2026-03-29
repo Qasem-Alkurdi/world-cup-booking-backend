@@ -2,7 +2,7 @@ package com.worldcup.hotelbooking.review;
 
 import com.worldcup.hotelbooking.booking.booking.Booking;
 import com.worldcup.hotelbooking.catalog.hotel.Hotel;
-import com.worldcup.hotelbooking.user.user.AppUser;
+import com.worldcup.hotelbooking.user.AppUser;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;

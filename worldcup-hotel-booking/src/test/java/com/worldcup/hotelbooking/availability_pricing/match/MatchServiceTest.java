@@ -1,8 +1,12 @@
 package com.worldcup.hotelbooking.availability_pricing.match;
 
-import com.worldcup.hotelbooking.availability_pricing.stadium.Stadium;
-import com.worldcup.hotelbooking.availability_pricing.stadium.StadiumNotFoundException;
-import com.worldcup.hotelbooking.availability_pricing.stadium.StadiumService;
+import com.worldcup.hotelbooking.tournament.stadium.Stadium;
+import com.worldcup.hotelbooking.tournament.stadium.StadiumNotFoundException;
+import com.worldcup.hotelbooking.tournament.stadium.StadiumService;
+import com.worldcup.hotelbooking.tournament.match.Match;
+import com.worldcup.hotelbooking.tournament.match.MatchNotFoundException;
+import com.worldcup.hotelbooking.tournament.match.MatchRepository;
+import com.worldcup.hotelbooking.tournament.match.MatchService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

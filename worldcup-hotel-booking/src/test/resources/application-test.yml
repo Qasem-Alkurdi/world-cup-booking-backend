@@ -1,16 +1,25 @@
 spring:
   datasource:
-    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;MODE=PostgreSQL
-    driver-class-name: org.h2.Driver
-    username: sa
-    password:
+    url: jdbc:postgresql://localhost:5432/worldcup_test
+    username: postgres
+    password: google123google
   jpa:
     hibernate:
       ddl-auto: create-drop
-    database-platform: org.hibernate.dialect.H2Dialect
-    show-sql: true
+    show-sql: false
   flyway:
     enabled: false
+
+security:
+  jwt:
+    secret: mySuperSecretKeyThatIsAtLeast32CharactersLongForHS256Algorithm
+    access-token-minutes: 15
+    refresh-token-days: 7
+    issuer: worldcup-hotel-booking
+
+app:
+  storage:
+    upload-dir: ./test-uploads
 
 logging:
   level:

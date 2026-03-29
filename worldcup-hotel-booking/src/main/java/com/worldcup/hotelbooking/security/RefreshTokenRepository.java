@@ -1,6 +1,6 @@
 package com.worldcup.hotelbooking.security;
 
-import com.worldcup.hotelbooking.user.user.AppUser;
+import com.worldcup.hotelbooking.user.AppUser;
 import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.Optional;
 

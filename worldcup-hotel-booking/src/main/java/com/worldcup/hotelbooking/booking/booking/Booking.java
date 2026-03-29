@@ -3,7 +3,7 @@ package com.worldcup.hotelbooking.booking.booking;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.worldcup.hotelbooking.booking.bookingroom.BookingRoom;
 import com.worldcup.hotelbooking.catalog.hotel.Hotel;
-import com.worldcup.hotelbooking.user.user.AppUser;
+import com.worldcup.hotelbooking.user.AppUser;
 import jakarta.persistence.*;
 import lombok.Data;
 

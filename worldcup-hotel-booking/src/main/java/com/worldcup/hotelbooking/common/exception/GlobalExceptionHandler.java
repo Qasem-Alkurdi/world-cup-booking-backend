@@ -3,8 +3,8 @@ package com.worldcup.hotelbooking.common.exception;
 import com.nimbusds.jose.jwk.source.RateLimitReachedException;
 import com.worldcup.hotelbooking.auth.InvalidCredentialsException;
 import com.worldcup.hotelbooking.auth.InvalidRefreshTokenException;
-import com.worldcup.hotelbooking.availability_pricing.match.MatchNotFoundException;
-import com.worldcup.hotelbooking.availability_pricing.stadium.StadiumNotFoundException;
+import com.worldcup.hotelbooking.tournament.match.MatchNotFoundException;
+import com.worldcup.hotelbooking.tournament.stadium.StadiumNotFoundException;
 import com.worldcup.hotelbooking.booking.booking.BookingNotFoundException;
 import com.worldcup.hotelbooking.booking.booking.ModificationNotAllowedException;
 import com.worldcup.hotelbooking.booking.bookingroom.BookingRoomNotFoundException;
@@ -22,7 +22,8 @@ import com.worldcup.hotelbooking.catalog.storage.exception.InvalidPhotoFileExcep
 import com.worldcup.hotelbooking.catalog.storage.exception.StorageOperationException;
 import com.worldcup.hotelbooking.chat.ConversationNotFoundException;
 import com.worldcup.hotelbooking.payment.PaymentException;
-import com.worldcup.hotelbooking.user.user.AppUserNotFoundException;
+import com.worldcup.hotelbooking.user.AppUserNotFoundException;
+import com.worldcup.hotelbooking.user.PasswordValidationException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
@@ -435,4 +436,25 @@ public class GlobalExceptionHandler {
     }
 
     //match end
+
+    // Password validation errors start
+    @ExceptionHandler(PasswordValidationException.class)
+    public ResponseEntity<ApiError> handlePasswordValidationException(
+            PasswordValidationException ex,
+            HttpServletRequest request
+    ) {
+        // If your exception has a list of issues
+        String errors = String.join("; ", ex.getErrors());
+
+        ApiError body = new ApiError(
+                Instant.now().toString(),
+                400, // Bad Request
+                "Bad Request",
+                errors.isEmpty() ? "Password validation failed" : errors,
+                request.getRequestURI()
+        );
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
+    }
+    // Password validation errors end
 }
