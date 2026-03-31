@@ -36,3 +36,5 @@ build/
 application-local.yml
 application-dev.yml
 application-test-local.yml
+#photo
+/uploads
