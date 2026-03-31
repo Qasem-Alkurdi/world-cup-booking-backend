@@ -14,9 +14,6 @@ import org.springframework.data.domain.Sort;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
-import java.util.List;
-
 @RestController
 @RequestMapping("/catalog/hotels")
 @Tag(name = "Hotel Catalog Controller", description = "APIs for searching and browsing hotel catalog")
@@ -51,39 +48,25 @@ public class HotelCatalogController {
             int size,
 
             @RequestParam(required = false)
-            String[] sort
+            String sort
     ) {
         Pageable pageable = PageRequest.of(page, size, parseSort(sort));
         return service.search(pageable, criteria);
     }
 
-    private Sort parseSort(String[] sortParams) {
-        if (sortParams == null || sortParams.length == 0) {
+    private Sort parseSort(String sortParam) {
+        if (sortParam == null || sortParam.isBlank()) {
             return Sort.by(Sort.Order.asc("id"));
         }
 
-        List<Sort.Order> orders = new ArrayList<>();
+        String[] parts = sortParam.split(",");
+        String property = parts[0].trim();
+        String direction = parts.length > 1 ? parts[1].trim() : "asc";
 
-        for (String sortParam : sortParams) {
-            if (sortParam == null || sortParam.isBlank()) {
-                continue;
-            }
+        Sort.Direction sortDirection = direction.equalsIgnoreCase("desc")
+                ? Sort.Direction.DESC
+                : Sort.Direction.ASC;
 
-            String[] parts = sortParam.split(",");
-            String property = parts[0].trim();
-            String direction = parts.length > 1 ? parts[1].trim() : "asc";
-
-            Sort.Direction sortDirection = direction.equalsIgnoreCase("desc")
-                    ? Sort.Direction.DESC
-                    : Sort.Direction.ASC;
-
-            orders.add(new Sort.Order(sortDirection, property));
-        }
-
-        if (orders.isEmpty()) {
-            return Sort.by(Sort.Order.asc("id"));
-        }
-
-        return Sort.by(orders);
+        return Sort.by(new Sort.Order(sortDirection, property));
     }
 }

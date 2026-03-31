@@ -66,7 +66,13 @@ public class HotelCatalogServiceImpl implements HotelCatalogService {
         boolean hasComputedSort = hasComputedSort(pageable);
 
         if (!hasPriceFilter && !hasComputedSort) {
-            return searchOnlyWithDatabase(pageable, spec);
+            Pageable dbPageable = PageRequest.of(
+                    pageable.getPageNumber(),
+                    pageable.getPageSize(),
+                    extractDatabaseSortableSort(pageable.getSort())
+            );
+
+            return searchOnlyWithDatabase(dbPageable, spec);
         }
 
         return searchWithComputedProcessing(pageable, criteria, spec);
@@ -324,6 +330,14 @@ public class HotelCatalogServiceImpl implements HotelCatalogService {
     private Sort extractDatabaseSortableSort(Sort requestedSort) {
         List<Sort.Order> dbOrders = requestedSort.stream()
                 .filter(order -> DB_SORT_FIELDS.contains(order.getProperty()))
+                .map(order -> {
+                    String property = switch (order.getProperty()) {
+                        case "rating" -> "averageRating";
+                        case "reviewCount" -> "reviewCount";
+                        default -> order.getProperty();
+                    };
+                    return new Sort.Order(order.getDirection(), property);
+                })
                 .toList();
 
         if (dbOrders.isEmpty()) {
