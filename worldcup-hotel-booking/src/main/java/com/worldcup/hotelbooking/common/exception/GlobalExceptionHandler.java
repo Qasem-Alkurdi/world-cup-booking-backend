@@ -20,6 +20,9 @@ import com.worldcup.hotelbooking.catalog.storage.exception.InvalidPhotoFileExcep
 import com.worldcup.hotelbooking.catalog.storage.exception.StorageOperationException;
 import com.worldcup.hotelbooking.chat.ConversationNotFoundException;
 import com.worldcup.hotelbooking.payment.PaymentException;
+import com.worldcup.hotelbooking.review.exception.ReviewAlreadyExistsException;
+import com.worldcup.hotelbooking.review.exception.ReviewNotFoundException;
+import com.worldcup.hotelbooking.review.exception.ReviewOwnershipException;
 import com.worldcup.hotelbooking.tournament.match.MatchNotFoundException;
 import com.worldcup.hotelbooking.tournament.stadium.StadiumNotFoundException;
 import com.worldcup.hotelbooking.user.AppUserNotFoundException;
@@ -347,8 +350,75 @@ public class GlobalExceptionHandler {
     }
 //photo end
 
-// catalog end
 
+    // catalog end
+    // Review start
+    @ExceptionHandler(ReviewNotFoundException.class)
+    public ResponseEntity<ApiError> handleReviewNotFound(
+            ReviewNotFoundException ex,
+            HttpServletRequest request
+    ) {
+        ApiError body = new ApiError(
+                Instant.now().toString(),
+                404,
+                "Not Found",
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body);
+    }
+
+    @ExceptionHandler(ReviewAlreadyExistsException.class)
+    public ResponseEntity<ApiError> handleReviewAlreadyExists(
+            ReviewAlreadyExistsException ex,
+            HttpServletRequest request
+    ) {
+        ApiError body = new ApiError(
+                Instant.now().toString(),
+                409,
+                "Conflict",
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(body);
+    }
+
+    @ExceptionHandler(ReviewOwnershipException.class)
+    public ResponseEntity<ApiError> handleReviewOwnership(
+            ReviewOwnershipException ex,
+            HttpServletRequest request
+    ) {
+        ApiError body = new ApiError(
+                Instant.now().toString(),
+                403,
+                "Forbidden",
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(body);
+    }
+
+    @ExceptionHandler(jakarta.validation.ConstraintViolationException.class)
+    public ResponseEntity<ApiError> handleConstraintViolation(
+            jakarta.validation.ConstraintViolationException ex,
+            HttpServletRequest request
+    ) {
+        String message = ex.getConstraintViolations().stream()
+                .map(v -> v.getPropertyPath() + ": " + v.getMessage())
+                .reduce((a, b) -> a + "; " + b)
+                .orElse("Validation error");
+
+        ApiError body = new ApiError(
+                Instant.now().toString(),
+                400,
+                "Bad Request",
+                message,
+                request.getRequestURI()
+        );
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
+    }
+    // Review end
 
     //user start
     @ExceptionHandler(AppUserNotFoundException.class)
