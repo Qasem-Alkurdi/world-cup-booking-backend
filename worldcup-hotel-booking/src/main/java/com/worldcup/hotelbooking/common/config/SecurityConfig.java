@@ -96,6 +96,7 @@ public class SecurityConfig {
                         .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/auth/**").permitAll()
+                        .requestMatchers("/catalog/**").permitAll()
                         .requestMatchers("/users").permitAll()
                         .requestMatchers("/login", "/login.html").permitAll()
                         .requestMatchers("/oauth2/**").permitAll()

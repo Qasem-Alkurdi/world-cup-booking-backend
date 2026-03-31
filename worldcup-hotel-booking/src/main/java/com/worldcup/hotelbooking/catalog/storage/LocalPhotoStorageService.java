@@ -22,6 +22,7 @@ public class LocalPhotoStorageService implements PhotoStorageService {
             "image/jpeg",
             "image/png",
             "image/webp"
+            , "image/jpg"
     );
 
     private final StorageProperties storageProperties;

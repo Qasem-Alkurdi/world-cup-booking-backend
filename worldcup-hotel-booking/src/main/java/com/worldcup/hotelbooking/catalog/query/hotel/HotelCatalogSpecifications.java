@@ -226,4 +226,25 @@ public class HotelCatalogSpecifications {
             );
         };
     }
+
+    public static Specification<Hotel> minRating(java.math.BigDecimal minRating) {
+        return (root, query, cb) ->
+                minRating == null
+                        ? cb.conjunction()
+                        : cb.greaterThanOrEqualTo(root.get("averageRating"), minRating);
+    }
+
+    public static Specification<Hotel> maxRating(java.math.BigDecimal maxRating) {
+        return (root, query, cb) ->
+                maxRating == null
+                        ? cb.conjunction()
+                        : cb.lessThanOrEqualTo(root.get("averageRating"), maxRating);
+    }
+
+    public static Specification<Hotel> minReviewCount(Integer minReviewCount) {
+        return (root, query, cb) ->
+                minReviewCount == null
+                        ? cb.conjunction()
+                        : cb.greaterThanOrEqualTo(root.get("reviewCount"), minReviewCount);
+    }
 }

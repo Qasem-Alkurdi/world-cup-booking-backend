@@ -39,5 +39,8 @@ public class HotelCatalogCriteria {
     private BigDecimal minTotalPrice;
     private BigDecimal maxTotalPrice;
     private Integer numberOfRooms;
+    private BigDecimal minRating;
+    private BigDecimal maxRating;
+    private Integer minReviewCount;
 
 }
