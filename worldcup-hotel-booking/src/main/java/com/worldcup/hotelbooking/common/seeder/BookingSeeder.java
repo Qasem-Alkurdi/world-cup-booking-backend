@@ -285,7 +285,94 @@ public class BookingSeeder implements CommandLineRunner {
             cancelled.setCancelledBy(cancelled.getAppUser().getUsername());
             bookings.add(cancelled);
         }
+// Scenario 31-38: Extra checked-out bookings for review seeding
+        bookings.add(createBooking(
+                guests.get(randomIndex(guests.size())),
+                findHotelByCity(hotels, "Atlanta"),
+                LocalDate.now().minusDays(20),
+                LocalDate.now().minusDays(16),
+                2, 2, 0,
+                Booking.BookingStatus.CHECKED_OUT,
+                false,
+                "Completed stay in Atlanta for review seeding"
+        ));
 
+        bookings.add(createBooking(
+                guests.get(randomIndex(guests.size())),
+                findHotelByCity(hotels, "Seattle"),
+                LocalDate.now().minusDays(18),
+                LocalDate.now().minusDays(14),
+                2, 2, 0,
+                Booking.BookingStatus.CHECKED_OUT,
+                false,
+                "Completed stay in Seattle for review seeding"
+        ));
+
+        bookings.add(createBooking(
+                guests.get(randomIndex(guests.size())),
+                findHotelByCity(hotels, "Toronto"),
+                LocalDate.now().minusDays(17),
+                LocalDate.now().minusDays(13),
+                2, 2, 0,
+                Booking.BookingStatus.CHECKED_OUT,
+                false,
+                "Completed stay in Toronto for review seeding"
+        ));
+
+        bookings.add(createBooking(
+                guests.get(randomIndex(guests.size())),
+                findHotelByCity(hotels, "Vancouver"),
+                LocalDate.now().minusDays(16),
+                LocalDate.now().minusDays(12),
+                2, 2, 0,
+                Booking.BookingStatus.CHECKED_OUT,
+                false,
+                "Completed stay in Vancouver for review seeding"
+        ));
+
+        bookings.add(createBooking(
+                guests.get(randomIndex(guests.size())),
+                findHotelByCity(hotels, "Inglewood"),
+                LocalDate.now().minusDays(15),
+                LocalDate.now().minusDays(11),
+                2, 2, 0,
+                Booking.BookingStatus.CHECKED_OUT,
+                false,
+                "Completed stay in Inglewood for review seeding"
+        ));
+
+        bookings.add(createBooking(
+                guests.get(randomIndex(guests.size())),
+                findHotelByCity(hotels, "Arlington"),
+                LocalDate.now().minusDays(14),
+                LocalDate.now().minusDays(10),
+                2, 2, 0,
+                Booking.BookingStatus.CHECKED_OUT,
+                false,
+                "Completed stay in Arlington for review seeding"
+        ));
+
+        bookings.add(createBooking(
+                guests.get(randomIndex(guests.size())),
+                findHotelByCity(hotels, "Ciudad de Mexico"),
+                LocalDate.now().minusDays(13),
+                LocalDate.now().minusDays(9),
+                2, 2, 0,
+                Booking.BookingStatus.CHECKED_OUT,
+                false,
+                "Completed stay in Mexico City for review seeding"
+        ));
+
+        bookings.add(createBooking(
+                guests.get(randomIndex(guests.size())),
+                findHotelByCity(hotels, "Apodaca"),
+                LocalDate.now().minusDays(12),
+                LocalDate.now().minusDays(8),
+                2, 2, 0,
+                Booking.BookingStatus.CHECKED_OUT,
+                false,
+                "Completed stay in Apodaca for review seeding"
+        ));
         bookingRepository.saveAll(bookings);
         log.info("Seeded {} bookings with realistic World Cup scenarios.", bookings.size());
     }
