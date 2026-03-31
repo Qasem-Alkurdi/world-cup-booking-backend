@@ -6,16 +6,18 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.constraints.Min;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.data.domain.Sort;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/catalog/hotels")
 @Tag(name = "Hotel Catalog Controller", description = "APIs for searching and browsing hotel catalog")
+@Validated
 public class HotelCatalogController {
 
     private final HotelCatalogService service;
@@ -29,15 +31,42 @@ public class HotelCatalogController {
             description = "Searches hotels in the catalog using filter criteria and pagination"
     )
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Hotel catalog retrieved successfully")
+            @ApiResponse(responseCode = "200", description = "Hotel catalog retrieved successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid pagination or filter parameters")
     })
     @GetMapping
     public Page<HotelCatalogResponseDto> search(
             @Parameter(description = "Hotel catalog search criteria")
             @ModelAttribute HotelCatalogCriteria criteria,
-            @Parameter(description = "Pagination information")
-            Pageable pageable
+
+            @RequestParam(defaultValue = "0")
+            @Min(value = 0, message = "page must be greater than or equal to 0")
+            int page,
+
+            @RequestParam(defaultValue = "10")
+            @Min(value = 1, message = "size must be greater than or equal to 1")
+            int size,
+
+            @RequestParam(required = false)
+            String sort
     ) {
+        Pageable pageable = PageRequest.of(page, size, parseSort(sort));
         return service.search(pageable, criteria);
+    }
+
+    private Sort parseSort(String sortParam) {
+        if (sortParam == null || sortParam.isBlank()) {
+            return Sort.by(Sort.Order.asc("id"));
+        }
+
+        String[] parts = sortParam.split(",");
+        String property = parts[0].trim();
+        String direction = parts.length > 1 ? parts[1].trim() : "asc";
+
+        Sort.Direction sortDirection = direction.equalsIgnoreCase("desc")
+                ? Sort.Direction.DESC
+                : Sort.Direction.ASC;
+
+        return Sort.by(new Sort.Order(sortDirection, property));
     }
 }

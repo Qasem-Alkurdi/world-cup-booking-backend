@@ -2,7 +2,7 @@ package com.worldcup.hotelbooking.user;
 
 import com.worldcup.hotelbooking.booking.booking.BookingMapper;
 import com.worldcup.hotelbooking.booking.booking.BookingResponseDto;
-import com.worldcup.hotelbooking.notification.notification.NotificationService;
+import com.worldcup.hotelbooking.notification.NotificationService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -170,6 +170,7 @@ public class AppUserServiceImpl implements AppUserService {
 
         return appUserRepository.save(existingUser);
     }
+
     @Override
     public AppUser updateUserRoles(Long id, Set<Role> roles) {
         AppUser user = getUserById(id);

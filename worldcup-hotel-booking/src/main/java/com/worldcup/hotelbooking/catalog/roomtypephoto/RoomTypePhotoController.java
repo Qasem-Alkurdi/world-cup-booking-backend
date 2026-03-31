@@ -69,16 +69,11 @@ public class RoomTypePhotoController {
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasRole('ADMIN') or (hasRole('MANAGER') and @hotelAuthorizationService.canManageHotel(#hotelId, authentication))")
     public ResponseEntity<RoomTypePhotoResponseDto> upload(
-            @Parameter(description = "Hotel id", example = "1")
             @PathVariable Long hotelId,
-            @Parameter(description = "Room type id", example = "5")
             @PathVariable Long roomTypeId,
-            @Parameter(description = "Photo file to upload")
-            @RequestPart("file") MultipartFile file,
-            @Parameter(description = "Photo caption", example = "Deluxe room view")
-            @RequestPart(value = "caption", required = false) String caption,
-            @Parameter(description = "Display order of the photo", example = "1")
-            @RequestPart(value = "sortOrder", required = false) Integer sortOrder,
+            @RequestParam("file") MultipartFile file,
+            @RequestParam(value = "caption", required = false) String caption,
+            @RequestParam(value = "sortOrder", required = false) Integer sortOrder,
             UriComponentsBuilder uriBuilder
     ) {
         RoomTypePhoto saved = roomTypePhotoService.addPhoto(hotelId, roomTypeId, file, caption, sortOrder);
