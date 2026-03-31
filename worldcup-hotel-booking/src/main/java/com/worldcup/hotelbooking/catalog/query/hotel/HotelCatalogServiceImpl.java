@@ -24,15 +24,14 @@ import java.util.stream.Collectors;
 
 @Service
 public class HotelCatalogServiceImpl implements HotelCatalogService {
-
     private static final List<String> ALLOWED_SORT_FIELDS =
-            List.of("id", "name", "city", "distance", "price");
+            List.of("id", "name", "city", "distance", "price", "rating", "reviewCount");
 
     private static final Set<String> COMPUTED_SORT_FIELDS =
             Set.of("distance", "price");
 
     private static final Set<String> DB_SORT_FIELDS =
-            Set.of("id", "name", "city");
+            Set.of("id", "name", "city", "rating", "reviewCount");
 
     private static final int MAX_HOTELS_FOR_COMPUTED_PROCESSING = 500;
 
@@ -150,6 +149,9 @@ public class HotelCatalogServiceImpl implements HotelCatalogService {
                 .and(HotelCatalogSpecifications.hasLaundry(criteria.getHasLaundry()))
                 .and(HotelCatalogSpecifications.hasAirportShuttle(criteria.getHasAirportShuttle()))
                 .and(HotelCatalogSpecifications.hasAccessibleFacilities(criteria.getHasAccessibleFacilities()))
+                .and(HotelCatalogSpecifications.minRating(criteria.getMinRating()))
+                .and(HotelCatalogSpecifications.maxRating(criteria.getMaxRating()))
+                .and(HotelCatalogSpecifications.minReviewCount(criteria.getMinReviewCount()))
                 .and(HotelCatalogSpecifications.petFriendly(criteria.getPetFriendly()))
                 .and(HotelCatalogSpecifications.hasAvailability(
                         criteria.getCheckInDate(),
@@ -362,8 +364,13 @@ public class HotelCatalogServiceImpl implements HotelCatalogService {
                     Comparator.comparing(HotelComputedView::distanceKm, Comparator.nullsLast(Double::compareTo));
             case "price" ->
                     Comparator.comparing(HotelComputedView::minPrice, Comparator.nullsLast(BigDecimal::compareTo));
+            case "rating" ->
+                    Comparator.comparing(view -> view.hotel().getAverageRating(), Comparator.nullsLast(BigDecimal::compareTo));
+            case "reviewCount" ->
+                    Comparator.comparing(view -> view.hotel().getReviewCount(), Comparator.nullsLast(Integer::compareTo));
             default -> throw new IllegalArgumentException("Unsupported sort field: " + field);
         };
+
     }
 
     private List<HotelComputedView> slicePage(List<HotelComputedView> hotels, Pageable pageable) {
