@@ -2,7 +2,7 @@ package com.worldcup.hotelbooking.user.user;
 
 import com.worldcup.hotelbooking.booking.booking.Booking;
 import com.worldcup.hotelbooking.booking.booking.BookingResponseDto;
-import com.worldcup.hotelbooking.notification.notification.NotificationService;
+import com.worldcup.hotelbooking.notification.NotificationService;
 import com.worldcup.hotelbooking.user.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -194,6 +194,7 @@ class AppUserServiceImplTest {
         assertThat(bookings).hasSize(1);
         // You may want to verify mapping, but that's tested elsewhere.
     }
+
     @Test
     void shouldThrowExceptionWhenPasswordValidationFails() {
         AppUserRequestDto dto = new AppUserRequestDto("user", "user@example.com", "weak");

@@ -1,4 +1,4 @@
-package com.worldcup.hotelbooking.notification.notification;
+package com.worldcup.hotelbooking.notification;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 

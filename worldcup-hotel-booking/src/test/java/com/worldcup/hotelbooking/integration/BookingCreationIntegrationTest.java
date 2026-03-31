@@ -13,7 +13,7 @@ import com.worldcup.hotelbooking.catalog.hotel.HotelRepository;
 import com.worldcup.hotelbooking.catalog.hotel.HotelStatus;
 import com.worldcup.hotelbooking.catalog.roomtype.RoomType;
 import com.worldcup.hotelbooking.catalog.roomtype.RoomTypeRepository;
-import com.worldcup.hotelbooking.notification.notification.NotificationService;
+import com.worldcup.hotelbooking.notification.NotificationService;
 import com.worldcup.hotelbooking.tournament.match.Match;
 import com.worldcup.hotelbooking.tournament.match.Match.MatchStage;
 import com.worldcup.hotelbooking.tournament.match.MatchRepository;
