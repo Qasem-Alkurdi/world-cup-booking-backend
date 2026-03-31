@@ -1,6 +1,7 @@
 package com.worldcup.hotelbooking.catalog.security;
 
 import com.worldcup.hotelbooking.catalog.hotel.HotelRepository;
+import com.worldcup.hotelbooking.catalog.hotel.HotelStatus;
 import com.worldcup.hotelbooking.catalog.roomtype.RoomTypeRepository;
 import com.worldcup.hotelbooking.user.AppUserRepository;
 import org.springframework.security.core.Authentication;
@@ -33,14 +34,16 @@ public class HotelAuthorizationService {
     }
 
     public boolean canManageHotel(Long hotelId, Authentication authentication) {
-        String username = authentication.getName();
+        Long authUserId = extractUserId(authentication);
+        if (authUserId == null) {
+            return false;
+        }
 
-        return hotelRepository.findById(hotelId)
-                .map(hotel ->
-                        hotel.getOwner() != null &&
-                                hotel.getOwner().getUsername() != null &&
-                                hotel.getOwner().getUsername().equals(username))
-                .orElse(false);
+        return hotelRepository.existsByIdAndOwnerIdAndStatusAndIsDeletedFalse(
+                hotelId,
+                authUserId,
+                HotelStatus.APPROVED
+        );
     }
 
     public boolean canViewOwnerHotels(Long ownerId, Authentication authentication) {
