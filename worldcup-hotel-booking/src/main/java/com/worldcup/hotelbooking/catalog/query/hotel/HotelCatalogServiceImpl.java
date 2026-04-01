@@ -1,6 +1,5 @@
 package com.worldcup.hotelbooking.catalog.query.hotel;
 
-
 import com.worldcup.hotelbooking.availability_pricing.pricing.EnhancedPricingServiceImpl;
 import com.worldcup.hotelbooking.catalog.hotel.Hotel;
 import com.worldcup.hotelbooking.catalog.hotel.HotelRepository;
@@ -12,6 +11,10 @@ import com.worldcup.hotelbooking.catalog.query.hotel.exception.CheckOutDateAreRe
 import com.worldcup.hotelbooking.catalog.query.hotel.mapper.HotelCatalogMapper;
 import com.worldcup.hotelbooking.catalog.roomtype.RoomType;
 import com.worldcup.hotelbooking.catalog.storage.PhotoUrlResolver;
+import com.worldcup.hotelbooking.tournament.match.Match;
+import com.worldcup.hotelbooking.tournament.match.MatchRepository;
+import com.worldcup.hotelbooking.tournament.stadium.Stadium;
+import com.worldcup.hotelbooking.tournament.stadium.StadiumRepository;
 import org.springframework.data.domain.*;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
@@ -40,22 +43,31 @@ public class HotelCatalogServiceImpl implements HotelCatalogService {
     private final HotelRepository hotelRepository;
     private final EnhancedPricingServiceImpl enhancedPricingServiceImpl;
     private final HotelCatalogMapper hotelCatalogMapper;
+    private final MatchRepository matchRepository;
+    private final StadiumRepository stadiumRepository;
 
     public HotelCatalogServiceImpl(HotelRepository hotelRepository,
                                    EnhancedPricingServiceImpl enhancedPricingServiceImpl,
                                    HotelCatalogMapper hotelCatalogMapper,
                                    HotelPhotoRepository hotelPhotoRepository,
-                                   PhotoUrlResolver photoUrlResolver) {
+                                   PhotoUrlResolver photoUrlResolver,
+                                   MatchRepository matchRepository,
+                                   StadiumRepository stadiumRepository) {
         this.hotelRepository = hotelRepository;
         this.enhancedPricingServiceImpl = enhancedPricingServiceImpl;
         this.hotelCatalogMapper = hotelCatalogMapper;
         this.hotelPhotoRepository = hotelPhotoRepository;
         this.photoUrlResolver = photoUrlResolver;
+        this.matchRepository = matchRepository;
+        this.stadiumRepository = stadiumRepository;
     }
 
     @Override
     @Transactional(readOnly = true)
     public Page<HotelCatalogResponseDto> search(Pageable pageable, HotelCatalogCriteria criteria) {
+        validateLocationReference(criteria);
+        resolveLocationReference(criteria);
+
         validateSortFields(pageable);
         validateDistanceCriteria(criteria);
         validateSortDependencies(criteria, pageable);
@@ -272,6 +284,80 @@ public class HotelCatalogServiceImpl implements HotelCatalogService {
         }
     }
 
+    private void validateLocationReference(HotelCatalogCriteria criteria) {
+        boolean hasMatchId = criteria.getMatchId() != null;
+        boolean hasStadiumId = criteria.getStadiumId() != null;
+        boolean hasLatitude = criteria.getLatitude() != null;
+        boolean hasLongitude = criteria.getLongitude() != null;
+        boolean hasCoordinates = hasLatitude || hasLongitude;
+
+        if (hasLatitude != hasLongitude) {
+            throw new IllegalArgumentException(
+                    "latitude and longitude must be provided together"
+            );
+        }
+
+        int providedLocationReferences = 0;
+
+        if (hasMatchId) {
+            providedLocationReferences++;
+        }
+        if (hasStadiumId) {
+            providedLocationReferences++;
+        }
+        if (hasCoordinates) {
+            providedLocationReferences++;
+        }
+
+        if (providedLocationReferences > 1) {
+            throw new IllegalArgumentException(
+                    "Only one location reference is allowed: matchId OR stadiumId OR latitude/longitude"
+            );
+        }
+    }
+
+    private void resolveLocationReference(HotelCatalogCriteria criteria) {
+        if (criteria.getMatchId() != null) {
+            Match match = matchRepository.findById(criteria.getMatchId())
+                    .orElseThrow(() -> new IllegalArgumentException(
+                            "Match not found with id: " + criteria.getMatchId()
+                    ));
+
+            Stadium stadium = match.getStadium();
+            if (stadium == null) {
+                throw new IllegalArgumentException(
+                        "The selected match does not have an assigned stadium"
+                );
+            }
+
+            if (stadium.getLatitude() == null || stadium.getLongitude() == null) {
+                throw new IllegalArgumentException(
+                        "The selected match stadium does not have valid coordinates"
+                );
+            }
+
+            criteria.setLatitude(stadium.getLatitude());
+            criteria.setLongitude(stadium.getLongitude());
+            return;
+        }
+
+        if (criteria.getStadiumId() != null) {
+            Stadium stadium = stadiumRepository.findById(criteria.getStadiumId())
+                    .orElseThrow(() -> new IllegalArgumentException(
+                            "Stadium not found with id: " + criteria.getStadiumId()
+                    ));
+
+            if (stadium.getLatitude() == null || stadium.getLongitude() == null) {
+                throw new IllegalArgumentException(
+                        "The selected stadium does not have valid coordinates"
+                );
+            }
+
+            criteria.setLatitude(stadium.getLatitude());
+            criteria.setLongitude(stadium.getLongitude());
+        }
+    }
+
     private void validateDistanceCriteria(HotelCatalogCriteria criteria) {
         boolean hasDistanceFilter = criteria.getMinDistanceKm() != null
                 || criteria.getMaxDistanceKm() != null;
@@ -384,7 +470,6 @@ public class HotelCatalogServiceImpl implements HotelCatalogService {
                     Comparator.comparing(view -> view.hotel().getReviewCount(), Comparator.nullsLast(Integer::compareTo));
             default -> throw new IllegalArgumentException("Unsupported sort field: " + field);
         };
-
     }
 
     private List<HotelComputedView> slicePage(List<HotelComputedView> hotels, Pageable pageable) {
