@@ -439,12 +439,22 @@ public class GlobalExceptionHandler {
             HttpServletRequest request) {
 
         String message = "Duplicate entry detected.";
+
         String exMessage = ex.getMessage() != null ? ex.getMessage().toLowerCase() : "";
 
-        if (exMessage.contains("email")) {
-            message = "Email already registered. Please use a different email address.";
-        } else if (exMessage.contains("username")) {
+        // 🔥 Extract root cause (the important fix)
+        Throwable root = ex.getRootCause();
+        String rootMessage = root != null && root.getMessage() != null
+                ? root.getMessage().toLowerCase()
+                : "";
+
+        // Prefer rootMessage, fallback to exMessage if needed
+        String checkMessage = !rootMessage.isEmpty() ? rootMessage : exMessage;
+
+        if (checkMessage.contains("username")) {
             message = "Username already taken. Please choose a different username.";
+        } else if (checkMessage.contains("email")) {
+            message = "Email already registered. Please use a different email address.";
         }
 
         ApiError body = new ApiError(
@@ -454,6 +464,7 @@ public class GlobalExceptionHandler {
                 message,
                 request.getRequestURI()
         );
+
         return ResponseEntity.status(HttpStatus.CONFLICT).body(body);
     }
 
