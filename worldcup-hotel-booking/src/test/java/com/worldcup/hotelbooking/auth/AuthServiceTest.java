@@ -12,6 +12,7 @@ import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
 import java.util.Optional;
@@ -190,8 +191,8 @@ class AuthServiceTest {
         when(refreshTokenRepository.findByToken("invalid")).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> authService.revokeRefreshToken("invalid"))
-                .isInstanceOf(RuntimeException.class)
-                .hasMessage("Refresh token not found");
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("Refresh token not found");
     }
 
     @Test
