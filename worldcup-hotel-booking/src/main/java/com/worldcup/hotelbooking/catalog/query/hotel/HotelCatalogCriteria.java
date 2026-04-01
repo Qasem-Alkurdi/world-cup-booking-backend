@@ -29,10 +29,15 @@ public class HotelCatalogCriteria {
     private Boolean hasAirportShuttle;
     private Boolean hasAccessibleFacilities;
     private Boolean petFriendly;
+
+    private Long matchId;
+    private Long stadiumId;
+
     private Double latitude;
     private Double longitude;
     private Double maxDistanceKm;
     private Double minDistanceKm;
+
     private LocalDate checkInDate;
     private LocalDate checkOutDate;
 
@@ -42,5 +47,4 @@ public class HotelCatalogCriteria {
     private BigDecimal minRating;
     private BigDecimal maxRating;
     private Integer minReviewCount;
-
 }
