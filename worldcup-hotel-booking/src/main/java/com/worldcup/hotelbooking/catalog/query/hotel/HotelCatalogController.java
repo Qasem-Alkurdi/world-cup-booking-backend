@@ -1,13 +1,12 @@
 package com.worldcup.hotelbooking.catalog.query.hotel;
 
-import com.worldcup.hotelbooking.catalog.query.hotel.dto.HotelCatalogResponseDto;
+import com.worldcup.hotelbooking.catalog.query.hotel.dto.HotelCatalogSearchResponseDto;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.Min;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -35,7 +34,7 @@ public class HotelCatalogController {
             @ApiResponse(responseCode = "400", description = "Invalid pagination or filter parameters")
     })
     @GetMapping
-    public Page<HotelCatalogResponseDto> search(
+    public HotelCatalogSearchResponseDto search(
             @Parameter(description = "Hotel catalog search criteria")
             @ModelAttribute HotelCatalogCriteria criteria,
 
@@ -63,9 +62,14 @@ public class HotelCatalogController {
         String property = parts[0].trim();
         String direction = parts.length > 1 ? parts[1].trim() : "asc";
 
-        Sort.Direction sortDirection = direction.equalsIgnoreCase("desc")
-                ? Sort.Direction.DESC
-                : Sort.Direction.ASC;
+        Sort.Direction sortDirection;
+        if (direction.equalsIgnoreCase("asc")) {
+            sortDirection = Sort.Direction.ASC;
+        } else if (direction.equalsIgnoreCase("desc")) {
+            sortDirection = Sort.Direction.DESC;
+        } else {
+            throw new IllegalArgumentException("Invalid sort direction: " + direction + ". Allowed: asc, desc");
+        }
 
         return Sort.by(new Sort.Order(sortDirection, property));
     }

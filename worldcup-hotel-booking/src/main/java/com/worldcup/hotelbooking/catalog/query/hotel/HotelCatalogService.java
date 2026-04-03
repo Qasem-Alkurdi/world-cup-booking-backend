@@ -1,9 +1,8 @@
 package com.worldcup.hotelbooking.catalog.query.hotel;
 
-import com.worldcup.hotelbooking.catalog.query.hotel.dto.HotelCatalogResponseDto;
-import org.springframework.data.domain.Page;
+import com.worldcup.hotelbooking.catalog.query.hotel.dto.HotelCatalogSearchResponseDto;
 import org.springframework.data.domain.Pageable;
 
 public interface HotelCatalogService {
-    Page<HotelCatalogResponseDto> search(Pageable pageable, HotelCatalogCriteria criteria);
+    HotelCatalogSearchResponseDto search(Pageable pageable, HotelCatalogCriteria criteria);
 }

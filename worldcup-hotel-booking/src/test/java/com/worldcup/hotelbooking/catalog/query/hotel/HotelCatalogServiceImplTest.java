@@ -6,25 +6,32 @@ import com.worldcup.hotelbooking.catalog.hotel.HotelRepository;
 import com.worldcup.hotelbooking.catalog.hotelphoto.HotelPhotoRepository;
 import com.worldcup.hotelbooking.catalog.hotelphoto.dto.HotelPrimaryPhotoProjection;
 import com.worldcup.hotelbooking.catalog.query.hotel.dto.HotelCatalogResponseDto;
+import com.worldcup.hotelbooking.catalog.query.hotel.dto.HotelCatalogSearchMode;
+import com.worldcup.hotelbooking.catalog.query.hotel.dto.HotelCatalogSearchResponseDto;
 import com.worldcup.hotelbooking.catalog.query.hotel.exception.CheckOutBeforeCheckIn;
 import com.worldcup.hotelbooking.catalog.query.hotel.exception.CheckOutDateAreRequired;
 import com.worldcup.hotelbooking.catalog.query.hotel.mapper.HotelCatalogMapper;
 import com.worldcup.hotelbooking.catalog.roomtype.RoomType;
 import com.worldcup.hotelbooking.catalog.storage.PhotoUrlResolver;
+import com.worldcup.hotelbooking.tournament.match.Match;
 import com.worldcup.hotelbooking.tournament.match.MatchRepository;
+import com.worldcup.hotelbooking.tournament.stadium.Stadium;
 import com.worldcup.hotelbooking.tournament.stadium.StadiumRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.data.domain.*;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
 
@@ -69,6 +76,8 @@ class HotelCatalogServiceImplTest {
         hotel.setCountry("Palestine");
         hotel.setLatitude(lat);
         hotel.setLongitude(lon);
+        hotel.setAverageRating(BigDecimal.valueOf(4.2));
+        hotel.setReviewCount(20);
         return hotel;
     }
 
@@ -83,8 +92,24 @@ class HotelCatalogServiceImplTest {
         return roomType;
     }
 
+    private Stadium buildStadium(Long id, String city, Double lat, Double lon) {
+        Stadium stadium = new Stadium();
+        stadium.setId(id);
+        stadium.setCity(city);
+        stadium.setLatitude(lat);
+        stadium.setLongitude(lon);
+        return stadium;
+    }
+
+    private Match buildMatch(Long id, Stadium stadium) {
+        Match match = new Match();
+        match.setId(id);
+        match.setStadium(stadium);
+        return match;
+    }
+
     @Test
-    @DisplayName("search -> should return mapped page when no computed filter/sort exists")
+    @DisplayName("search -> should return normal response when no computed filter or sort exists")
     void search_WithoutComputedFiltersOrSort_ShouldUseDatabasePaging() {
         Pageable pageable = PageRequest.of(0, 10, Sort.by("name").ascending());
         HotelCatalogCriteria criteria = new HotelCatalogCriteria();
@@ -92,10 +117,14 @@ class HotelCatalogServiceImplTest {
         Hotel h1 = buildHotel(1L, "Royal", "Nablus", 32.22, 35.26);
         Hotel h2 = buildHotel(2L, "Sea View", "Gaza", 31.50, 34.46);
 
-        HotelCatalogResponseDto dto1 =
-                new HotelCatalogResponseDto("Royal", 1L, "desc-1", "Nablus", "Palestine", "url1");
-        HotelCatalogResponseDto dto2 =
-                new HotelCatalogResponseDto("Sea View", 2L, "desc-2", "Gaza", "Palestine", "url2");
+        HotelCatalogResponseDto dto1 = new HotelCatalogResponseDto(
+                1L, "Royal", "desc-1", "Nablus", "Palestine", "url1",
+                null, BigDecimal.valueOf(4.2), 20, null
+        );
+        HotelCatalogResponseDto dto2 = new HotelCatalogResponseDto(
+                2L, "Sea View", "desc-2", "Gaza", "Palestine", "url2",
+                null, BigDecimal.valueOf(4.2), 20, null
+        );
 
         given(hotelRepository.findAll(any(org.springframework.data.jpa.domain.Specification.class), eq(pageable)))
                 .willReturn(new PageImpl<>(List.of(h1, h2), pageable, 2));
@@ -109,15 +138,17 @@ class HotelCatalogServiceImplTest {
         given(photoUrlResolver.resolve("hotels/1.jpg")).willReturn("url1");
         given(photoUrlResolver.resolve("hotels/2.jpg")).willReturn("url2");
 
-        given(hotelCatalogMapper.toDto(h1, "url1")).willReturn(dto1);
-        given(hotelCatalogMapper.toDto(h2, "url2")).willReturn(dto2);
+        given(hotelCatalogMapper.toDto(h1, "url1", null, null)).willReturn(dto1);
+        given(hotelCatalogMapper.toDto(h2, "url2", null, null)).willReturn(dto2);
 
-        Page<HotelCatalogResponseDto> result = service.search(pageable, criteria);
+        HotelCatalogSearchResponseDto result = service.search(pageable, criteria);
 
-        assertEquals(2, result.getTotalElements());
-        assertEquals(2, result.getContent().size());
-        assertEquals("Royal", result.getContent().get(0).getName());
-        assertEquals("Sea View", result.getContent().get(1).getName());
+        assertEquals(HotelCatalogSearchMode.NORMAL, result.getSearchMode());
+        assertFalse(result.isFallbackApplied());
+        assertEquals(2, result.getHotels().getTotalElements());
+        assertEquals(2, result.getHotels().getContent().size());
+        assertEquals("Royal", result.getHotels().getContent().get(0).getName());
+        assertEquals("Sea View", result.getHotels().getContent().get(1).getName());
 
         verify(hotelRepository, times(1))
                 .findAll(any(org.springframework.data.jpa.domain.Specification.class), eq(pageable));
@@ -242,16 +273,19 @@ class HotelCatalogServiceImplTest {
 
         given(photoUrlResolver.resolve("hotels/1.jpg")).willReturn("url1");
 
-        HotelCatalogResponseDto dto1 =
-                new HotelCatalogResponseDto("Royal", 1L, "desc-1", "Nablus", "Palestine", "url1");
+        HotelCatalogResponseDto dto1 = new HotelCatalogResponseDto(
+                1L, "Royal", "desc-1", "Nablus", "Palestine", "url1",
+                BigDecimal.valueOf(300), BigDecimal.valueOf(4.2), 20, null
+        );
 
-        given(hotelCatalogMapper.toDto(h1, "url1")).willReturn(dto1);
+        given(hotelCatalogMapper.toDto(h1, "url1", BigDecimal.valueOf(300), null)).willReturn(dto1);
 
-        Page<HotelCatalogResponseDto> result = service.search(pageable, criteria);
+        HotelCatalogSearchResponseDto result = service.search(pageable, criteria);
 
-        assertEquals(1, result.getTotalElements());
-        assertEquals(1, result.getContent().size());
-        assertEquals("Royal", result.getContent().get(0).getName());
+        assertEquals(HotelCatalogSearchMode.NORMAL, result.getSearchMode());
+        assertEquals(1, result.getHotels().getTotalElements());
+        assertEquals(1, result.getHotels().getContent().size());
+        assertEquals("Royal", result.getHotels().getContent().get(0).getName());
     }
 
     @Test
@@ -294,19 +328,23 @@ class HotelCatalogServiceImplTest {
         given(photoUrlResolver.resolve("hotels/2.jpg")).willReturn("url2");
         given(photoUrlResolver.resolve("hotels/1.jpg")).willReturn("url1");
 
-        HotelCatalogResponseDto dto2 =
-                new HotelCatalogResponseDto("Hotel B", 2L, "desc-2", "Gaza", "Palestine", "url2");
-        HotelCatalogResponseDto dto1 =
-                new HotelCatalogResponseDto("Hotel A", 1L, "desc-1", "Nablus", "Palestine", "url1");
+        HotelCatalogResponseDto dto2 = new HotelCatalogResponseDto(
+                2L, "Hotel B", "desc-2", "Gaza", "Palestine", "url2",
+                BigDecimal.valueOf(200), BigDecimal.valueOf(4.2), 20, null
+        );
+        HotelCatalogResponseDto dto1 = new HotelCatalogResponseDto(
+                1L, "Hotel A", "desc-1", "Nablus", "Palestine", "url1",
+                BigDecimal.valueOf(500), BigDecimal.valueOf(4.2), 20, null
+        );
 
-        given(hotelCatalogMapper.toDto(h2, "url2")).willReturn(dto2);
-        given(hotelCatalogMapper.toDto(h1, "url1")).willReturn(dto1);
+        given(hotelCatalogMapper.toDto(h2, "url2", BigDecimal.valueOf(200), null)).willReturn(dto2);
+        given(hotelCatalogMapper.toDto(h1, "url1", BigDecimal.valueOf(500), null)).willReturn(dto1);
 
-        Page<HotelCatalogResponseDto> result = service.search(pageable, criteria);
+        HotelCatalogSearchResponseDto result = service.search(pageable, criteria);
 
-        assertEquals(2, result.getContent().size());
-        assertEquals("Hotel B", result.getContent().get(0).getName());
-        assertEquals("Hotel A", result.getContent().get(1).getName());
+        assertEquals(2, result.getHotels().getContent().size());
+        assertEquals("Hotel B", result.getHotels().getContent().get(0).getName());
+        assertEquals("Hotel A", result.getHotels().getContent().get(1).getName());
     }
 
     @Test
@@ -334,19 +372,24 @@ class HotelCatalogServiceImplTest {
         given(photoUrlResolver.resolve("hotels/1.jpg")).willReturn("url1");
         given(photoUrlResolver.resolve("hotels/2.jpg")).willReturn("url2");
 
-        HotelCatalogResponseDto dto1 =
-                new HotelCatalogResponseDto("Near Hotel", 1L, "desc-1", "Nablus", "Palestine", "url1");
-        HotelCatalogResponseDto dto2 =
-                new HotelCatalogResponseDto("Far Hotel", 2L, "desc-2", "Gaza", "Palestine", "url2");
+        HotelCatalogResponseDto dto1 = new HotelCatalogResponseDto(
+                1L, "Near Hotel", "desc-1", "Nablus", "Palestine", "url1",
+                null, BigDecimal.valueOf(4.2), 20, 0.15
+        );
+        HotelCatalogResponseDto dto2 = new HotelCatalogResponseDto(
+                2L, "Far Hotel", "desc-2", "Gaza", "Palestine", "url2",
+                null, BigDecimal.valueOf(4.2), 20, 90.0
+        );
 
-        given(hotelCatalogMapper.toDto(nearHotel, "url1")).willReturn(dto1);
-        given(hotelCatalogMapper.toDto(farHotel, "url2")).willReturn(dto2);
+        given(hotelCatalogMapper.toDto(eq(nearHotel), eq("url1"), eq(null), any(Double.class))).willReturn(dto1);
+        given(hotelCatalogMapper.toDto(eq(farHotel), eq("url2"), eq(null), any(Double.class))).willReturn(dto2);
 
-        Page<HotelCatalogResponseDto> result = service.search(pageable, criteria);
+        HotelCatalogSearchResponseDto result = service.search(pageable, criteria);
 
-        assertEquals(2, result.getContent().size());
-        assertEquals("Near Hotel", result.getContent().get(0).getName());
-        assertEquals("Far Hotel", result.getContent().get(1).getName());
+        assertEquals(2, result.getHotels().getContent().size());
+        assertEquals("Near Hotel", result.getHotels().getContent().get(0).getName());
+        assertEquals("Far Hotel", result.getHotels().getContent().get(1).getName());
+        assertNotNull(result.getHotels().getContent().get(0).getDistanceKm());
     }
 
     @Test
@@ -385,16 +428,18 @@ class HotelCatalogServiceImplTest {
 
         given(photoUrlResolver.resolve("hotels/2.jpg")).willReturn("url2");
 
-        HotelCatalogResponseDto dto2 =
-                new HotelCatalogResponseDto("B Hotel", 2L, "desc-2", "Gaza", "Palestine", "url2");
+        HotelCatalogResponseDto dto2 = new HotelCatalogResponseDto(
+                2L, "B Hotel", "desc-2", "Gaza", "Palestine", "url2",
+                BigDecimal.valueOf(200), BigDecimal.valueOf(4.2), 20, null
+        );
 
-        given(hotelCatalogMapper.toDto(h2, "url2")).willReturn(dto2);
+        given(hotelCatalogMapper.toDto(h2, "url2", BigDecimal.valueOf(200), null)).willReturn(dto2);
 
-        Page<HotelCatalogResponseDto> result = service.search(pageable, criteria);
+        HotelCatalogSearchResponseDto result = service.search(pageable, criteria);
 
-        assertEquals(2, result.getTotalElements());
-        assertEquals(1, result.getContent().size());
-        assertEquals("B Hotel", result.getContent().get(0).getName());
+        assertEquals(2, result.getHotels().getTotalElements());
+        assertEquals(1, result.getHotels().getContent().size());
+        assertEquals("B Hotel", result.getHotels().getContent().get(0).getName());
     }
 
     @Test
@@ -406,11 +451,176 @@ class HotelCatalogServiceImplTest {
         given(hotelRepository.findAll(any(org.springframework.data.jpa.domain.Specification.class), eq(pageable)))
                 .willReturn(new PageImpl<>(List.of(), pageable, 0));
 
-        Page<HotelCatalogResponseDto> result = service.search(pageable, criteria);
+        HotelCatalogSearchResponseDto result = service.search(pageable, criteria);
 
-        assertEquals(0, result.getTotalElements());
-        assertTrue(result.getContent().isEmpty());
+        assertEquals(0, result.getHotels().getTotalElements());
+        assertTrue(result.getHotels().getContent().isEmpty());
+        assertEquals(HotelCatalogSearchMode.NORMAL, result.getSearchMode());
 
         verify(hotelPhotoRepository, never()).findPrimaryPhotosByHotelIds(anyList());
+    }
+
+    @Test
+    @DisplayName("search -> should use 5 km radius when only matchId is provided and results exist")
+    void search_WithMatchIdOnly_ShouldReturn5KmRadius() {
+        Pageable pageable = PageRequest.of(0, 10, Sort.by("id").ascending());
+        HotelCatalogCriteria criteria = new HotelCatalogCriteria();
+        criteria.setMatchId(100L);
+
+        Stadium stadium = buildStadium(10L, "Nablus", 32.22, 35.26);
+        Match match = buildMatch(100L, stadium);
+
+        Hotel hotel = buildHotel(1L, "Nearby Hotel", "Nablus", 32.221, 35.261);
+
+        Pageable limited = PageRequest.of(0, 500, Sort.by("id").ascending());
+
+        given(matchRepository.findById(100L)).willReturn(Optional.of(match));
+        given(hotelRepository.findAll(any(org.springframework.data.jpa.domain.Specification.class), eq(limited)))
+                .willReturn(new PageImpl<>(List.of(hotel), limited, 1));
+
+        given(hotelPhotoRepository.findPrimaryPhotosByHotelIds(List.of(1L)))
+                .willReturn(List.of(new HotelPrimaryPhotoProjection(1L, "hotels/1.jpg")));
+        given(photoUrlResolver.resolve("hotels/1.jpg")).willReturn("url1");
+
+        HotelCatalogResponseDto dto = new HotelCatalogResponseDto(
+                1L, "Nearby Hotel", "desc-1", "Nablus", "Palestine", "url1",
+                null, BigDecimal.valueOf(4.2), 20, 0.15
+        );
+
+        given(hotelCatalogMapper.toDto(eq(hotel), eq("url1"), eq(null), any(Double.class))).willReturn(dto);
+
+        HotelCatalogSearchResponseDto result = service.search(pageable, criteria);
+
+        assertEquals(HotelCatalogSearchMode.MATCH_RADIUS_5KM, result.getSearchMode());
+        assertFalse(result.isFallbackApplied());
+        assertEquals(1, result.getHotels().getTotalElements());
+        assertEquals("Nearby Hotel", result.getHotels().getContent().get(0).getName());
+    }
+
+    @Test
+    @DisplayName("search -> should expand radius to 15 km when 5 km returns no hotels")
+    void search_WithMatchIdOnly_ShouldExpandTo15Km() {
+        Pageable pageable = PageRequest.of(0, 10, Sort.by("id").ascending());
+        HotelCatalogCriteria criteria = new HotelCatalogCriteria();
+        criteria.setMatchId(100L);
+
+        Stadium stadium = buildStadium(10L, "Mexico City", 19.3030, -99.1505);
+        Match match = buildMatch(100L, stadium);
+
+        Hotel hotel = buildHotel(2L, "City Hotel", "Ciudad de Mexico", 19.2995, -99.2140);
+
+        Pageable limited = PageRequest.of(0, 500, Sort.by("id").ascending());
+
+        given(matchRepository.findById(100L)).willReturn(Optional.of(match));
+
+        given(hotelRepository.findAll(any(org.springframework.data.jpa.domain.Specification.class), eq(limited)))
+                .willReturn(
+                        new PageImpl<>(List.of(), limited, 0),      // 5 km
+                        new PageImpl<>(List.of(hotel), limited, 1)   // 15 km
+                );
+
+        given(hotelPhotoRepository.findPrimaryPhotosByHotelIds(List.of(2L)))
+                .willReturn(List.of(new HotelPrimaryPhotoProjection(2L, "hotels/2.jpg")));
+        given(photoUrlResolver.resolve("hotels/2.jpg")).willReturn("url2");
+
+        HotelCatalogResponseDto dto = new HotelCatalogResponseDto(
+                2L, "City Hotel", "desc-2", "Ciudad de Mexico", "Palestine", "url2",
+                null, BigDecimal.valueOf(4.2), 20, 6.7
+        );
+
+        given(hotelCatalogMapper.toDto(eq(hotel), eq("url2"), eq(null), any(Double.class))).willReturn(dto);
+
+        HotelCatalogSearchResponseDto result = service.search(pageable, criteria);
+
+        assertEquals(HotelCatalogSearchMode.MATCH_RADIUS_15KM, result.getSearchMode());
+        assertTrue(result.isFallbackApplied());
+        assertEquals(1, result.getHotels().getTotalElements());
+        assertEquals("City Hotel", result.getHotels().getContent().get(0).getName());
+    }
+
+    @Test
+    @DisplayName("search -> should expand radius to 30 km when 5 km and 15 km return no hotels")
+    void search_WithMatchIdOnly_ShouldExpandTo30Km() {
+        Pageable pageable = PageRequest.of(0, 10, Sort.by("id").ascending());
+        HotelCatalogCriteria criteria = new HotelCatalogCriteria();
+        criteria.setMatchId(100L);
+
+        Stadium stadium = buildStadium(10L, "Monterrey", 25.6697, -100.2443);
+        Match match = buildMatch(100L, stadium);
+
+        Hotel hotel = buildHotel(3L, "Farther Hotel", "Apodaca", 25.7586, -100.2153);
+
+        Pageable limited = PageRequest.of(0, 500, Sort.by("id").ascending());
+
+        given(matchRepository.findById(100L)).willReturn(Optional.of(match));
+
+        given(hotelRepository.findAll(any(org.springframework.data.jpa.domain.Specification.class), eq(limited)))
+                .willReturn(
+                        new PageImpl<>(List.of(), limited, 0),      // 5 km
+                        new PageImpl<>(List.of(), limited, 0),      // 15 km
+                        new PageImpl<>(List.of(hotel), limited, 1)  // 30 km
+                );
+
+        given(hotelPhotoRepository.findPrimaryPhotosByHotelIds(List.of(3L)))
+                .willReturn(List.of(new HotelPrimaryPhotoProjection(3L, "hotels/3.jpg")));
+        given(photoUrlResolver.resolve("hotels/3.jpg")).willReturn("url3");
+
+        HotelCatalogResponseDto dto = new HotelCatalogResponseDto(
+                3L, "Farther Hotel", "desc-3", "Apodaca", "Palestine", "url3",
+                null, BigDecimal.valueOf(4.2), 20, 22.4
+        );
+
+        given(hotelCatalogMapper.toDto(eq(hotel), eq("url3"), eq(null), any(Double.class))).willReturn(dto);
+
+        HotelCatalogSearchResponseDto result = service.search(pageable, criteria);
+
+        assertEquals(HotelCatalogSearchMode.MATCH_RADIUS_30KM, result.getSearchMode());
+        assertTrue(result.isFallbackApplied());
+        assertEquals(1, result.getHotels().getTotalElements());
+        assertEquals("Farther Hotel", result.getHotels().getContent().get(0).getName());
+    }
+
+    @Test
+    @DisplayName("search -> should return empty page when no hotels found within 30 km")
+    void search_WithMatchIdOnly_ShouldReturnEmptyAfter30Km() {
+        Pageable pageable = PageRequest.of(0, 10, Sort.by("id").ascending());
+        HotelCatalogCriteria criteria = new HotelCatalogCriteria();
+        criteria.setMatchId(100L);
+
+        Stadium stadium = buildStadium(10L, "Remote City", 10.0, 10.0);
+        Match match = buildMatch(100L, stadium);
+
+        Pageable limited = PageRequest.of(0, 500, Sort.by("id").ascending());
+
+        given(matchRepository.findById(100L)).willReturn(Optional.of(match));
+
+        given(hotelRepository.findAll(any(org.springframework.data.jpa.domain.Specification.class), eq(limited)))
+                .willReturn(
+                        new PageImpl<>(List.of(), limited, 0),  // 5 km
+                        new PageImpl<>(List.of(), limited, 0),  // 15 km
+                        new PageImpl<>(List.of(), limited, 0)   // 30 km
+                );
+
+        HotelCatalogSearchResponseDto result = service.search(pageable, criteria);
+
+        assertTrue(result.isFallbackApplied());
+        assertEquals(0, result.getHotels().getTotalElements());
+        assertTrue(result.getHotels().getContent().isEmpty());
+    }
+
+    @Test
+    @DisplayName("search -> should throw when more than one location reference is provided")
+    void search_WithMultipleLocationReferences_ShouldThrow() {
+        Pageable pageable = PageRequest.of(0, 10, Sort.by("id"));
+        HotelCatalogCriteria criteria = new HotelCatalogCriteria();
+        criteria.setMatchId(1L);
+        criteria.setStadiumId(2L);
+
+        IllegalArgumentException ex = assertThrows(
+                IllegalArgumentException.class,
+                () -> service.search(pageable, criteria)
+        );
+
+        assertTrue(ex.getMessage().contains("Only one location reference is allowed"));
     }
 }
