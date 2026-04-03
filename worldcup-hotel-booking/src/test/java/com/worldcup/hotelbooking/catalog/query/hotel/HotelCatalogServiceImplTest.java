@@ -461,8 +461,8 @@ class HotelCatalogServiceImplTest {
     }
 
     @Test
-    @DisplayName("search -> should use default radius when only matchId is provided")
-    void search_WithMatchIdOnly_ShouldUseDefaultRadius() {
+    @DisplayName("search -> should use 5 km radius when only matchId is provided and results exist")
+    void search_WithMatchIdOnly_ShouldReturn5KmRadius() {
         Pageable pageable = PageRequest.of(0, 10, Sort.by("id").ascending());
         HotelCatalogCriteria criteria = new HotelCatalogCriteria();
         criteria.setMatchId(100L);
@@ -491,51 +491,121 @@ class HotelCatalogServiceImplTest {
 
         HotelCatalogSearchResponseDto result = service.search(pageable, criteria);
 
-        assertEquals(HotelCatalogSearchMode.MATCH_DEFAULT_RADIUS, result.getSearchMode());
+        assertEquals(HotelCatalogSearchMode.MATCH_RADIUS_5KM, result.getSearchMode());
         assertFalse(result.isFallbackApplied());
         assertEquals(1, result.getHotels().getTotalElements());
         assertEquals("Nearby Hotel", result.getHotels().getContent().get(0).getName());
     }
 
     @Test
-    @DisplayName("search -> should fallback to same city when default radius returns no hotels")
-    void search_WithMatchIdOnlyAndNoNearbyHotels_ShouldFallbackToSameCity() {
+    @DisplayName("search -> should expand radius to 15 km when 5 km returns no hotels")
+    void search_WithMatchIdOnly_ShouldExpandTo15Km() {
         Pageable pageable = PageRequest.of(0, 10, Sort.by("id").ascending());
         HotelCatalogCriteria criteria = new HotelCatalogCriteria();
         criteria.setMatchId(100L);
 
-        Stadium stadium = buildStadium(10L, "Nablus", 32.22, 35.26);
+        Stadium stadium = buildStadium(10L, "Mexico City", 19.3030, -99.1505);
         Match match = buildMatch(100L, stadium);
 
-        Hotel cityHotel = buildHotel(2L, "City Hotel", "Nablus", 32.23, 35.27);
+        Hotel hotel = buildHotel(2L, "City Hotel", "Ciudad de Mexico", 19.2995, -99.2140);
 
         Pageable limited = PageRequest.of(0, 500, Sort.by("id").ascending());
 
         given(matchRepository.findById(100L)).willReturn(Optional.of(match));
 
         given(hotelRepository.findAll(any(org.springframework.data.jpa.domain.Specification.class), eq(limited)))
-                .willReturn(new PageImpl<>(List.of(), limited, 0));
-
-        given(hotelRepository.findAll(any(org.springframework.data.jpa.domain.Specification.class), eq(pageable)))
-                .willReturn(new PageImpl<>(List.of(cityHotel), pageable, 1));
+                .willReturn(
+                        new PageImpl<>(List.of(), limited, 0),      // 5 km
+                        new PageImpl<>(List.of(hotel), limited, 1)   // 15 km
+                );
 
         given(hotelPhotoRepository.findPrimaryPhotosByHotelIds(List.of(2L)))
                 .willReturn(List.of(new HotelPrimaryPhotoProjection(2L, "hotels/2.jpg")));
         given(photoUrlResolver.resolve("hotels/2.jpg")).willReturn("url2");
 
         HotelCatalogResponseDto dto = new HotelCatalogResponseDto(
-                2L, "City Hotel", "desc-2", "Nablus", "Palestine", "url2",
-                null, BigDecimal.valueOf(4.2), 20, null
+                2L, "City Hotel", "desc-2", "Ciudad de Mexico", "Palestine", "url2",
+                null, BigDecimal.valueOf(4.2), 20, 6.7
         );
 
-        given(hotelCatalogMapper.toDto(cityHotel, "url2", null, null)).willReturn(dto);
+        given(hotelCatalogMapper.toDto(eq(hotel), eq("url2"), eq(null), any(Double.class))).willReturn(dto);
 
         HotelCatalogSearchResponseDto result = service.search(pageable, criteria);
 
-        assertEquals(HotelCatalogSearchMode.SAME_CITY_FALLBACK, result.getSearchMode());
+        assertEquals(HotelCatalogSearchMode.MATCH_RADIUS_15KM, result.getSearchMode());
         assertTrue(result.isFallbackApplied());
         assertEquals(1, result.getHotels().getTotalElements());
         assertEquals("City Hotel", result.getHotels().getContent().get(0).getName());
+    }
+
+    @Test
+    @DisplayName("search -> should expand radius to 30 km when 5 km and 15 km return no hotels")
+    void search_WithMatchIdOnly_ShouldExpandTo30Km() {
+        Pageable pageable = PageRequest.of(0, 10, Sort.by("id").ascending());
+        HotelCatalogCriteria criteria = new HotelCatalogCriteria();
+        criteria.setMatchId(100L);
+
+        Stadium stadium = buildStadium(10L, "Monterrey", 25.6697, -100.2443);
+        Match match = buildMatch(100L, stadium);
+
+        Hotel hotel = buildHotel(3L, "Farther Hotel", "Apodaca", 25.7586, -100.2153);
+
+        Pageable limited = PageRequest.of(0, 500, Sort.by("id").ascending());
+
+        given(matchRepository.findById(100L)).willReturn(Optional.of(match));
+
+        given(hotelRepository.findAll(any(org.springframework.data.jpa.domain.Specification.class), eq(limited)))
+                .willReturn(
+                        new PageImpl<>(List.of(), limited, 0),      // 5 km
+                        new PageImpl<>(List.of(), limited, 0),      // 15 km
+                        new PageImpl<>(List.of(hotel), limited, 1)  // 30 km
+                );
+
+        given(hotelPhotoRepository.findPrimaryPhotosByHotelIds(List.of(3L)))
+                .willReturn(List.of(new HotelPrimaryPhotoProjection(3L, "hotels/3.jpg")));
+        given(photoUrlResolver.resolve("hotels/3.jpg")).willReturn("url3");
+
+        HotelCatalogResponseDto dto = new HotelCatalogResponseDto(
+                3L, "Farther Hotel", "desc-3", "Apodaca", "Palestine", "url3",
+                null, BigDecimal.valueOf(4.2), 20, 22.4
+        );
+
+        given(hotelCatalogMapper.toDto(eq(hotel), eq("url3"), eq(null), any(Double.class))).willReturn(dto);
+
+        HotelCatalogSearchResponseDto result = service.search(pageable, criteria);
+
+        assertEquals(HotelCatalogSearchMode.MATCH_RADIUS_30KM, result.getSearchMode());
+        assertTrue(result.isFallbackApplied());
+        assertEquals(1, result.getHotels().getTotalElements());
+        assertEquals("Farther Hotel", result.getHotels().getContent().get(0).getName());
+    }
+
+    @Test
+    @DisplayName("search -> should return empty page when no hotels found within 30 km")
+    void search_WithMatchIdOnly_ShouldReturnEmptyAfter30Km() {
+        Pageable pageable = PageRequest.of(0, 10, Sort.by("id").ascending());
+        HotelCatalogCriteria criteria = new HotelCatalogCriteria();
+        criteria.setMatchId(100L);
+
+        Stadium stadium = buildStadium(10L, "Remote City", 10.0, 10.0);
+        Match match = buildMatch(100L, stadium);
+
+        Pageable limited = PageRequest.of(0, 500, Sort.by("id").ascending());
+
+        given(matchRepository.findById(100L)).willReturn(Optional.of(match));
+
+        given(hotelRepository.findAll(any(org.springframework.data.jpa.domain.Specification.class), eq(limited)))
+                .willReturn(
+                        new PageImpl<>(List.of(), limited, 0),  // 5 km
+                        new PageImpl<>(List.of(), limited, 0),  // 15 km
+                        new PageImpl<>(List.of(), limited, 0)   // 30 km
+                );
+
+        HotelCatalogSearchResponseDto result = service.search(pageable, criteria);
+
+        assertTrue(result.isFallbackApplied());
+        assertEquals(0, result.getHotels().getTotalElements());
+        assertTrue(result.getHotels().getContent().isEmpty());
     }
 
     @Test

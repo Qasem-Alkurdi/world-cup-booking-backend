@@ -40,8 +40,7 @@ public class HotelCatalogServiceImpl implements HotelCatalogService {
             Set.of("id", "name", "city", "rating", "reviewCount");
 
     private static final int MAX_HOTELS_FOR_COMPUTED_PROCESSING = 500;
-    private static final double DEFAULT_MATCH_OR_STADIUM_RADIUS_KM = 5.0;
-
+    private static final List<Double> DEFAULT_RADIUS_STEPS_KM = List.of(5.0, 15.0, 30.0);
     private final HotelPhotoRepository hotelPhotoRepository;
     private final PhotoUrlResolver photoUrlResolver;
     private final HotelRepository hotelRepository;
@@ -94,53 +93,55 @@ public class HotelCatalogServiceImpl implements HotelCatalogService {
     ) {
         SearchExecutionContext resolvedContext = resolveSearchExecutionContext(copyCriteria(originalCriteria));
 
-        HotelCatalogCriteria radiusCriteria = copyCriteria(resolvedContext.criteria());
-        radiusCriteria.setMaxDistanceKm(DEFAULT_MATCH_OR_STADIUM_RADIUS_KM);
-        radiusCriteria.setMinDistanceKm(null);
+        for (Double radiusKm : DEFAULT_RADIUS_STEPS_KM) {
+            HotelCatalogCriteria radiusCriteria = copyCriteria(resolvedContext.criteria());
+            radiusCriteria.setMinDistanceKm(null);
+            radiusCriteria.setMaxDistanceKm(radiusKm);
 
-        Page<HotelCatalogResponseDto> radiusResult = executeSearch(pageable, radiusCriteria);
+            Page<HotelCatalogResponseDto> radiusResult = executeSearch(pageable, radiusCriteria);
 
-        if (!radiusResult.isEmpty()) {
-            HotelCatalogSearchMode mode = originalCriteria.getMatchId() != null
-                    ? HotelCatalogSearchMode.MATCH_DEFAULT_RADIUS
-                    : HotelCatalogSearchMode.STADIUM_DEFAULT_RADIUS;
-
-            return new HotelCatalogSearchResponseDto(
-                    radiusResult,
-                    mode,
-                    false,
-                    "Showing hotels within " + DEFAULT_MATCH_OR_STADIUM_RADIUS_KM + " km of the selected stadium"
-            );
+            if (!radiusResult.isEmpty()) {
+                return new HotelCatalogSearchResponseDto(
+                        radiusResult,
+                        resolveRadiusSearchMode(originalCriteria, radiusKm),
+                        radiusKm > 5.0,
+                        buildRadiusMessage(originalCriteria, radiusKm)
+                );
+            }
         }
-
-        Stadium stadium = resolvedContext.resolvedStadium();
-        if (stadium == null || stadium.getCity() == null || stadium.getCity().isBlank()) {
-            return new HotelCatalogSearchResponseDto(
-                    radiusResult,
-                    HotelCatalogSearchMode.NORMAL,
-                    false,
-                    "No hotels found within " + DEFAULT_MATCH_OR_STADIUM_RADIUS_KM + " km, and stadium city is unavailable for fallback"
-            );
-        }
-
-        HotelCatalogCriteria cityFallbackCriteria = copyCriteria(originalCriteria);
-        cityFallbackCriteria.setMatchId(null);
-        cityFallbackCriteria.setStadiumId(null);
-        cityFallbackCriteria.setLatitude(null);
-        cityFallbackCriteria.setLongitude(null);
-        cityFallbackCriteria.setMinDistanceKm(null);
-        cityFallbackCriteria.setMaxDistanceKm(null);
-        cityFallbackCriteria.setCity(stadium.getCity());
-
-        Page<HotelCatalogResponseDto> cityFallbackResult = executeSearch(pageable, cityFallbackCriteria);
 
         return new HotelCatalogSearchResponseDto(
-                cityFallbackResult,
-                HotelCatalogSearchMode.SAME_CITY_FALLBACK,
+                Page.empty(pageable),
+                HotelCatalogSearchMode.NORMAL,
                 true,
-                "No hotels found within " + DEFAULT_MATCH_OR_STADIUM_RADIUS_KM
-                        + " km of the selected stadium. Showing hotels in the same city instead"
+                "No hotels found within 30 km of the selected stadium"
         );
+    }
+
+    private HotelCatalogSearchMode resolveRadiusSearchMode(HotelCatalogCriteria criteria, double radiusKm) {
+        boolean byMatch = criteria.getMatchId() != null;
+
+        if (byMatch) {
+            if (radiusKm == 5.0) return HotelCatalogSearchMode.MATCH_RADIUS_5KM;
+            if (radiusKm == 15.0) return HotelCatalogSearchMode.MATCH_RADIUS_15KM;
+            return HotelCatalogSearchMode.MATCH_RADIUS_30KM;
+        }
+
+        if (radiusKm == 5.0) return HotelCatalogSearchMode.STADIUM_RADIUS_5KM;
+        if (radiusKm == 15.0) return HotelCatalogSearchMode.STADIUM_RADIUS_15KM;
+        return HotelCatalogSearchMode.STADIUM_RADIUS_30KM;
+    }
+
+    private String buildRadiusMessage(HotelCatalogCriteria criteria, double radiusKm) {
+        String source = criteria.getMatchId() != null ? "match stadium" : "selected stadium";
+
+        if (radiusKm == 5.0) {
+            return "Showing hotels within 5 km of the " + source;
+        }
+
+        return "No hotels found in the smaller radius. Expanded search to "
+                + (int) radiusKm
+                + " km around the " + source;
     }
 
     private boolean shouldUseDefaultRadius(HotelCatalogCriteria criteria) {

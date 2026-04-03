@@ -137,8 +137,8 @@ class HotelCatalogControllerTest {
     }
 
     @Test
-    @DisplayName("GET /catalog/hotels -> should return default radius mode when matchId only is provided")
-    void search_WithMatchIdOnly_ShouldReturnDefaultRadiusMode() throws Exception {
+    @DisplayName("GET /catalog/hotels -> should return 5 km radius mode when matchId only is provided")
+    void search_WithMatchIdOnly_ShouldReturn5KmMode() throws Exception {
         HotelCatalogResponseDto dto = new HotelCatalogResponseDto(
                 1L,
                 "Nearby Hotel",
@@ -154,9 +154,9 @@ class HotelCatalogControllerTest {
 
         HotelCatalogSearchResponseDto response = new HotelCatalogSearchResponseDto(
                 new PageImpl<>(List.of(dto), PageRequest.of(0, 10), 1),
-                HotelCatalogSearchMode.MATCH_DEFAULT_RADIUS,
+                HotelCatalogSearchMode.MATCH_RADIUS_5KM,
                 false,
-                "Showing hotels within 5.0 km of the selected stadium"
+                "Showing hotels within 5 km of the match stadium"
         );
 
         when(service.search(any(), any())).thenReturn(response);
@@ -167,7 +167,7 @@ class HotelCatalogControllerTest {
                         .param("size", "10")
                         .accept(APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.searchMode").value("MATCH_DEFAULT_RADIUS"))
+                .andExpect(jsonPath("$.searchMode").value("MATCH_RADIUS_5KM"))
                 .andExpect(jsonPath("$.fallbackApplied").value(false))
                 .andExpect(jsonPath("$.hotels.content.length()").value(1))
                 .andExpect(jsonPath("$.hotels.content[0].name").value("Nearby Hotel"));
@@ -176,26 +176,26 @@ class HotelCatalogControllerTest {
     }
 
     @Test
-    @DisplayName("GET /catalog/hotels -> should return same city fallback mode when fallback happens")
-    void search_WhenFallbackApplied_ShouldReturnFallbackResponse() throws Exception {
+    @DisplayName("GET /catalog/hotels -> should return 15 km radius mode when search expands from 5 km")
+    void search_WhenRadiusExpandedTo15Km_ShouldReturn15KmResponse() throws Exception {
         HotelCatalogResponseDto dto = new HotelCatalogResponseDto(
                 2L,
                 "City Hotel",
-                "Hotel in same city",
-                "Nablus",
-                "Palestine",
+                "Hotel found after expanding radius",
+                "Ciudad de Mexico",
+                "Mexico",
                 "url2",
                 null,
                 BigDecimal.valueOf(4.0),
                 22,
-                null
+                6.7
         );
 
         HotelCatalogSearchResponseDto response = new HotelCatalogSearchResponseDto(
                 new PageImpl<>(List.of(dto), PageRequest.of(0, 10), 1),
-                HotelCatalogSearchMode.SAME_CITY_FALLBACK,
+                HotelCatalogSearchMode.MATCH_RADIUS_15KM,
                 true,
-                "No hotels found within 5.0 km of the selected stadium. Showing hotels in the same city instead"
+                "No hotels found in the smaller radius. Expanded search to 15 km around the match stadium"
         );
 
         when(service.search(any(), any())).thenReturn(response);
@@ -206,10 +206,88 @@ class HotelCatalogControllerTest {
                         .param("size", "10")
                         .accept(APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.searchMode").value("SAME_CITY_FALLBACK"))
+                .andExpect(jsonPath("$.searchMode").value("MATCH_RADIUS_15KM"))
                 .andExpect(jsonPath("$.fallbackApplied").value(true))
                 .andExpect(jsonPath("$.hotels.content.length()").value(1))
                 .andExpect(jsonPath("$.hotels.content[0].name").value("City Hotel"));
+
+        verify(service, times(1)).search(any(), any());
+    }
+
+    @Test
+    @DisplayName("GET /catalog/hotels -> should return 30 km radius mode when search expands again")
+    void search_WhenRadiusExpandedTo30Km_ShouldReturn30KmResponse() throws Exception {
+        HotelCatalogResponseDto dto = new HotelCatalogResponseDto(
+                3L,
+                "Farther Hotel",
+                "Hotel found after expanding to 30 km",
+                "Apodaca",
+                "Mexico",
+                "url3",
+                null,
+                BigDecimal.valueOf(4.1),
+                18,
+                22.4
+        );
+
+        HotelCatalogSearchResponseDto response = new HotelCatalogSearchResponseDto(
+                new PageImpl<>(List.of(dto), PageRequest.of(0, 10), 1),
+                HotelCatalogSearchMode.MATCH_RADIUS_30KM,
+                true,
+                "No hotels found in the smaller radius. Expanded search to 30 km around the match stadium"
+        );
+
+        when(service.search(any(), any())).thenReturn(response);
+
+        mockMvc.perform(get("/catalog/hotels")
+                        .param("matchId", "100")
+                        .param("page", "0")
+                        .param("size", "10")
+                        .accept(APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.searchMode").value("MATCH_RADIUS_30KM"))
+                .andExpect(jsonPath("$.fallbackApplied").value(true))
+                .andExpect(jsonPath("$.hotels.content.length()").value(1))
+                .andExpect(jsonPath("$.hotels.content[0].name").value("Farther Hotel"));
+
+        verify(service, times(1)).search(any(), any());
+    }
+
+    @Test
+    @DisplayName("GET /catalog/hotels -> should return stadium 5 km mode when stadiumId only is provided")
+    void search_WithStadiumIdOnly_ShouldReturnStadium5KmMode() throws Exception {
+        HotelCatalogResponseDto dto = new HotelCatalogResponseDto(
+                4L,
+                "Stadium Nearby Hotel",
+                "Close to selected stadium",
+                "Seattle",
+                "United States",
+                "url4",
+                null,
+                BigDecimal.valueOf(4.6),
+                55,
+                1.1
+        );
+
+        HotelCatalogSearchResponseDto response = new HotelCatalogSearchResponseDto(
+                new PageImpl<>(List.of(dto), PageRequest.of(0, 10), 1),
+                HotelCatalogSearchMode.STADIUM_RADIUS_5KM,
+                false,
+                "Showing hotels within 5 km of the selected stadium"
+        );
+
+        when(service.search(any(), any())).thenReturn(response);
+
+        mockMvc.perform(get("/catalog/hotels")
+                        .param("stadiumId", "200")
+                        .param("page", "0")
+                        .param("size", "10")
+                        .accept(APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.searchMode").value("STADIUM_RADIUS_5KM"))
+                .andExpect(jsonPath("$.fallbackApplied").value(false))
+                .andExpect(jsonPath("$.hotels.content.length()").value(1))
+                .andExpect(jsonPath("$.hotels.content[0].name").value("Stadium Nearby Hotel"));
 
         verify(service, times(1)).search(any(), any());
     }
