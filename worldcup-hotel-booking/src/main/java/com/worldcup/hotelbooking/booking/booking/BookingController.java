@@ -59,15 +59,16 @@ public class BookingController {
 
     @Operation(summary = "Create a new booking", description = "Create a new booking with the provided details. The request must include user ID, hotel ID, check-in and check-out dates, and room details.")
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN') or @bookingAuthorizationService.isCurrentUser(#bookingRequest.userId, authentication) or @bookingAuthorizationService.isHimTheHotelOwnerOfTheBookingUsingTheHotelId(#bookingRequest.hotelId,authentication)" )
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','GUEST')" )
     public ResponseEntity<BookingResponseDto> createBooking(
             @Valid @RequestBody BookingRequestDto bookingRequest,
-            UriComponentsBuilder uriBuilder) {
+            UriComponentsBuilder uriBuilder,
+            @AuthenticationPrincipal Jwt jwt) {
 
         // Create the booking entity
         Booking booking = BookingMapper.toEntity(
                 bookingRequest,
-                appUserService.getUserById(bookingRequest.getUserId()),
+                appUserService.getUserById(extractUserId(jwt)),
                 hotelService.findById(bookingRequest.getHotelId())
         );
 
@@ -170,11 +171,12 @@ public class BookingController {
     @PreAuthorize("hasRole('ADMIN') or @bookingAuthorizationService.isHimTheBookingUser(#id, authentication)")
     public ResponseEntity<BookingResponseDto> updateBooking(
             @PathVariable long id,
-            @RequestBody @Valid BookingRequestDto bookingRequest) {
+            @RequestBody @Valid BookingRequestDto bookingRequest,
+            @AuthenticationPrincipal Jwt jwt) {
 
         Booking booking = BookingMapper.toEntity(
                 bookingRequest,
-                appUserService.getUserById(bookingRequest.getUserId()),
+                appUserService.getUserById(extractUserId(jwt)),
                 hotelService.findById(bookingRequest.getHotelId())
         );
 

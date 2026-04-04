@@ -520,8 +520,8 @@ public class BookingServiceImpl implements BookingService {
     })
     public void cancelExpiredPendingBookings() {
 
-        // ⭐ FOR TESTING: 1 minute
-        LocalDateTime expiryTime = LocalDateTime.now().minusMinutes(1);
+        // ⭐ FOR TESTING: 5 minute
+        LocalDateTime expiryTime = LocalDateTime.now().minusMinutes(5);
 
         // ⭐ FOR PRODUCTION: Uncomment this line instead
         // LocalDateTime expiryTime = LocalDateTime.now().minusDays(3);
@@ -829,7 +829,7 @@ public class BookingServiceImpl implements BookingService {
         logger.info("📋 Snapshot copy created (id={}) for booking {}",
                 snapshot.getId(), booking.getBookingReference());
 
-        booking.setUpdatePaymentDeadline(LocalDateTime.now().plusMinutes(2)); // ⭐ FOR TESTING: 2 minutes
+        booking.setUpdatePaymentDeadline(LocalDateTime.now().plusMinutes(4)); // ⭐ FOR TESTING: 4 minutes
         booking.setAdditionalPaymentRequired(true);
 
         logger.warn("⚠️ Booking {} requires additional payment of ${} — deadline: {}",

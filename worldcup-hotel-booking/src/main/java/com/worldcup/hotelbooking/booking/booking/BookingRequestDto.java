@@ -21,9 +21,6 @@ public class BookingRequestDto {
     @Positive(message = "Hotel ID must be positive")
     private Long hotelId;
 
-    @NotNull(message = "User ID cannot be null")
-    @Positive(message = "User ID must be positive")
-    private long userId;
 
 
 

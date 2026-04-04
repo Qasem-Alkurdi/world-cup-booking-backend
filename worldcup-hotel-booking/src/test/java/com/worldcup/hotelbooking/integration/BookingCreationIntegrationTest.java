@@ -184,7 +184,6 @@ public class BookingCreationIntegrationTest extends BaseIntegrationTest {
 
         BookingRequestDto bookingRequest = new BookingRequestDto();
         bookingRequest.setHotelId(hotelId);
-        bookingRequest.setUserId(userId);
         bookingRequest.setCheckInDate(LocalDate.of(2026, 6, 14));
         bookingRequest.setCheckOutDate(LocalDate.of(2026, 6, 17));
         bookingRequest.setNumberOfGuests(2);
@@ -231,7 +230,6 @@ public class BookingCreationIntegrationTest extends BaseIntegrationTest {
 
         BookingRequestDto firstBooking = new BookingRequestDto();
         firstBooking.setHotelId(hotelId);
-        firstBooking.setUserId(userId);
         firstBooking.setCheckInDate(LocalDate.of(2026, 6, 14));
         firstBooking.setCheckOutDate(LocalDate.of(2026, 6, 17));
         firstBooking.setNumberOfGuests(2);
@@ -251,7 +249,6 @@ public class BookingCreationIntegrationTest extends BaseIntegrationTest {
 
         BookingRequestDto secondBooking = new BookingRequestDto();
         secondBooking.setHotelId(hotelId);
-        secondBooking.setUserId(userId);
         secondBooking.setCheckInDate(LocalDate.of(2026, 6, 14));
         secondBooking.setCheckOutDate(LocalDate.of(2026, 6, 17));
         secondBooking.setNumberOfGuests(2);
