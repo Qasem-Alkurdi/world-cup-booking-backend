@@ -22,8 +22,7 @@ public class AvailabilityController {
     @Operation(summary = "Check availability of a specific room type for given check-in and check-out dates")
     @GetMapping("/availability/room-type/{id}")
     public boolean checkRoomTypeAvailability(@PathVariable long id, @RequestParam LocalDate checkIn, @RequestParam LocalDate checkOut) {
-        if(checkOut.isBefore(checkIn))
-            throw new IllegalArgumentException("The check in  date can not be after the check out date");
+
         return availabilityService.checkRoomTypeAvailability(id, checkIn, checkOut);
     }
 
@@ -31,8 +30,7 @@ public class AvailabilityController {
     @Operation(summary = "Get the number of available rooms for a specific room type and given check-in and check-out dates")
     @GetMapping("/availability/room-type/{id}/rooms")
     public int getAvailableRooms(@PathVariable long id, @RequestParam LocalDate checkIn, @RequestParam LocalDate checkOut) {
-        if(checkOut.isBefore(checkIn))
-            throw new IllegalArgumentException("The check in  date can not be after the check out date");
+
         return availabilityService.getAvailableRooms(id, checkIn, checkOut);
     }
 //        GetMapping("/availability/hotel/{id}/?checkIn=2026-06-10&checkOut=2026-06-12")
