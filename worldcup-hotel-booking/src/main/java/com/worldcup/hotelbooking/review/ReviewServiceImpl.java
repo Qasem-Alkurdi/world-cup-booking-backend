@@ -7,10 +7,12 @@ import com.worldcup.hotelbooking.catalog.hotel.HotelRepository;
 import com.worldcup.hotelbooking.catalog.hotel.exception.HotelNotFoundException;
 import com.worldcup.hotelbooking.review.dto.CreateReviewRequestDto;
 import com.worldcup.hotelbooking.review.dto.HotelReviewSummaryDto;
+import com.worldcup.hotelbooking.review.dto.ReviewResponseDto;
 import com.worldcup.hotelbooking.review.dto.UpdateReviewRequestDto;
 import com.worldcup.hotelbooking.review.exception.ReviewAlreadyExistsException;
 import com.worldcup.hotelbooking.review.exception.ReviewNotAllowedException;
 import com.worldcup.hotelbooking.review.exception.ReviewNotFoundException;
+import com.worldcup.hotelbooking.review.mapper.ReviewMapper;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
@@ -47,7 +49,7 @@ public class ReviewServiceImpl implements ReviewService {
             @CacheEvict(value = "hotelList", allEntries = true),
             @CacheEvict(value = "myHotels", allEntries = true)
     })
-    public Review create(Long bookingId, CreateReviewRequestDto body) {
+    public ReviewResponseDto create(Long bookingId, CreateReviewRequestDto body) {
         if (reviewRepository.existsByBookingId(bookingId)) {
             throw new ReviewAlreadyExistsException(bookingId);
         }
@@ -70,7 +72,10 @@ public class ReviewServiceImpl implements ReviewService {
         Review saved = reviewRepository.save(review);
         recalculateHotelRating(hotel);
 
-        return saved;
+        Review detailed = reviewRepository.findDetailedById(saved.getId())
+                .orElseThrow(() -> new ReviewNotFoundException(saved.getId()));
+
+        return ReviewMapper.toResponse(detailed);
     }
 
     @Override
@@ -79,8 +84,8 @@ public class ReviewServiceImpl implements ReviewService {
             @CacheEvict(value = "hotelList", allEntries = true),
             @CacheEvict(value = "myHotels", allEntries = true)
     })
-    public Review update(Long reviewId, UpdateReviewRequestDto body) {
-        Review review = reviewRepository.findById(reviewId)
+    public ReviewResponseDto update(Long reviewId, UpdateReviewRequestDto body) {
+        Review review = reviewRepository.findDetailedById(reviewId)
                 .orElseThrow(() -> new ReviewNotFoundException(reviewId));
 
         if (body.getRating() != null) {
@@ -92,7 +97,8 @@ public class ReviewServiceImpl implements ReviewService {
         }
 
         recalculateHotelRating(review.getHotel());
-        return review;
+
+        return ReviewMapper.toResponse(review);
     }
 
     @Override
@@ -102,7 +108,7 @@ public class ReviewServiceImpl implements ReviewService {
             @CacheEvict(value = "myHotels", allEntries = true)
     })
     public void delete(Long reviewId) {
-        Review review = reviewRepository.findById(reviewId)
+        Review review = reviewRepository.findDetailedById(reviewId)
                 .orElseThrow(() -> new ReviewNotFoundException(reviewId));
 
         Hotel hotel = review.getHotel();
@@ -112,18 +118,23 @@ public class ReviewServiceImpl implements ReviewService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<Review> getHotelReviews(Long hotelId) {
+    public List<ReviewResponseDto> getHotelReviews(Long hotelId) {
         Hotel hotel = hotelRepository.findByIdAndStatusAndIsDeletedFalse(hotelId, APPROVED)
                 .orElseThrow(() -> new HotelNotFoundException(hotelId));
 
-        return reviewRepository.findByHotelAndVisibleTrueOrderByCreatedAtDesc(hotel);
+        return reviewRepository.findByHotelAndVisibleTrueOrderByCreatedAtDesc(hotel)
+                .stream()
+                .map(ReviewMapper::toResponse)
+                .toList();
     }
 
     @Override
     @Transactional(readOnly = true)
-    public Review getById(Long reviewId) {
-        return reviewRepository.findById(reviewId)
+    public ReviewResponseDto getById(Long reviewId) {
+        Review review = reviewRepository.findDetailedById(reviewId)
                 .orElseThrow(() -> new ReviewNotFoundException(reviewId));
+
+        return ReviewMapper.toResponse(review);
     }
 
     @Override

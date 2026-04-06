@@ -13,6 +13,7 @@ public class ReviewMapper {
                 review.getId(),
                 review.getHotel().getId(),
                 review.getUser().getId(),
+                review.getUser().getUsername(),
                 review.getBooking().getId(),
                 review.getRating(),
                 review.getComment(),

@@ -29,11 +29,6 @@ public class ReviewAuthorizationService {
     }
 
     public boolean canManageReview(Long reviewId, Authentication authentication) {
-        String username = authentication.getName();
-
-        return reviewRepository.findById(reviewId)
-                .map(review -> review.getUser() != null
-                        && username.equals(review.getUser().getUsername()))
-                .orElse(false);
+        return reviewRepository.existsManageableReview(reviewId, authentication.getName());
     }
 }

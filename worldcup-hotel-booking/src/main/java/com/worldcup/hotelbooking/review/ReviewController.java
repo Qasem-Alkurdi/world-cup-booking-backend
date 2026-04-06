@@ -4,7 +4,6 @@ import com.worldcup.hotelbooking.review.dto.CreateReviewRequestDto;
 import com.worldcup.hotelbooking.review.dto.HotelReviewSummaryDto;
 import com.worldcup.hotelbooking.review.dto.ReviewResponseDto;
 import com.worldcup.hotelbooking.review.dto.UpdateReviewRequestDto;
-import com.worldcup.hotelbooking.review.mapper.ReviewMapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -44,8 +43,7 @@ public class ReviewController {
             @PathVariable Long bookingId,
             @Valid @RequestBody CreateReviewRequestDto body
     ) {
-        Review saved = service.create(bookingId, body);
-        return ResponseEntity.ok(ReviewMapper.toResponse(saved));
+        return ResponseEntity.ok(service.create(bookingId, body));
     }
 
     @Operation(
@@ -64,8 +62,7 @@ public class ReviewController {
             @PathVariable Long reviewId,
             @Valid @RequestBody UpdateReviewRequestDto body
     ) {
-        Review updated = service.update(reviewId, body);
-        return ResponseEntity.ok(ReviewMapper.toResponse(updated));
+        return ResponseEntity.ok(service.update(reviewId, body));
     }
 
     @Operation(
@@ -100,10 +97,7 @@ public class ReviewController {
             @Parameter(description = "Hotel id", example = "1")
             @PathVariable Long hotelId
     ) {
-        return service.getHotelReviews(hotelId)
-                .stream()
-                .map(ReviewMapper::toResponse)
-                .toList();
+        return service.getHotelReviews(hotelId);
     }
 
     @Operation(
