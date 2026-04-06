@@ -25,7 +25,7 @@ public class PaymentServiceImpl {
 
     private final PaymentRepository paymentRepository;
     private final BookingRepository bookingRepository;
-    private final Random random = new Random();
+
 
     public PaymentServiceImpl(PaymentRepository paymentRepository,
                               BookingRepository bookingRepository) {
@@ -152,7 +152,7 @@ public class PaymentServiceImpl {
                 .orElseThrow(() -> new PaymentException("Payment intent not found"));
 
         // 2. Validate payment can be processed
-        if (payment.getStatus() != Payment.PaymentStatus.PARTIALLY_PAID && payment.getStatus() != Payment.PaymentStatus.PENDING) {
+        if (payment.getStatus() != Payment.PaymentStatus.PARTIALLY_PAID && payment.getStatus() != Payment.PaymentStatus.PENDING && payment.getStatus()!=Payment.PaymentStatus.FAILED) {
             throw new PaymentException("The payment should be in PENDING or PARTIALLY_PAID status to be processed");
         }
 
@@ -368,7 +368,7 @@ public class PaymentServiceImpl {
         }
 
         // Random failure (10% chance)
-        return random.nextInt(100) >= 10;
+        return true;
     }
 
     /**

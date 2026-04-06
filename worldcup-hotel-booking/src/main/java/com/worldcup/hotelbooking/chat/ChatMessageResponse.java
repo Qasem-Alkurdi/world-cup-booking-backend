@@ -12,7 +12,7 @@ public record ChatMessageResponse(
         Long conversationId,
         Long senderId,
         String senderUsername,
-        ChatMessage.SenderRole senderRole,
+        com.worldcup.hotelbooking.user.Role senderRole,
         String content,
         LocalDateTime sentAt,
         boolean read

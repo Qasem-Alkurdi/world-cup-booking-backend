@@ -1,4 +1,9 @@
 spring:
+  datasource:
+    url: jdbc:postgresql://${MYSQL_HOST}:5432/worldcup_hotel_booking_No_Spelling_Mistakes
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+    driver-class-name: org.postgresql.Driver
   servlet:
     multipart:
       max-file-size: 5MB
@@ -9,9 +14,10 @@ spring:
     active: local,seed
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: ${SPRING_JPA_HIBERNATE_DDL_AUTO}
     properties:
       hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
         show_sql: true
         format_sql: true
     open-in-view: false

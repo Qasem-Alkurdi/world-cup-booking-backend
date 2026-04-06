@@ -21,6 +21,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
@@ -63,12 +64,12 @@ public class BookingController {
     public ResponseEntity<BookingResponseDto> createBooking(
             @Valid @RequestBody BookingRequestDto bookingRequest,
             UriComponentsBuilder uriBuilder,
-            @AuthenticationPrincipal Jwt jwt) {
+            Authentication authentication) {
 
         // Create the booking entity
         Booking booking = BookingMapper.toEntity(
                 bookingRequest,
-                appUserService.getUserById(extractUserId(jwt)),
+                appUserService.getUserById(extractUserId(authentication)),
                 hotelService.findById(bookingRequest.getHotelId())
         );
 
@@ -172,11 +173,11 @@ public class BookingController {
     public ResponseEntity<BookingResponseDto> updateBooking(
             @PathVariable long id,
             @RequestBody @Valid BookingRequestDto bookingRequest,
-            @AuthenticationPrincipal Jwt jwt) {
+            Authentication authentication) {
 
         Booking booking = BookingMapper.toEntity(
                 bookingRequest,
-                appUserService.getUserById(extractUserId(jwt)),
+                appUserService.getUserById(extractUserId(authentication)),
                 hotelService.findById(bookingRequest.getHotelId())
         );
 
@@ -205,11 +206,11 @@ public class BookingController {
     )
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<PagedResponse<BookingResponseDto>> getMyHistory(
-            @AuthenticationPrincipal Jwt jwt,
+            Authentication authentication,
             @PageableDefault(size = 10, sort = "id", direction = Sort.Direction.DESC)
             Pageable pageable
     ) {
-        Long userId = extractUserId(jwt);
+        Long userId = extractUserId(authentication);
 
         Page<Booking> page = bookingService.getGuestHistory(userId, pageable);
 
@@ -221,28 +222,29 @@ public class BookingController {
         return ResponseEntity.ok(PagedResponse.from(page, content));
     }
 
-    private Long extractUserId(Jwt jwt) {
-        Object userIdClaim = jwt.getClaim("userId");
-
-        if (userIdClaim == null) {
-            throw new IllegalStateException("userId claim is missing from token");
+    private Long extractUserId(Authentication authentication) {
+        if (authentication == null || authentication.getPrincipal() == null) {
+            throw new IllegalStateException("Unauthenticated user cannot create hotel");
         }
 
-        if (userIdClaim instanceof Integer integerValue) {
-            return integerValue.longValue();
+        Object principal = authentication.getPrincipal();
+
+        if (principal instanceof Jwt jwt) {
+            Object claim = jwt.getClaim("userId");
+
+            if (claim instanceof Integer i) return i.longValue();
+            if (claim instanceof Long l) return l;
+            if (claim instanceof String s) {
+                try {
+                    return Long.parseLong(s);
+                } catch (NumberFormatException ignored) {
+                    throw new IllegalStateException("Invalid userId claim");
+                }
+            }
         }
 
-        if (userIdClaim instanceof Long longValue) {
-            return longValue;
-        }
-
-        if (userIdClaim instanceof String stringValue) {
-            return Long.parseLong(stringValue);
-        }
-
-        throw new IllegalStateException("userId claim has unsupported type");
+        throw new IllegalStateException("userId claim is missing or invalid");
     }
-
     @GetMapping("/hotel/{hotelId}/upcoming")
     @Operation(summary = "Get upcoming bookings for a hotel", description = "Retrieve a paginated list of upcoming bookings for a specific hotel. This endpoint is intended for hotel managers to view future reservations.")
     @PreAuthorize("hasRole('ADMIN') or (hasRole('MANAGER') and @bookingAuthorizationService.isHimTheHotelOwnerOfTheBookings(#hotelId, authentication))")
@@ -328,11 +330,10 @@ public class BookingController {
 
     }
 
-    @GetMapping("/guest/search/user/{userId}")
-    @PreAuthorize("hasRole('ADMIN') or @bookingAuthorizationService.isCurrentUser(#userId, authentication)")
+    @GetMapping("/guest/search/user")
     @Operation(summary = "Search my bookings", description = "Search and filter bookings for the currently authenticated user. This endpoint allows guests to apply various filters such as hotel ID, booking status, date range, and price range to find specific bookings in their history.")
     public PagedResponse<BookingResponseDto> filterBookingsForGuest(
-            @PathVariable Long userId,
+            Authentication authentication,
             @RequestParam(required = false) Long hotelId,
             @RequestParam(required = false) Booking.BookingStatus status,
             @RequestParam(required = false) LocalDate fromDate,
@@ -343,7 +344,7 @@ public class BookingController {
             Pageable pageable
     ) {
         Page<Booking> page = bookingService.filterBookings(
-                userId,
+                extractUserId(authentication),
                 hotelId,
                 status,
                 fromDate,

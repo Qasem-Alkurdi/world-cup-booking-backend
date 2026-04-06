@@ -1,5 +1,6 @@
 package com.worldcup.hotelbooking.payment;
 
+import com.worldcup.hotelbooking.booking.booking.BookingNotFoundException;
 import com.worldcup.hotelbooking.booking.booking.BookingRepository;
 import com.worldcup.hotelbooking.catalog.hotel.HotelRepository;
 import org.springframework.security.core.Authentication;
@@ -20,10 +21,19 @@ public class PaymentAuthorizationService {
 
     public boolean canCreatPayment(Long bookingId, Authentication authentication) {
         Long authUserId = extractUserId(authentication);
-        return authUserId != null && bookingRepository.findById(bookingId)
-                .map(booking -> booking.getAppUser() != null &&
-                        booking.getAppUser().getId() != null &&
-                        booking.getAppUser().getId().equals(authUserId))
+        if (authUserId == null) return false;
+
+        bookingRepository.findActiveBookingById(bookingId).orElseThrow(() -> new BookingNotFoundException("Booking not found with id: " + bookingId));
+
+        // Use the dedicated JPQL query that selects ONLY the active booking by id
+        // without joining on the self-referencing snapshot relationship.
+        // Plain findById() triggers Hibernate to JOIN booking → booking via
+        // snapshot_of_booking_reference, which returns empty when there is no
+        // snapshot row — causing a NoSuchElementException even though the booking exists.
+        return bookingRepository.findActiveBookingById(bookingId)
+                .map(booking -> booking.getAppUser() != null
+                        && booking.getAppUser().getId() != null
+                        && booking.getAppUser().getId().equals(authUserId))
                 .orElse(false);
 
     }
@@ -65,7 +75,7 @@ public class PaymentAuthorizationService {
 
     public boolean canViewPaymentByBookingId(Long bookingId, Authentication authentication) {
         Long authUserId = extractUserId(authentication);
-        return authUserId != null && bookingRepository.findById(bookingId)
+        return authUserId != null && bookingRepository.findActiveBookingById(bookingId)
                 .map(booking -> ((booking.getAppUser() != null &&
                         booking.getAppUser().getId() != null &&
                         booking.getAppUser().getId().equals(authUserId)) ||

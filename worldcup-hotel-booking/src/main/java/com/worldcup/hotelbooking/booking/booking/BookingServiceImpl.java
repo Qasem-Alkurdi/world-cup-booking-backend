@@ -5,6 +5,8 @@ import com.worldcup.hotelbooking.availability_pricing.pricing.EnhancedPricingSer
 import com.worldcup.hotelbooking.booking.bookingroom.BookingRoom;
 import com.worldcup.hotelbooking.booking.cancellation.CancellationPolicyServiceImpl;
 import com.worldcup.hotelbooking.booking.cancellation.CancellationResponse;
+import com.worldcup.hotelbooking.catalog.hotel.HotelRepository;
+import com.worldcup.hotelbooking.catalog.query.hotel.HotelCatalogServiceImpl;
 import com.worldcup.hotelbooking.payment.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,7 +47,7 @@ public class BookingServiceImpl implements BookingService {
             CancellationPolicyServiceImpl cancellationPolicyService,
             AvailabilityServiceImpl availabilityService,
             PaymentRepository paymentRepository,
-            PaymentServiceImpl paymentService) {
+            PaymentServiceImpl paymentService){
         this.bookingRepository = bookingRepository;
         this.enhancedPricingService = enhancedPricingService;
         this.cancellationPolicyService = cancellationPolicyService;
@@ -90,8 +92,7 @@ public class BookingServiceImpl implements BookingService {
     @Transactional(readOnly = true)
     public Page<Booking> getGuestHistory(Long userId, Pageable pageable) {
         Specification<Booking> spec =
-                Specification.where(BookingSpecifications.hasUser(userId))
-                        .and(BookingSpecifications.isPast());
+                Specification.where(BookingSpecifications.hasUser(userId));
         return bookingRepository.findAll(spec, pageable);
     }
 
@@ -145,9 +146,9 @@ public class BookingServiceImpl implements BookingService {
 
     /**
      * Creating a new booking invalidates:
-     * - hotelUpcoming  : the new booking may appear in the hotel's upcoming list once confirmed.
-     * - guestHistory   : less likely immediately, but evict for safety on long-stay bookings.
-     * <p>
+     *   - hotelUpcoming  : the new booking may appear in the hotel's upcoming list once confirmed.
+     *   - guestHistory   : less likely immediately, but evict for safety on long-stay bookings.
+     *
      * bookingById / bookingByReference do NOT need eviction here because the new booking
      * has never been cached yet — there is nothing stale to remove.
      */
@@ -155,7 +156,7 @@ public class BookingServiceImpl implements BookingService {
     @Transactional(isolation = Isolation.SERIALIZABLE)
     @Caching(evict = {
             @CacheEvict(value = "hotelUpcoming", allEntries = true),
-            @CacheEvict(value = "guestHistory", allEntries = true)
+            @CacheEvict(value = "guestHistory",  allEntries = true)
     })
     public Booking createBooking(Booking booking) {
 
@@ -210,10 +211,10 @@ public class BookingServiceImpl implements BookingService {
     @Override
     @Transactional
     @Caching(evict = {
-            @CacheEvict(value = "bookingById", key = "#id"),
+            @CacheEvict(value = "bookingById",        key = "#id"),
             @CacheEvict(value = "bookingByReference", allEntries = true),
-            @CacheEvict(value = "hotelUpcoming", allEntries = true),
-            @CacheEvict(value = "guestHistory", allEntries = true)
+            @CacheEvict(value = "hotelUpcoming",      allEntries = true),
+            @CacheEvict(value = "guestHistory",       allEntries = true)
     })
     public Booking cancelBooking(Long id, String reason) {
         logger.info("Cancelling booking with id: {} for reason: {}", id, reason);
@@ -278,10 +279,10 @@ public class BookingServiceImpl implements BookingService {
      */
     @Transactional
     @Caching(evict = {
-            @CacheEvict(value = "bookingById", key = "#bookingId"),
+            @CacheEvict(value = "bookingById",        key = "#bookingId"),
             @CacheEvict(value = "bookingByReference", allEntries = true),
-            @CacheEvict(value = "hotelUpcoming", allEntries = true),
-            @CacheEvict(value = "guestHistory", allEntries = true)
+            @CacheEvict(value = "hotelUpcoming",      allEntries = true),
+            @CacheEvict(value = "guestHistory",       allEntries = true)
     })
     public Booking cancelBookingByManager(Long bookingId, String reason, String managerUsername) {
         logger.info("Manager '{}' cancelling booking id={} — reason: {}", managerUsername, bookingId, reason);
@@ -292,7 +293,7 @@ public class BookingServiceImpl implements BookingService {
         CancellationResponse cancellationResult =
                 cancellationPolicyService.calculateManagerCancellation(booking);
 
-        BigDecimal baseRefund = cancellationResult.getRefundAmount();
+        BigDecimal baseRefund  = cancellationResult.getRefundAmount();
         BigDecimal bonusAmount = cancellationResult.getBonusAmount();
         BigDecimal totalPayout = cancellationResult.getTotalPayout();
 
@@ -314,7 +315,7 @@ public class BookingServiceImpl implements BookingService {
                         ? payment.getPaidAmount() : BigDecimal.ZERO;
 
                 BigDecimal refundableBase = baseRefund.min(paidAmount.subtract(alreadyRefunded));
-                BigDecimal actualPayout = refundableBase.add(bonusAmount);
+                BigDecimal actualPayout   = refundableBase.add(bonusAmount);
 
                 if (actualPayout.compareTo(BigDecimal.ZERO) > 0) {
                     RefundRequestDto refundRequest = RefundRequestDto.builder()
@@ -352,10 +353,10 @@ public class BookingServiceImpl implements BookingService {
      */
     @Override
     @Caching(evict = {
-            @CacheEvict(value = "bookingById", key = "#id"),
+            @CacheEvict(value = "bookingById",        key = "#id"),
             @CacheEvict(value = "bookingByReference", allEntries = true),
-            @CacheEvict(value = "hotelUpcoming", allEntries = true),
-            @CacheEvict(value = "guestHistory", allEntries = true)
+            @CacheEvict(value = "hotelUpcoming",      allEntries = true),
+            @CacheEvict(value = "guestHistory",       allEntries = true)
     })
     public Booking confirmBooking(Long id) {
         Booking booking = bookingRepository.findByIdWithRooms(id)
@@ -380,10 +381,10 @@ public class BookingServiceImpl implements BookingService {
      */
     @Transactional
     @Caching(evict = {
-            @CacheEvict(value = "bookingById", key = "#id"),
+            @CacheEvict(value = "bookingById",        key = "#id"),
             @CacheEvict(value = "bookingByReference", allEntries = true),
-            @CacheEvict(value = "hotelUpcoming", allEntries = true),
-            @CacheEvict(value = "guestHistory", allEntries = true)
+            @CacheEvict(value = "hotelUpcoming",      allEntries = true),
+            @CacheEvict(value = "guestHistory",       allEntries = true)
     })
     public Booking updateExisting(long id, Booking requestBooking) {
         Booking managedBooking = bookingRepository.findByIdWithRooms(id)
@@ -391,13 +392,13 @@ public class BookingServiceImpl implements BookingService {
 
         validateCanModify(managedBooking, requestBooking);
 
-        BigDecimal oldPrice = managedBooking.getTotalPrice();
+        BigDecimal oldPrice           = managedBooking.getTotalPrice();
         Booking.BookingStatus oldStatus = managedBooking.getStatus();
-        LocalDate oldCheckInDate = managedBooking.getCheckInDate();
-        LocalDate oldCheckOutDate = managedBooking.getCheckOutDate();
-        int oldNumberOfGuests = managedBooking.getNumberOfGuests();
-        int oldNumberOfAdults = managedBooking.getNumberOfAdults();
-        int oldNumberOfChildren = managedBooking.getNumberOfChildren();
+        LocalDate oldCheckInDate      = managedBooking.getCheckInDate();
+        LocalDate oldCheckOutDate     = managedBooking.getCheckOutDate();
+        int oldNumberOfGuests         = managedBooking.getNumberOfGuests();
+        int oldNumberOfAdults         = managedBooking.getNumberOfAdults();
+        int oldNumberOfChildren       = managedBooking.getNumberOfChildren();
         List<BookingRoom> originalRooms = new java.util.ArrayList<>(managedBooking.getBookingRooms());
 
         managedBooking.setCheckInDate(requestBooking.getCheckInDate());
@@ -424,10 +425,10 @@ public class BookingServiceImpl implements BookingService {
      * The booking disappears from hotelUpcoming (which only shows CONFIRMED) once it transitions.
      */
     @Caching(evict = {
-            @CacheEvict(value = "bookingById", key = "#id"),
+            @CacheEvict(value = "bookingById",        key = "#id"),
             @CacheEvict(value = "bookingByReference", allEntries = true),
-            @CacheEvict(value = "hotelUpcoming", allEntries = true),
-            @CacheEvict(value = "guestHistory", allEntries = true)
+            @CacheEvict(value = "hotelUpcoming",      allEntries = true),
+            @CacheEvict(value = "guestHistory",       allEntries = true)
     })
     public Booking checkInBooking(Long id) {
         Booking booking = bookingRepository.findByIdWithRooms(id)
@@ -456,10 +457,10 @@ public class BookingServiceImpl implements BookingService {
      * The completed stay should now appear in guestHistory.
      */
     @Caching(evict = {
-            @CacheEvict(value = "bookingById", key = "#id"),
+            @CacheEvict(value = "bookingById",        key = "#id"),
             @CacheEvict(value = "bookingByReference", allEntries = true),
-            @CacheEvict(value = "hotelUpcoming", allEntries = true),
-            @CacheEvict(value = "guestHistory", allEntries = true)
+            @CacheEvict(value = "hotelUpcoming",      allEntries = true),
+            @CacheEvict(value = "guestHistory",       allEntries = true)
     })
     public Booking checkOutBooking(Long id) {
         Booking booking = bookingRepository.findByIdWithRooms(id)
@@ -478,13 +479,13 @@ public class BookingServiceImpl implements BookingService {
     // ========================================
 
     public CancellationResponse previewCancellation(Long bookingId) {
-        Booking booking = bookingRepository.findById(bookingId)
+        Booking booking = bookingRepository.findByIdWithRooms(bookingId)
                 .orElseThrow(() -> new BookingNotFoundException("Booking not found with id: " + bookingId));
         return cancellationPolicyService.previewCancellation(booking);
     }
 
     public CancellationResponse previewManagerCancellation(Long bookingId) {
-        Booking booking = bookingRepository.findById(bookingId)
+        Booking booking = bookingRepository.findByIdWithRooms(bookingId)
                 .orElseThrow(() -> new BookingNotFoundException("Booking not found with id: " + bookingId));
         return cancellationPolicyService.calculateManagerCancellation(booking);
     }
@@ -501,25 +502,25 @@ public class BookingServiceImpl implements BookingService {
 
     /**
      * Auto-cancel PENDING bookings older than 3 minutes (testing) / 3 days (production).
-     * <p>
+     *
      * Evicts ALL entries from every booking-related cache because:
-     * - Multiple bookings across multiple users/hotels are mutated in one sweep.
-     * - Targeted eviction by key is impossible without iterating every booking id.
-     * <p>
-     * For PRODUCTION: Change .minusMinutes(1) → .minusDays(3)
+     *   - Multiple bookings across multiple users/hotels are mutated in one sweep.
+     *   - Targeted eviction by key is impossible without iterating every booking id.
+     *
+     * For PRODUCTION: Change .minusMinutes(10) → .minusDays(3)
      */
     @Scheduled(cron = "0 * * * * *")
     @Transactional
     @Caching(evict = {
-            @CacheEvict(value = "bookingById", allEntries = true),
+            @CacheEvict(value = "bookingById",        allEntries = true),
             @CacheEvict(value = "bookingByReference", allEntries = true),
-            @CacheEvict(value = "hotelUpcoming", allEntries = true),
-            @CacheEvict(value = "guestHistory", allEntries = true)
+            @CacheEvict(value = "hotelUpcoming",      allEntries = true),
+            @CacheEvict(value = "guestHistory",       allEntries = true)
     })
     public void cancelExpiredPendingBookings() {
 
-        // ⭐ FOR TESTING: 5 minute
-        LocalDateTime expiryTime = LocalDateTime.now().minusMinutes(5);
+        // ⭐ FOR TESTING: 45 minute
+        LocalDateTime expiryTime = LocalDateTime.now().minusMinutes(45);
 
         // ⭐ FOR PRODUCTION: Uncomment this line instead
         // LocalDateTime expiryTime = LocalDateTime.now().minusDays(3);
@@ -557,10 +558,10 @@ public class BookingServiceImpl implements BookingService {
     @Scheduled(cron = "0 0 * * * *")
     @Transactional
     @Caching(evict = {
-            @CacheEvict(value = "bookingById", allEntries = true),
+            @CacheEvict(value = "bookingById",        allEntries = true),
             @CacheEvict(value = "bookingByReference", allEntries = true),
-            @CacheEvict(value = "hotelUpcoming", allEntries = true),
-            @CacheEvict(value = "guestHistory", allEntries = true)
+            @CacheEvict(value = "hotelUpcoming",      allEntries = true),
+            @CacheEvict(value = "guestHistory",       allEntries = true)
     })
     public void revertExpiredUpdatePayments() {
 
@@ -668,7 +669,7 @@ public class BookingServiceImpl implements BookingService {
     }
 
     private void validateCanModify(Booking booking, Booking request) {
-        if (booking.getAppUser().getId() != request.getAppUser().getId())
+        if(booking.getAppUser().getId() != request.getAppUser().getId())
             throw new ModificationNotAllowedException("Cannot modify another user's booking");
         if (booking.getHotel().getId() != request.getHotel().getId())
             throw new ModificationNotAllowedException("Cannot modify the hotel");
@@ -741,24 +742,24 @@ public class BookingServiceImpl implements BookingService {
 
         if (daysUntilCheckIn >= 30) {
             refundPercentage = 100;
-            refundAmount = priceDifference;
-            refundPolicy = "Full refund - 30+ days notice";
+            refundAmount     = priceDifference;
+            refundPolicy     = "Full refund - 30+ days notice";
         } else if (daysUntilCheckIn >= 14) {
             refundPercentage = 75;
-            refundAmount = priceDifference.multiply(BigDecimal.valueOf(0.75));
-            refundPolicy = "75% refund - 14-29 days notice";
+            refundAmount     = priceDifference.multiply(BigDecimal.valueOf(0.75));
+            refundPolicy     = "75% refund - 14-29 days notice";
         } else if (daysUntilCheckIn >= 7) {
             refundPercentage = 50;
-            refundAmount = priceDifference.multiply(BigDecimal.valueOf(0.50));
-            refundPolicy = "50% refund - 7-13 days notice";
+            refundAmount     = priceDifference.multiply(BigDecimal.valueOf(0.50));
+            refundPolicy     = "50% refund - 7-13 days notice";
         } else if (daysUntilCheckIn >= 3) {
             refundPercentage = 25;
-            refundAmount = priceDifference.multiply(BigDecimal.valueOf(0.25));
-            refundPolicy = "25% refund - 3-6 days notice";
+            refundAmount     = priceDifference.multiply(BigDecimal.valueOf(0.25));
+            refundPolicy     = "25% refund - 3-6 days notice";
         } else {
             refundPercentage = 0;
-            refundAmount = BigDecimal.ZERO;
-            refundPolicy = "No refund - Less than 3 days notice";
+            refundAmount     = BigDecimal.ZERO;
+            refundPolicy     = "No refund - Less than 3 days notice";
         }
 
         logger.info("Refunding ${} ({}%) - {}", refundAmount, refundPercentage, refundPolicy);

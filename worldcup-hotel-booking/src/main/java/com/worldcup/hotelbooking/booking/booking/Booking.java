@@ -6,7 +6,8 @@ import com.worldcup.hotelbooking.catalog.hotel.Hotel;
 import com.worldcup.hotelbooking.user.AppUser;
 import jakarta.persistence.*;
 import lombok.Data;
-import org.hibernate.annotations.BatchSize;
+import org.hibernate.annotations.NotFound;
+import org.hibernate.annotations.NotFoundAction;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -23,9 +24,7 @@ public class Booking {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // @Column(nullable = false, unique = true)
     private String bookingReference;
-
 
     @Column(nullable = false)
     private LocalDate checkInDate;
@@ -36,7 +35,6 @@ public class Booking {
     private int numberOfGuests;
     private int numberOfAdults;
     private int numberOfChildren;
-
 
     private LocalDateTime confirmationDeadline;
 
@@ -51,9 +49,9 @@ public class Booking {
     private String cancelReason;
     private String cancelledBy;
 
-    // ⭐ NEW FIELDS FOR ADDITIONAL PAYMENT TRACKING
     @Column(nullable = false)
     private BigDecimal totalPrice;
+
     @Column(nullable = false)
     private boolean additionalPaymentRequired = false;
 
@@ -71,12 +69,32 @@ public class Booking {
     @Column(nullable = false)
     private boolean active = true;
 
-    // Set on the inactive snapshot copy to point back to the original booking.
-    // Null on all normal (active) bookings.
-    // We look up the snapshot using bookingReference (the business key) — not id —
-    // because bookingReference is the stable, human-readable identifier.
+    // ── FIX: @NotFound(action = NotFoundAction.IGNORE) ───────────────────────
+    //
+    // ROOT CAUSE OF THE BUG:
+    // This @OneToOne is a self-referencing relationship — a Booking row can point
+    // back to another Booking row via snapshot_of_booking_reference.
+    //
+    // Without @NotFound, Hibernate generates a JOIN when loading ANY booking:
+    //
+    //   SELECT b1.* FROM booking b1
+    //   JOIN booking b2 ON b1.booking_reference = b2.snapshot_of_booking_reference
+    //   WHERE b1.id = ?
+    //
+    // For normal bookings that have NO snapshot pointing at them, this JOIN returns
+    // zero rows — so Hibernate throws ObjectNotFoundException even though the
+    // booking exists. This caused the 500 error on GET /bookings/{id} and on
+    // POST /payments/process (via PaymentAuthorizationService loading the booking).
+    //
+    // @NotFound(action = NotFoundAction.IGNORE) tells Hibernate:
+    //   "If the join finds no matching row, set snapshotOf = null instead of crashing."
+    //
+    // This is exactly the correct behaviour: normal bookings have no snapshot,
+    // so snapshotOf should simply be null on them.
+    // ─────────────────────────────────────────────────────────────────────────
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "snapshot_of_booking_reference", referencedColumnName = "bookingReference")
+    @NotFound(action = NotFoundAction.IGNORE)
     private Booking snapshotOf;
 
     // Deadline by which the user must pay the additional amount after a price-increasing update.
@@ -93,7 +111,6 @@ public class Booking {
 
     @OneToMany(mappedBy = "booking", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference
-    @BatchSize(size = 10)
     private List<BookingRoom> bookingRooms = new ArrayList<>();
 
     // ---------------- Constructors ----------------
@@ -103,7 +120,7 @@ public class Booking {
 
     // ---------------- Lifecycle ----------------
 
-    @PrePersist//this method will be called before the entity is persisted to the database. It sets the createdAt timestamp and generates a unique booking reference.
+    @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
         bookingReference = generateReference();
@@ -111,12 +128,9 @@ public class Booking {
 
     private String generateReference() {
         return "WC2026-" +
-                System.currentTimeMillis() + "-" +  // Add timestamp!
+                System.currentTimeMillis() + "-" +
                 UUID.randomUUID().toString().substring(0, 4).toUpperCase();
     }
-
-
-
 
     public enum BookingStatus {
         PENDING,
@@ -126,10 +140,8 @@ public class Booking {
         CANCELLED
     }
 
-    // ⭐ HELPER METHOD: Can user check in?
     public boolean canCheckIn() {
         return status == BookingStatus.CONFIRMED &&
                 !additionalPaymentRequired;
     }
-
 }

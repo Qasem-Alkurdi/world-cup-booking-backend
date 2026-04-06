@@ -99,6 +99,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/auth/**").permitAll()
                         .requestMatchers("/catalog/**").permitAll()
+                        .requestMatchers("/availability/**").permitAll()
                         .requestMatchers("/users").permitAll()
                         .requestMatchers("/login", "/login.html").permitAll()
                         .requestMatchers("/oauth2/**").permitAll()

@@ -6,6 +6,7 @@ import com.worldcup.hotelbooking.catalog.hotel.exception.HotelNotFoundException;
 import com.worldcup.hotelbooking.user.AppUser;
 import com.worldcup.hotelbooking.user.AppUserNotFoundException;
 import com.worldcup.hotelbooking.user.AppUserRepository;
+import com.worldcup.hotelbooking.user.Role;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -82,7 +83,7 @@ public class ChatServiceImpl implements ChatService {
                     return conversationRepository.save(new Conversation(guest, hotel));
                 });
 
-        return saveAndPublish(conversation, guest, ChatMessage.SenderRole.GUEST, content);
+        return saveAndPublish(conversation, guest, appUserRepository.findById(guestId).get().getRoles().stream().findFirst().get(), content);
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -112,7 +113,7 @@ public class ChatServiceImpl implements ChatService {
         AppUser manager = appUserRepository.findById(managerId)
                 .orElseThrow(() -> new AppUserNotFoundException("User not found with id: " + managerId));
 
-        return saveAndPublish(conversation, manager, ChatMessage.SenderRole.MANAGER, content);
+        return saveAndPublish(conversation, manager, Role.MANAGER, content);
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -125,7 +126,7 @@ public class ChatServiceImpl implements ChatService {
      */
     private ChatMessageResponse saveAndPublish(Conversation conversation,
                                                AppUser sender,
-                                               ChatMessage.SenderRole role,
+                                               Role role,
                                                String content) {
         ChatMessage saved = chatMessageRepository.save(
                 new ChatMessage(conversation, sender, role, content));

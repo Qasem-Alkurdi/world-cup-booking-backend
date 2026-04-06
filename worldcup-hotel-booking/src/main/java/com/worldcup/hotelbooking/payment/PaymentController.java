@@ -191,7 +191,7 @@ public class PaymentController {
     @Operation(summary = "Get hotel's payment history")
     @PreAuthorize("hasRole('ADMIN') or @paymentAuthorizationService.isHimTheHotelOwnerOfTheBookings(#hotelId, authentication)")
     public PagedResponse<PaymentResponseDto> getHotelPayments(@PathVariable Long hotelId,
-                                                              @PageableDefault(size = 10, sort = "totalAmount_paidAmountWithAdditionalPaymentWithoutRefund") Pageable pageable) {
+                                                              @PageableDefault(size = 10, sort = "id") Pageable pageable) {
         Page<Payment> paymentsPage = paymentService.getHotelPayments(hotelId, pageable);
         List<PaymentResponseDto> payments = paymentsPage
                 .getContent()

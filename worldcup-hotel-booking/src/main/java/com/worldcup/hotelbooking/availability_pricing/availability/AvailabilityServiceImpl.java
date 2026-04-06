@@ -46,6 +46,8 @@ public class AvailabilityServiceImpl {
 
     @Transactional
     public boolean checkAvailability(Long roomTypeId, java.time.LocalDate checkIn, java.time.LocalDate checkOut, int rooms) {
+        if(checkOut.isBefore(checkIn))
+            throw new IllegalArgumentException("The check in  date can not be after the check out date");
         int bookedRooms = bookingRoomRepository.countBookedRooms(roomTypeId, checkIn, checkOut);
         int availableRooms =
                 roomTypeRepository.findById(roomTypeId)
@@ -59,6 +61,8 @@ public class AvailabilityServiceImpl {
 
     @Transactional
     public boolean checkAvailabilityOfHotel(Hotel hotel, LocalDate checkIn, LocalDate checkout) {
+        if(checkout.isBefore(checkIn))
+            throw new IllegalArgumentException("The check in  date can not be after the check out date");
         boolean b = false;
         for (RoomType roomType : hotel.getRoomTypes()) {
             if (checkAvailability(roomType.getId(), checkIn, checkout, 1))

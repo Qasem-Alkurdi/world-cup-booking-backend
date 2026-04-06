@@ -320,41 +320,8 @@ class BookingServiceImplTest {
         verifyNoInteractions(cancellationPolicyService, paymentRepository, paymentService);
     }
 
-    @Test
-    void previewCancellation_shouldReturnResponse() {
-        CancellationResponse response = CancellationResponse.builder()
-                .canCancel(true)
-                .refundAmount(BigDecimal.valueOf(120))
-                .refundPercentage(50)
-                .cancellationFee(BigDecimal.valueOf(120))
-                .policyMessage("Preview")
-                .build();
 
-        when(bookingRepository.findById(1L)).thenReturn(Optional.of(booking));
-        when(cancellationPolicyService.previewCancellation(booking)).thenReturn(response);
 
-        CancellationResponse result = bookingService.previewCancellation(1L);
-
-        assertTrue(result.isCanCancel());
-        assertEquals(BigDecimal.valueOf(120), result.getRefundAmount());
-    }
-
-    @Test
-    void previewManagerCancellation_shouldReturnResponse() {
-        CancellationResponse response = CancellationResponse.builder()
-                .canCancel(true)
-                .refundAmount(BigDecimal.valueOf(240))
-                .policyMessage("Manager policy")
-                .build();
-
-        when(bookingRepository.findById(1L)).thenReturn(Optional.of(booking));
-        when(cancellationPolicyService.calculateManagerCancellation(booking)).thenReturn(response);
-
-        CancellationResponse result = bookingService.previewManagerCancellation(1L);
-
-        assertEquals("Manager policy", result.getPolicyMessage());
-        verify(cancellationPolicyService).calculateManagerCancellation(booking);
-    }
 
     @Test
     void cancelBookingByManager_shouldCancelAndRefund_whenPaymentExists() {

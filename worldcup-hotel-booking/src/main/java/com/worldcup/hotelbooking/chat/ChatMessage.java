@@ -1,6 +1,7 @@
 package com.worldcup.hotelbooking.chat;
 
 import com.worldcup.hotelbooking.user.AppUser;
+import com.worldcup.hotelbooking.user.Role;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -31,9 +32,10 @@ public class ChatMessage {
     @JoinColumn(name = "sender_id", nullable = false)
     private AppUser sender;
 
+
+    @Column(name = "sender_role", nullable = false)
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private SenderRole senderRole;
+    private Role senderRole;
 
     @Column(nullable = false, columnDefinition = "TEXT")
     private String content;
@@ -53,7 +55,7 @@ public class ChatMessage {
     }
 
     public ChatMessage(Conversation conversation, AppUser sender,
-                       SenderRole senderRole, String content) {
+                       Role senderRole, String content) {
         this.conversation = conversation;
         this.sender       = sender;
         this.senderRole   = senderRole;
