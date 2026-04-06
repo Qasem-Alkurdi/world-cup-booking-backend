@@ -21,7 +21,7 @@ public interface AppUserService {
 
     void deleteUser(Long id);
 
-    AppUser updateUser(Long id, AppUserRequestDto dto);
+    AppUserResponseDto updateUser(Long id, AppUserRequestDto dto);
 
     List<BookingResponseDto> getUserBookings(Long userId);
 
@@ -35,4 +35,6 @@ public interface AppUserService {
     AppUser partialUpdateUser(Long id, Map<String, Object> updates);
 
     AppUser updateUserRoles(Long id, Set<Role> roles);
+
+
 }

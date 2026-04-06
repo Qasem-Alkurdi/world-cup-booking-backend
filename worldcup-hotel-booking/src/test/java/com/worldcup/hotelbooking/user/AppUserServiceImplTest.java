@@ -121,11 +121,10 @@ class AppUserServiceImplTest {
         when(userRepository.save(any(AppUser.class))).thenAnswer(inv -> inv.getArgument(0));
 
         AppUserRequestDto updateDto = new AppUserRequestDto("updated", "updated@ex.com", "newPass");
-        AppUser updated = userService.updateUser(1L, updateDto);
+        AppUserResponseDto updated = userService.updateUser(1L, updateDto);  // ← returns DTO
 
-        assertThat(updated.getUsername()).isEqualTo("updated");
-        assertThat(updated.getEmail()).isEqualTo("updated@ex.com");
-        assertThat(updated.getPassword()).isEqualTo("newEncoded");
+        assertThat(updated.username()).isEqualTo("updated");      // record getter
+        assertThat(updated.email()).isEqualTo("updated@ex.com");
     }
 
     @Test

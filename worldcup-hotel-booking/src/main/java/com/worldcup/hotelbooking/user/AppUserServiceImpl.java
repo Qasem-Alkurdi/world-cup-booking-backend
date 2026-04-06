@@ -154,16 +154,16 @@ public class AppUserServiceImpl implements AppUserService {
 
     // 7. Update User (Full update)
     @Override
-    public AppUser updateUser(Long id, AppUserRequestDto dto) {
+    @Transactional
+    public AppUserResponseDto updateUser(Long id, AppUserRequestDto dto) {
         AppUser existingUser = getUserById(id);
 
         existingUser.setUsername(dto.username());
         existingUser.setEmail(dto.email());
         existingUser.setPassword(passwordEncoder.encode(dto.password()));
-        // Note: For security, you should hash the password here if it's plain text
-        // existingUser.setPassword(passwordEncoder.encode(dto.getPassword()));
 
-        return appUserRepository.save(existingUser);
+        AppUser saved = appUserRepository.save(existingUser);
+        return AppUserMapper.toDto(saved); // mapping inside transaction
     }
 
     // 8. Save User (for partial updates)
