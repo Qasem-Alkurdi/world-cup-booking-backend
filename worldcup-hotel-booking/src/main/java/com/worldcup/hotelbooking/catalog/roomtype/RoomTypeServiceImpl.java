@@ -9,7 +9,6 @@ import com.worldcup.hotelbooking.catalog.roomtype.dto.RoomTypeAvailabilityCriter
 import com.worldcup.hotelbooking.catalog.roomtype.exception.RoomTypeAlreadyExistsException;
 import com.worldcup.hotelbooking.catalog.roomtype.exception.RoomTypeNotFoundException;
 import com.worldcup.hotelbooking.catalog.roomtype.mapper.RoomTypeMapper;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -171,16 +170,21 @@ public class RoomTypeServiceImpl implements RoomTypeService {
         return roomTypes.stream()
                 .filter(roomType -> matchesCapacity(roomType, criteria))
                 .filter(roomType -> matchesAvailability(roomType, criteria))
-                .sorted((a, b) -> a.getBasePrice().compareTo(b.getBasePrice()))
+                .sorted(java.util.Comparator.comparing(
+                        RoomType::getBasePrice,
+                        java.util.Comparator.nullsLast(java.util.Comparator.naturalOrder())
+                ))
                 .toList();
     }
 
     private boolean hasAvailabilityCriteria(RoomTypeAvailabilityCriteria criteria) {
+        // numberOfRooms alone should NOT trigger filtering —
+        // it is sent by default from the frontend sidebar.
+        // Only dates or capacity (adults/children) should trigger the filter path.
         return criteria.getCheckInDate() != null
                 || criteria.getCheckOutDate() != null
                 || criteria.getAdults() != null
-                || criteria.getChildren() != null
-                || criteria.getNumberOfRooms() != null;
+                || criteria.getChildren() != null;
     }
 
     private void validateAvailabilityCriteria(RoomTypeAvailabilityCriteria criteria) {

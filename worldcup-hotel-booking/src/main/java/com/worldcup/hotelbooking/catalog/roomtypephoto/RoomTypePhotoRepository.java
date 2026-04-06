@@ -11,6 +11,8 @@ public interface RoomTypePhotoRepository extends JpaRepository<RoomTypePhoto, Lo
 
     List<RoomTypePhoto> findByRoomTypeIdOrderBySortOrderAscCreatedAtAsc(Long roomTypeId);
 
+    List<RoomTypePhoto> findByRoomTypeIdInOrderBySortOrderAscCreatedAtAsc(List<Long> roomTypeIds);
+
     Optional<RoomTypePhoto> findByIdAndRoomTypeId(Long photoId, Long roomTypeId);
 
     Optional<RoomTypePhoto> findByRoomTypeIdAndPrimaryTrue(Long roomTypeId);
