@@ -1,7 +1,6 @@
 package com.worldcup.hotelbooking.catalog.roomtype;
 
 import com.worldcup.hotelbooking.catalog.hotel.Hotel;
-import com.worldcup.hotelbooking.catalog.roomtype.dto.RoomTypeAvailabilityCriteria;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -11,7 +10,6 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
-import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -66,29 +64,6 @@ class RoomTypeControllerTest {
         return roomType;
     }
 
-    @Test
-    @DisplayName("GET /hotels/{hotelId}/room-types -> should return room types")
-    void all_ShouldReturnRoomTypes() throws Exception {
-        RoomType rt1 = buildRoomType(1L, 100L, "Standard", new BigDecimal("100.00"));
-        RoomType rt2 = buildRoomType(2L, 100L, "Deluxe", new BigDecimal("150.00"));
-
-        given(service.findAvailableByHotel(eq(100L), any(RoomTypeAvailabilityCriteria.class)))
-                .willReturn(List.of(rt1, rt2));
-
-        mockMvc.perform(get("/hotels/{hotelId}/room-types", 100L)
-                        .param("adults", "2")
-                        .param("children", "1")
-                        .param("numberOfRooms", "1"))
-                .andExpect(status().isOk())
-                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.length()").value(2))
-                .andExpect(jsonPath("$[0].id").value(1))
-                .andExpect(jsonPath("$[0].hotelId").value(100))
-                .andExpect(jsonPath("$[0].name").value("Standard"))
-                .andExpect(jsonPath("$[1].name").value("Deluxe"));
-
-        verify(service, times(1)).findAvailableByHotel(eq(100L), any(RoomTypeAvailabilityCriteria.class));
-    }
 
     @Test
     @DisplayName("POST /hotels/{hotelId}/room-types -> should create room type")

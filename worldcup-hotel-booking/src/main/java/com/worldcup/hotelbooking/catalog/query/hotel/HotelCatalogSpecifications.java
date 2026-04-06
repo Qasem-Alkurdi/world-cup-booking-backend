@@ -172,7 +172,11 @@ public class HotelCatalogSpecifications {
         };
     }
 
-    public static Specification<Hotel> hasAvailability(LocalDate checkIn, LocalDate checkOut) {
+    public static Specification<Hotel> hasAvailability(
+            LocalDate checkIn,
+            LocalDate checkOut,
+            Integer numberOfRooms
+    ) {
         return (root, query, cb) -> {
 
             if (checkIn == null || checkOut == null) {
@@ -183,6 +187,8 @@ public class HotelCatalogSpecifications {
                 throw new CheckOutBeforeCheckIn();
             }
 
+            long requestedRooms = (numberOfRooms == null || numberOfRooms < 1) ? 1L : numberOfRooms.longValue();
+
             query.distinct(true);
 
             Join<Hotel, RoomType> roomJoin = root.join("roomTypes");
@@ -192,7 +198,7 @@ public class HotelCatalogSpecifications {
             Join<BookingRoom, Booking> bookingJoin = bookingRoomRoot.join("booking");
 
             Expression<Long> bookedRoomsSum =
-                    cb.coalesce(cb.sum(bookingRoomRoot.get("numberOfRooms")), 0L);
+                    cb.coalesce(cb.sum(bookingRoomRoot.get("numberOfRooms").as(Long.class)), 0L);
 
             subquery.select(bookedRoomsSum);
 
@@ -211,11 +217,22 @@ public class HotelCatalogSpecifications {
                             Booking.BookingStatus.CHECKED_IN
                     );
 
-            subquery.where(cb.and(sameRoomType, overlap, statusPredicate));
+            Predicate activePredicate =
+                    cb.isTrue(bookingJoin.get("active"));
 
-            return cb.greaterThan(
+            subquery.where(cb.and(
+                    sameRoomType,
+                    overlap,
+                    statusPredicate,
+                    activePredicate
+            ));
+
+            Expression<Long> requiredRooms =
+                    cb.sum(subquery.getSelection(), cb.literal(requestedRooms));
+
+            return cb.greaterThanOrEqualTo(
                     roomJoin.get("totalRooms").as(Long.class),
-                    subquery
+                    requiredRooms
             );
         };
     }

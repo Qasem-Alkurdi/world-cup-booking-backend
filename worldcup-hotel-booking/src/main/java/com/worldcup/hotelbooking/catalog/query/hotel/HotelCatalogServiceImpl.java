@@ -1,5 +1,6 @@
 package com.worldcup.hotelbooking.catalog.query.hotel;
 
+import com.worldcup.hotelbooking.availability_pricing.availability.AvailabilityServiceImpl;
 import com.worldcup.hotelbooking.availability_pricing.pricing.EnhancedPricingServiceImpl;
 import com.worldcup.hotelbooking.catalog.hotel.Hotel;
 import com.worldcup.hotelbooking.catalog.hotel.HotelRepository;
@@ -42,6 +43,7 @@ public class HotelCatalogServiceImpl implements HotelCatalogService {
     private static final int MAX_HOTELS_FOR_COMPUTED_PROCESSING = 500;
     private static final int MIN_RESULTS_FOR_DEFAULT_RADIUS = 6;
     private static final List<Double> DEFAULT_RADIUS_STEPS_KM = List.of(5.0, 15.0, 30.0, 50.0);
+
     private final HotelPhotoRepository hotelPhotoRepository;
     private final PhotoUrlResolver photoUrlResolver;
     private final HotelRepository hotelRepository;
@@ -49,6 +51,7 @@ public class HotelCatalogServiceImpl implements HotelCatalogService {
     private final HotelCatalogMapper hotelCatalogMapper;
     private final MatchRepository matchRepository;
     private final StadiumRepository stadiumRepository;
+    private final AvailabilityServiceImpl availabilityService;
 
     public HotelCatalogServiceImpl(
             HotelRepository hotelRepository,
@@ -57,7 +60,8 @@ public class HotelCatalogServiceImpl implements HotelCatalogService {
             HotelPhotoRepository hotelPhotoRepository,
             PhotoUrlResolver photoUrlResolver,
             MatchRepository matchRepository,
-            StadiumRepository stadiumRepository
+            StadiumRepository stadiumRepository,
+            AvailabilityServiceImpl availabilityService
     ) {
         this.hotelRepository = hotelRepository;
         this.enhancedPricingServiceImpl = enhancedPricingServiceImpl;
@@ -66,12 +70,14 @@ public class HotelCatalogServiceImpl implements HotelCatalogService {
         this.photoUrlResolver = photoUrlResolver;
         this.matchRepository = matchRepository;
         this.stadiumRepository = stadiumRepository;
+        this.availabilityService = availabilityService;
     }
 
     @Override
     @Transactional(readOnly = true)
     public HotelCatalogSearchResponseDto search(Pageable pageable, HotelCatalogCriteria criteria) {
         validateLocationReference(criteria);
+        validateCriteria(criteria);
 
         if (shouldUseDefaultRadius(criteria)) {
             return searchWithDefaultRadiusAndFallback(pageable, criteria);
@@ -160,7 +166,6 @@ public class HotelCatalogServiceImpl implements HotelCatalogService {
 
     private String buildNoResultsMessage(HotelCatalogCriteria criteria, double radiusKm) {
         String source = criteria.getMatchId() != null ? "match stadium" : "selected stadium";
-
         return "No hotels found within " + (int) radiusKm + " km of the " + source;
     }
 
@@ -178,18 +183,6 @@ public class HotelCatalogServiceImpl implements HotelCatalogService {
         if (radiusKm == 15.0) return HotelCatalogSearchMode.STADIUM_RADIUS_15KM;
         if (radiusKm == 30.0) return HotelCatalogSearchMode.STADIUM_RADIUS_30KM;
         return HotelCatalogSearchMode.STADIUM_RADIUS_50KM;
-    }
-
-    private String buildRadiusMessage(HotelCatalogCriteria criteria, double radiusKm) {
-        String source = criteria.getMatchId() != null ? "match stadium" : "selected stadium";
-
-        if (radiusKm == 5.0) {
-            return "Showing hotels within 5 km of the " + source;
-        }
-
-        return "No hotels found in the smaller radius. Expanded search to "
-                + (int) radiusKm
-                + " km around the " + source;
     }
 
     private boolean shouldUseDefaultRadius(HotelCatalogCriteria criteria) {
@@ -211,20 +204,17 @@ public class HotelCatalogServiceImpl implements HotelCatalogService {
 
             Stadium stadium = match.getStadium();
             if (stadium == null) {
-                throw new IllegalArgumentException(
-                        "The selected match does not have an assigned stadium"
-                );
+                throw new IllegalArgumentException("The selected match does not have an assigned stadium");
             }
 
             if (stadium.getLatitude() == null || stadium.getLongitude() == null) {
-                throw new IllegalArgumentException(
-                        "The selected match stadium does not have valid coordinates"
-                );
+                throw new IllegalArgumentException("The selected match stadium does not have valid coordinates");
             }
 
             workingCriteria.setLatitude(stadium.getLatitude());
             workingCriteria.setLongitude(stadium.getLongitude());
             resolvedStadium = stadium;
+
         } else if (workingCriteria.getStadiumId() != null) {
             Stadium stadium = stadiumRepository.findById(workingCriteria.getStadiumId())
                     .orElseThrow(() -> new IllegalArgumentException(
@@ -232,9 +222,7 @@ public class HotelCatalogServiceImpl implements HotelCatalogService {
                     ));
 
             if (stadium.getLatitude() == null || stadium.getLongitude() == null) {
-                throw new IllegalArgumentException(
-                        "The selected stadium does not have valid coordinates"
-                );
+                throw new IllegalArgumentException("The selected stadium does not have valid coordinates");
             }
 
             workingCriteria.setLatitude(stadium.getLatitude());
@@ -255,30 +243,37 @@ public class HotelCatalogServiceImpl implements HotelCatalogService {
         boolean hasPriceFilter = hasPriceFilter(criteria);
         boolean hasComputedSort = hasComputedSort(pageable);
         boolean shouldComputeDistance = hasCoordinates(criteria);
+        boolean shouldComputePrice = shouldComputePrice(criteria);
 
-        if (!hasPriceFilter && !hasComputedSort && !shouldComputeDistance) {
+        if (!hasPriceFilter && !hasComputedSort && !shouldComputeDistance && !shouldComputePrice) {
             Pageable dbPageable = PageRequest.of(
                     pageable.getPageNumber(),
                     pageable.getPageSize(),
                     extractDatabaseSortableSort(pageable.getSort())
             );
 
-            return searchOnlyWithDatabase(dbPageable, spec);
+            return searchOnlyWithDatabase(dbPageable, spec, criteria);
         }
 
         return searchWithComputedProcessing(pageable, criteria, spec);
     }
 
-    private Page<HotelCatalogResponseDto> searchOnlyWithDatabase(Pageable pageable, Specification<Hotel> spec) {
+    private Page<HotelCatalogResponseDto> searchOnlyWithDatabase(
+            Pageable pageable,
+            Specification<Hotel> spec,
+            HotelCatalogCriteria criteria
+    ) {
         Page<Hotel> result = hotelRepository.findAll(spec, pageable);
         List<Hotel> hotels = result.getContent();
         Map<Long, String> primaryPhotoUrls = loadPrimaryPhotoUrls(hotels);
+
+        int requestedRooms = criteria.getNumberOfRooms() == null ? 1 : criteria.getNumberOfRooms();
 
         List<HotelCatalogResponseDto> content = hotels.stream()
                 .map(hotel -> hotelCatalogMapper.toDto(
                         hotel,
                         primaryPhotoUrls.get(hotel.getId()),
-                        getMinimumBasePrice(hotel),
+                        getMinimumBasePriceForRequestedRooms(hotel, requestedRooms),
                         null
                 ))
                 .toList();
@@ -291,19 +286,17 @@ public class HotelCatalogServiceImpl implements HotelCatalogService {
             HotelCatalogCriteria criteria,
             Specification<Hotel> spec
     ) {
-        if (hasPriceFilter(criteria) || isSortingByPrice(pageable)) {
-            validateDateRange(criteria.getCheckInDate(), criteria.getCheckOutDate());
-        }
-
         Pageable limitedPageable = PageRequest.of(
                 0,
                 MAX_HOTELS_FOR_COMPUTED_PROCESSING,
                 extractDatabaseSortableSort(pageable.getSort())
         );
 
-        List<Hotel> hotels = hotelRepository.findAll(spec, limitedPageable).getContent();
+        Page<Hotel> limitedResult = hotelRepository.findAll(spec, limitedPageable);
+        List<Hotel> hotels = limitedResult.getContent();
 
         List<HotelComputedView> computedViews = hotels.stream()
+                .filter(hotel -> !shouldApplyAvailabilityFiltering(criteria) || hasAnyAvailableRoom(hotel, criteria))
                 .map(hotel -> toComputedView(hotel, criteria, pageable))
                 .filter(view -> matchesPriceRange(view, criteria))
                 .toList();
@@ -352,11 +345,7 @@ public class HotelCatalogServiceImpl implements HotelCatalogService {
                 .and(HotelCatalogSpecifications.minRating(criteria.getMinRating()))
                 .and(HotelCatalogSpecifications.maxRating(criteria.getMaxRating()))
                 .and(HotelCatalogSpecifications.minReviewCount(criteria.getMinReviewCount()))
-                .and(HotelCatalogSpecifications.petFriendly(criteria.getPetFriendly()))
-                .and(HotelCatalogSpecifications.hasAvailability(
-                        criteria.getCheckInDate(),
-                        criteria.getCheckOutDate()
-                ));
+                .and(HotelCatalogSpecifications.petFriendly(criteria.getPetFriendly()));
 
         if (criteria.getMinDistanceKm() != null && criteria.getMaxDistanceKm() != null) {
             spec = spec.and(HotelCatalogSpecifications.betweenDistanceKm(
@@ -377,11 +366,15 @@ public class HotelCatalogServiceImpl implements HotelCatalogService {
     }
 
     private HotelComputedView toComputedView(Hotel hotel, HotelCatalogCriteria criteria, Pageable pageable) {
-        BigDecimal minPrice = null;
+        BigDecimal minPrice;
         Double distanceKm = null;
 
-        if (hasPriceFilter(criteria) || isSortingByPrice(pageable)) {
+        if (hasPriceFilter(criteria) || isSortingByPrice(pageable) || shouldComputePrice(criteria)) {
             minPrice = calculateMinimumHotelPrice(hotel, criteria);
+        } else if (criteria.getNumberOfRooms() != null && criteria.getNumberOfRooms() > 1) {
+            minPrice = getMinimumBasePriceForRequestedRooms(hotel, criteria.getNumberOfRooms());
+        } else {
+            minPrice = getMinimumBasePriceForRequestedRooms(hotel, 1);
         }
 
         if (hasCoordinates(criteria)) {
@@ -396,44 +389,94 @@ public class HotelCatalogServiceImpl implements HotelCatalogService {
         return new HotelComputedView(hotel, minPrice, distanceKm);
     }
 
-    private BigDecimal getMinimumBasePrice(Hotel hotel) {
+    private boolean shouldApplyAvailabilityFiltering(HotelCatalogCriteria criteria) {
+        return criteria.getCheckInDate() != null && criteria.getCheckOutDate() != null;
+    }
+
+    private List<RoomType> getAvailableRoomTypes(Hotel hotel, HotelCatalogCriteria criteria) {
+        if (hotel.getRoomTypes() == null || hotel.getRoomTypes().isEmpty()) {
+            return List.of();
+        }
+
+        if (!shouldApplyAvailabilityFiltering(criteria)) {
+            return hotel.getRoomTypes();
+        }
+
+        int requestedRooms = criteria.getNumberOfRooms() == null ? 1 : criteria.getNumberOfRooms();
+
+        return hotel.getRoomTypes().stream()
+                .filter(roomType -> availabilityService.checkAvailability(
+                        roomType.getId(),
+                        criteria.getCheckInDate(),
+                        criteria.getCheckOutDate(),
+                        requestedRooms
+                ))
+                .toList();
+    }
+
+    private boolean hasAnyAvailableRoom(Hotel hotel, HotelCatalogCriteria criteria) {
+        return !getAvailableRoomTypes(hotel, criteria).isEmpty();
+    }
+
+    private BigDecimal getMinimumBasePriceForRequestedRooms(Hotel hotel, int numberOfRooms) {
         if (hotel.getRoomTypes() == null || hotel.getRoomTypes().isEmpty()) {
             return null;
         }
+
         return hotel.getRoomTypes().stream()
                 .map(RoomType::getBasePrice)
                 .filter(Objects::nonNull)
+                .map(price -> price.multiply(BigDecimal.valueOf(numberOfRooms)))
                 .min(BigDecimal::compareTo)
                 .orElse(null);
     }
 
     private BigDecimal calculateMinimumHotelPrice(Hotel hotel, HotelCatalogCriteria criteria) {
+        int numberOfRooms = criteria.getNumberOfRooms() == null ? 1 : criteria.getNumberOfRooms();
+
+        List<RoomType> availableRoomTypes = getAvailableRoomTypes(hotel, criteria);
+
+        if (availableRoomTypes.isEmpty()) {
+            return null;
+        }
+
         LocalDate checkIn = criteria.getCheckInDate();
         LocalDate checkOut = criteria.getCheckOutDate();
 
-        if (checkIn == null || checkOut == null) {
-            return getMinimumBasePrice(hotel);
+        if (!shouldComputePrice(criteria)) {
+            return availableRoomTypes.stream()
+                    .map(RoomType::getBasePrice)
+                    .filter(Objects::nonNull)
+                    .map(price -> price.multiply(BigDecimal.valueOf(numberOfRooms)))
+                    .min(BigDecimal::compareTo)
+                    .orElse(null);
         }
 
-        int numberOfRooms = criteria.getNumberOfRooms() == null ? 1 : criteria.getNumberOfRooms();
+        BigDecimal computedMin = availableRoomTypes.stream()
+                .map(roomType -> enhancedPricingServiceImpl.calculateTotalStayPrice(
+                        checkIn,
+                        checkOut,
+                        hotel,
+                        roomType,
+                        numberOfRooms
+                ))
+                .filter(Objects::nonNull)
+                .filter(price -> price.compareTo(BigDecimal.ZERO) > 0)
+                .min(BigDecimal::compareTo)
+                .orElse(null);
 
-        BigDecimal minPrice = null;
-
-        for (RoomType roomType : hotel.getRoomTypes()) {
-            BigDecimal total = enhancedPricingServiceImpl.calculateTotalStayPrice(
-                    checkIn,
-                    checkOut,
-                    hotel,
-                    roomType,
-                    numberOfRooms
-            );
-
-            if (minPrice == null || total.compareTo(minPrice) < 0) {
-                minPrice = total;
-            }
+        if (computedMin != null) {
+            return computedMin;
         }
 
-        return minPrice;
+        long nights = java.time.temporal.ChronoUnit.DAYS.between(checkIn, checkOut);
+
+        return availableRoomTypes.stream()
+                .map(RoomType::getBasePrice)
+                .filter(Objects::nonNull)
+                .map(price -> price.multiply(BigDecimal.valueOf(numberOfRooms)).multiply(BigDecimal.valueOf(nights)))
+                .min(BigDecimal::compareTo)
+                .orElse(null);
     }
 
     private boolean matchesPriceRange(HotelComputedView view, HotelCatalogCriteria criteria) {
@@ -467,7 +510,8 @@ public class HotelCatalogServiceImpl implements HotelCatalogService {
         return hotelPhotoRepository.findPrimaryPhotosByHotelIds(hotelIds).stream()
                 .collect(Collectors.toMap(
                         HotelPrimaryPhotoProjection::hotelId,
-                        p -> photoUrlResolver.resolve(p.storageKey())
+                        p -> photoUrlResolver.resolve(p.storageKey()),
+                        (existing, replacement) -> existing
                 ));
     }
 
@@ -490,27 +534,113 @@ public class HotelCatalogServiceImpl implements HotelCatalogService {
         boolean hasCoordinates = hasLatitude || hasLongitude;
 
         if (hasLatitude != hasLongitude) {
-            throw new IllegalArgumentException(
-                    "latitude and longitude must be provided together"
-            );
+            throw new IllegalArgumentException("latitude and longitude must be provided together");
         }
 
         int providedLocationReferences = 0;
 
-        if (hasMatchId) {
-            providedLocationReferences++;
-        }
-        if (hasStadiumId) {
-            providedLocationReferences++;
-        }
-        if (hasCoordinates) {
-            providedLocationReferences++;
-        }
+        if (hasMatchId) providedLocationReferences++;
+        if (hasStadiumId) providedLocationReferences++;
+        if (hasCoordinates) providedLocationReferences++;
 
         if (providedLocationReferences > 1) {
             throw new IllegalArgumentException(
                     "Only one location reference is allowed: matchId OR stadiumId OR latitude/longitude"
             );
+        }
+    }
+
+    private void validateCriteria(HotelCatalogCriteria criteria) {
+        validateStayDatesIfPresent(criteria);
+        validateNumberOfRooms(criteria);
+        validatePriceRangeCriteria(criteria);
+        validateRatingRangeCriteria(criteria);
+        validateDistanceRangeCriteria(criteria);
+    }
+
+    private void validateStayDatesIfPresent(HotelCatalogCriteria criteria) {
+        LocalDate checkIn = criteria.getCheckInDate();
+        LocalDate checkOut = criteria.getCheckOutDate();
+
+        if (checkIn == null && checkOut == null) {
+            return;
+        }
+
+        if (checkIn == null || checkOut == null) {
+            throw new CheckOutDateAreRequired("Both checkInDate and checkOutDate must be provided");
+        }
+
+        if (!checkIn.isBefore(checkOut)) {
+            throw new CheckOutBeforeCheckIn();
+        }
+    }
+
+    private void validateNumberOfRooms(HotelCatalogCriteria criteria) {
+        if (criteria.getNumberOfRooms() != null && criteria.getNumberOfRooms() < 1) {
+            throw new IllegalArgumentException("numberOfRooms must be greater than or equal to 1");
+        }
+    }
+
+    private void validatePriceRangeCriteria(HotelCatalogCriteria criteria) {
+        BigDecimal min = criteria.getMinTotalPrice();
+        BigDecimal max = criteria.getMaxTotalPrice();
+
+        if (min != null && min.compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException("minTotalPrice must be greater than or equal to 0");
+        }
+
+        if (max != null && max.compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException("maxTotalPrice must be greater than or equal to 0");
+        }
+
+        if (min != null && max != null && min.compareTo(max) > 0) {
+            throw new IllegalArgumentException("minTotalPrice cannot be greater than maxTotalPrice");
+        }
+    }
+
+    private void validateRatingRangeCriteria(HotelCatalogCriteria criteria) {
+        BigDecimal minRating = criteria.getMinRating();
+        BigDecimal maxRating = criteria.getMaxRating();
+
+        if (minRating != null && minRating.compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException("minRating must be greater than or equal to 0");
+        }
+
+        if (maxRating != null && maxRating.compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException("maxRating must be greater than or equal to 0");
+        }
+
+        if (maxRating != null && maxRating.compareTo(BigDecimal.valueOf(5)) > 0) {
+            throw new IllegalArgumentException("maxRating must be less than or equal to 5");
+        }
+
+        if (minRating != null && minRating.compareTo(BigDecimal.valueOf(5)) > 0) {
+            throw new IllegalArgumentException("minRating must be less than or equal to 5");
+        }
+
+        if (minRating != null && maxRating != null && minRating.compareTo(maxRating) > 0) {
+            throw new IllegalArgumentException("minRating cannot be greater than maxRating");
+        }
+    }
+
+    private void validateDistanceRangeCriteria(HotelCatalogCriteria criteria) {
+        Double min = criteria.getMinDistanceKm();
+        Double max = criteria.getMaxDistanceKm();
+
+        if (min != null && min < 0) {
+            throw new IllegalArgumentException("minDistanceKm must be greater than or equal to 0");
+        }
+
+        if (max != null && max < 0) {
+            throw new IllegalArgumentException("maxDistanceKm must be greater than or equal to 0");
+        }
+
+        if (min != null && max != null && min > max) {
+            throw new IllegalArgumentException("minDistanceKm cannot be greater than maxDistanceKm");
+        }
+
+        if (criteria.getMinReviewCount() != null && criteria.getMinReviewCount() < 0) {
+            throw new IllegalArgumentException("minReviewCount must be greater than or equal to 0");
         }
     }
 
@@ -535,11 +665,6 @@ public class HotelCatalogServiceImpl implements HotelCatalogService {
                 );
             }
         }
-
-        // Allow sorting by base price if dates are absent
-        // if (isSortingByPrice(pageable)) {
-        //     validateDateRange(criteria.getCheckInDate(), criteria.getCheckOutDate());
-        // }
     }
 
     private boolean hasPriceFilter(HotelCatalogCriteria criteria) {
@@ -564,6 +689,10 @@ public class HotelCatalogServiceImpl implements HotelCatalogService {
 
     private boolean hasCoordinates(HotelCatalogCriteria criteria) {
         return criteria.getLatitude() != null && criteria.getLongitude() != null;
+    }
+
+    private boolean shouldComputePrice(HotelCatalogCriteria criteria) {
+        return criteria.getCheckInDate() != null && criteria.getCheckOutDate() != null;
     }
 
     private Sort extractDatabaseSortableSort(Sort requestedSort) {
@@ -609,18 +738,30 @@ public class HotelCatalogServiceImpl implements HotelCatalogService {
     private Comparator<HotelComputedView> comparatorForField(String field) {
         return switch (field) {
             case "id" -> Comparator.comparing(view -> view.hotel().getId(), Comparator.nullsLast(Long::compareTo));
-            case "name" ->
-                    Comparator.comparing(view -> view.hotel().getName(), Comparator.nullsLast(String::compareToIgnoreCase));
-            case "city" ->
-                    Comparator.comparing(view -> view.hotel().getCity(), Comparator.nullsLast(String::compareToIgnoreCase));
-            case "distance" ->
-                    Comparator.comparing(HotelComputedView::distanceKm, Comparator.nullsLast(Double::compareTo));
-            case "price" ->
-                    Comparator.comparing(HotelComputedView::minPrice, Comparator.nullsLast(BigDecimal::compareTo));
-            case "rating" ->
-                    Comparator.comparing(view -> view.hotel().getAverageRating(), Comparator.nullsLast(BigDecimal::compareTo));
-            case "reviewCount" ->
-                    Comparator.comparing(view -> view.hotel().getReviewCount(), Comparator.nullsLast(Integer::compareTo));
+            case "name" -> Comparator.comparing(
+                    view -> view.hotel().getName(),
+                    Comparator.nullsLast(String::compareToIgnoreCase)
+            );
+            case "city" -> Comparator.comparing(
+                    view -> view.hotel().getCity(),
+                    Comparator.nullsLast(String::compareToIgnoreCase)
+            );
+            case "distance" -> Comparator.comparing(
+                    HotelComputedView::distanceKm,
+                    Comparator.nullsLast(Double::compareTo)
+            );
+            case "price" -> Comparator.comparing(
+                    HotelComputedView::minPrice,
+                    Comparator.nullsLast(BigDecimal::compareTo)
+            );
+            case "rating" -> Comparator.comparing(
+                    view -> view.hotel().getAverageRating(),
+                    Comparator.nullsLast(BigDecimal::compareTo)
+            );
+            case "reviewCount" -> Comparator.comparing(
+                    view -> view.hotel().getReviewCount(),
+                    Comparator.nullsLast(Integer::compareTo)
+            );
             default -> throw new IllegalArgumentException("Unsupported sort field: " + field);
         };
     }
@@ -634,16 +775,6 @@ public class HotelCatalogServiceImpl implements HotelCatalogService {
 
         int end = Math.min(start + pageable.getPageSize(), hotels.size());
         return hotels.subList(start, end);
-    }
-
-    private void validateDateRange(LocalDate checkIn, LocalDate checkOut) {
-        if (checkIn == null || checkOut == null) {
-            throw new CheckOutDateAreRequired("checkInDate and checkOutDate are required for price filtering");
-        }
-
-        if (!checkIn.isBefore(checkOut)) {
-            throw new CheckOutBeforeCheckIn();
-        }
     }
 
     private Double calculateDistanceKm(Double lat1, Double lon1, Double lat2, Double lon2) {

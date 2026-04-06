@@ -2,7 +2,6 @@ package com.worldcup.hotelbooking.catalog.roomtype;
 
 import com.worldcup.hotelbooking.catalog.roomtype.dto.CreateRoomTypeRequestDto;
 import com.worldcup.hotelbooking.catalog.roomtype.dto.ReplaceRoomTypeRequestDto;
-import com.worldcup.hotelbooking.catalog.roomtype.dto.RoomTypeAvailabilityCriteria;
 import com.worldcup.hotelbooking.catalog.roomtype.dto.RoomTypeResponseDto;
 import com.worldcup.hotelbooking.catalog.roomtype.mapper.RoomTypeMapper;
 import io.swagger.v3.oas.annotations.Operation;
@@ -19,7 +18,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
-import java.util.List;
 
 @RestController
 @RequestMapping("/hotels/{hotelId}/room-types")
@@ -32,26 +30,9 @@ public class RoomTypeController {
         this.service = service;
     }
 
-    @Operation(
-            summary = "Get room types by hotel",
-            description = "Returns room types for the specified hotel, optionally filtered by availability criteria"
-    )
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Room types retrieved successfully"),
-            @ApiResponse(responseCode = "404", description = "Hotel not found", content = @Content)
-    })
-    @GetMapping
-    public List<RoomTypeResponseDto> all(
-            @Parameter(description = "Hotel id", example = "1")
-            @PathVariable Long hotelId,
-            @Parameter(description = "Availability filter criteria")
-            @ModelAttribute RoomTypeAvailabilityCriteria criteria
-    ) {
-        return service.findAvailableByHotel(hotelId, criteria)
-                .stream()
-                .map(RoomTypeMapper::toResponse)
-                .toList();
-    }
+    // GET /hotels/{hotelId}/room-types is now handled by
+    // RoomTypeQueryController (CQRS read-side) which includes
+    // resolved photo URLs and dynamic pricing.
 
     @Operation(
             summary = "Create room type",
