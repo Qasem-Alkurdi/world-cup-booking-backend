@@ -1,13 +1,9 @@
-package com.worldcup.hotelbooking.user.user;
+package com.worldcup.hotelbooking.user;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.worldcup.hotelbooking.auth.AuthService;
 import com.worldcup.hotelbooking.security.JwtTokenService;
 import com.worldcup.hotelbooking.security.RateLimitService;
-import com.worldcup.hotelbooking.user.AppUserRequestDto;
-import com.worldcup.hotelbooking.user.PasswordValidationException;
-import com.worldcup.hotelbooking.user.RegistrationResponseDto;
-import com.worldcup.hotelbooking.user.Role;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -22,28 +18,25 @@ import java.util.Set;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
 @AutoConfigureMockMvc(addFilters = false)
 @TestPropertySource(properties = "storage.upload-dir=./test-uploads")
 class RegistrationIntegrationTest {
 
+    private final ObjectMapper objectMapper = new ObjectMapper();
     @Autowired
     private MockMvc mockMvc;
-
     @MockitoBean
     private AuthService authService;
-
     @MockitoBean
     private RateLimitService rateLimitService;
 
+    // No @MockitoBean for StorageProperties – the real bean is created and uses the property from @TestPropertySource
     @MockitoBean
     private JwtTokenService jwtTokenService;
-
-    // No @MockitoBean for StorageProperties – the real bean is created and uses the property from @TestPropertySource
-
-    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Test
     void shouldReturn201WhenRegistrationSucceeds() throws Exception {

@@ -174,8 +174,9 @@ public class HotelCatalogSpecifications {
 
     public static Specification<Hotel> hasAvailability(
             LocalDate checkIn,
-            LocalDate checkOut) {
-
+            LocalDate checkOut,
+            Integer numberOfRooms
+    ) {
         return (root, query, cb) -> {
 
             if (checkIn == null || checkOut == null) {
@@ -186,20 +187,20 @@ public class HotelCatalogSpecifications {
                 throw new CheckOutBeforeCheckIn();
             }
 
+            long requestedRooms = (numberOfRooms == null || numberOfRooms < 1) ? 1L : numberOfRooms.longValue();
+
             query.distinct(true);
 
             Join<Hotel, RoomType> roomJoin = root.join("roomTypes");
 
             Subquery<Long> subquery = query.subquery(Long.class);
             Root<BookingRoom> bookingRoomRoot = subquery.from(BookingRoom.class);
+            Join<BookingRoom, Booking> bookingJoin = bookingRoomRoot.join("booking");
 
-            Join<BookingRoom, Booking> bookingJoin =
-                    bookingRoomRoot.join("booking");
+            Expression<Long> bookedRoomsSum =
+                    cb.coalesce(cb.sum(bookingRoomRoot.get("numberOfRooms").as(Long.class)), 0L);
 
-            Expression<Long> sumExpression =
-                    cb.sum(bookingRoomRoot.get("numberOfRooms"));
-
-            subquery.select(cb.coalesce(sumExpression, 0L));
+            subquery.select(bookedRoomsSum);
 
             Predicate sameRoomType =
                     cb.equal(bookingRoomRoot.get("roomType"), roomJoin);
@@ -216,13 +217,22 @@ public class HotelCatalogSpecifications {
                             Booking.BookingStatus.CHECKED_IN
                     );
 
-            subquery.where(cb.and(sameRoomType, overlap, statusPredicate));
+            Predicate activePredicate =
+                    cb.isTrue(bookingJoin.get("active"));
 
-            Expression<Integer> totalRooms = roomJoin.get("totalRooms");
+            subquery.where(cb.and(
+                    sameRoomType,
+                    overlap,
+                    statusPredicate,
+                    activePredicate
+            ));
 
-            return cb.greaterThan(
-                    totalRooms.as(Long.class),
-                    subquery.getSelection()
+            Expression<Long> requiredRooms =
+                    cb.sum(subquery.getSelection(), cb.literal(requestedRooms));
+
+            return cb.greaterThanOrEqualTo(
+                    roomJoin.get("totalRooms").as(Long.class),
+                    requiredRooms
             );
         };
     }

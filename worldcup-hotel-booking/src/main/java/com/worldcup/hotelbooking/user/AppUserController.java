@@ -67,12 +67,9 @@ public class AppUserController {
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN') or #id == authentication.principal.claims['userId']")
     @Operation(summary = "Update user fully (user themselves or admin)")
-    public ResponseEntity<AppUserResponseDto> updateUser(
-            @PathVariable Long id,
-            @Valid @RequestBody AppUserRequestDto dto) {
-
-        AppUser updatedUser = appUserService.updateUser(id, dto);
-        return ResponseEntity.ok(AppUserMapper.toDto(updatedUser));
+    public ResponseEntity<AppUserResponseDto> updateUser(@PathVariable Long id, @Valid @RequestBody AppUserRequestDto dto) {
+        AppUserResponseDto updated = appUserService.updateUser(id, dto);
+        return ResponseEntity.ok(updated);
     }
 
     @PatchMapping("/{id}")

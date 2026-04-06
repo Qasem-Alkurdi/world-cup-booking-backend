@@ -9,23 +9,33 @@ import java.math.BigDecimal;
 @Component
 public class HotelCatalogMapper {
 
-    public HotelCatalogResponseDto toDto(
-            Hotel hotel,
-            String primaryPhotoUrl,
-            BigDecimal startingPrice,
-            Double distanceKm
-    ) {
+    public HotelCatalogResponseDto toDto(Hotel hotel, String primaryPhotoUrl, BigDecimal minPrice, Double distanceKm) {
         return new HotelCatalogResponseDto(
-                hotel.getId(),
                 hotel.getName(),
+                hotel.getId(),
                 hotel.getDescription(),
                 hotel.getCity(),
                 hotel.getCountry(),
                 primaryPhotoUrl,
-                startingPrice,
                 hotel.getAverageRating(),
                 hotel.getReviewCount(),
-                distanceKm
+                minPrice,
+                distanceKm,
+                hotel.isHasGym(),
+                hotel.isHasWifi(),
+                hotel.isHasParking(),
+                hotel.isHasBreakfast(),
+                hotel.isHasAirConditioning(),
+                hotel.isHasHeating(),
+                hotel.isHasPool(),
+                hotel.isHasSpa(),
+                hotel.isHasElevator(),
+                hotel.isHasRestaurant(),
+                hotel.isHasRoomService(),
+                hotel.isHasLaundry(),
+                hotel.isHasAirportShuttle(),
+                hotel.isHasAccessibleFacilities(),
+                hotel.isPetFriendly()
         );
     }
 }

@@ -6,6 +6,7 @@ import com.worldcup.hotelbooking.booking.booking.BookingResponseDto;
 import com.worldcup.hotelbooking.chat.ChatMessageRepository;
 import com.worldcup.hotelbooking.chat.Conversation;
 import com.worldcup.hotelbooking.chat.ConversationRepository;
+import com.worldcup.hotelbooking.notification.NotificationRepository;
 import com.worldcup.hotelbooking.notification.NotificationService;
 import com.worldcup.hotelbooking.payment.PaymentRepository;
 import com.worldcup.hotelbooking.review.ReviewRepository;
@@ -32,9 +33,10 @@ public class AppUserServiceImpl implements AppUserService {
     private final PasswordValidator passwordValidator;
     private final RefreshTokenRepository refreshTokenRepository;
     private final PaymentRepository paymentRepository;
-    private final ReviewRepository reviewRepository;           // new
-    private final ChatMessageRepository chatMessageRepository; // new
-    private final ConversationRepository conversationRepository; // new// added
+    private final ReviewRepository reviewRepository;
+    private final ChatMessageRepository chatMessageRepository;
+    private final ConversationRepository conversationRepository;
+    private final NotificationRepository notificationRepository;
 
     public AppUserServiceImpl(
             AppUserRepository appUserRepository,
@@ -43,9 +45,9 @@ public class AppUserServiceImpl implements AppUserService {
             PasswordValidator passwordValidator,
             RefreshTokenRepository refreshTokenRepository,
             PaymentRepository paymentRepository,
-            ReviewRepository reviewRepository,                // new
-            ChatMessageRepository chatMessageRepository,      // new
-            ConversationRepository conversationRepository) {   // added
+            ReviewRepository reviewRepository,
+            ChatMessageRepository chatMessageRepository,
+            ConversationRepository conversationRepository, NotificationRepository notificationRepository) {
         this.appUserRepository = appUserRepository;
         this.notificationService = notificationService;
         this.passwordEncoder = passwordEncoder;
@@ -55,6 +57,7 @@ public class AppUserServiceImpl implements AppUserService {
         this.reviewRepository = reviewRepository;
         this.chatMessageRepository = chatMessageRepository;
         this.conversationRepository = conversationRepository;
+        this.notificationRepository = notificationRepository;
     }
 
     // 1. Create User
@@ -109,67 +112,58 @@ public class AppUserServiceImpl implements AppUserService {
     // 6. Delete User
     @Override
     public void deleteUser(Long id) {
-        AppUser user = getUserById(id); // eagerly loads bookings
+        AppUser user = getUserById(id);
 
+        // Validate active bookings
         boolean hasActiveBookings = user.getBookings().stream()
                 .anyMatch(b -> b.getStatus() != Booking.BookingStatus.CANCELLED
                         && b.getStatus() != Booking.BookingStatus.CHECKED_OUT);
         if (hasActiveBookings) {
-            throw new UserDeletionException(
-                    "Cannot delete account with active bookings. Please cancel all upcoming bookings first."
-            );}
+            throw new UserDeletionException("Cannot delete account with active bookings...");
+        }
 
-        // 1. Booking IDs
         List<Long> bookingIds = user.getBookings().stream()
                 .map(Booking::getId)
                 .collect(Collectors.toList());
 
-        // 2. Delete payments (bulk, clears session)
         if (!bookingIds.isEmpty()) {
             paymentRepository.deleteByBookingIdIn(bookingIds);
-        }
-
-        // 3. Delete reviews (bulk, clears session)
-        if (!bookingIds.isEmpty()) {
             reviewRepository.deleteByBookingIdIn(bookingIds);
         }
 
-        // 4. Delete messages sent by the user (bulk, clears session)
         chatMessageRepository.deleteBySenderId(user.getId());
 
-        // 5. Get conversation IDs where user is guest (must query fresh after previous clears)
         List<Long> conversationIds = conversationRepository.findAll().stream()
                 .filter(c -> c.getGuest().getId().equals(user.getId()))
                 .map(Conversation::getId)
                 .collect(Collectors.toList());
 
-        // 6. Delete messages in those conversations (bulk, clears session)
         if (!conversationIds.isEmpty()) {
             chatMessageRepository.deleteByConversationIds(conversationIds);
         }
-
-        // 7. Delete conversations where user is guest (bulk, clears session)
         conversationRepository.deleteByGuestId(user.getId());
 
-        // 8. Delete refresh tokens (bulk, clears session)
         refreshTokenRepository.deleteByUser(user);
 
-        // 9. Finally delete the user (now all references are gone)
+        // ⭐ Delete notifications
+        notificationRepository.deleteByUser(user);
+
+        // Finally delete the user
         appUserRepository.delete(user);
     }
 
     // 7. Update User (Full update)
     @Override
-    public AppUser updateUser(Long id, AppUserRequestDto dto) {
+    @Transactional
+    public AppUserResponseDto updateUser(Long id, AppUserRequestDto dto) {
         AppUser existingUser = getUserById(id);
 
         existingUser.setUsername(dto.username());
         existingUser.setEmail(dto.email());
         existingUser.setPassword(passwordEncoder.encode(dto.password()));
-        // Note: For security, you should hash the password here if it's plain text
-        // existingUser.setPassword(passwordEncoder.encode(dto.getPassword()));
 
-        return appUserRepository.save(existingUser);
+        AppUser saved = appUserRepository.save(existingUser);
+        return AppUserMapper.toDto(saved); // mapping inside transaction
     }
 
     // 8. Save User (for partial updates)

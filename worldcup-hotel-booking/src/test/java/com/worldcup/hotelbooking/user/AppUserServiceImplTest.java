@@ -1,14 +1,14 @@
-package com.worldcup.hotelbooking.user.user;
+package com.worldcup.hotelbooking.user;
 
 import com.worldcup.hotelbooking.booking.booking.Booking;
 import com.worldcup.hotelbooking.booking.booking.BookingResponseDto;
 import com.worldcup.hotelbooking.chat.ChatMessageRepository;
 import com.worldcup.hotelbooking.chat.ConversationRepository;
+import com.worldcup.hotelbooking.notification.NotificationRepository;
 import com.worldcup.hotelbooking.notification.NotificationService;
 import com.worldcup.hotelbooking.payment.PaymentRepository;
 import com.worldcup.hotelbooking.review.ReviewRepository;
 import com.worldcup.hotelbooking.security.RefreshTokenRepository;
-import com.worldcup.hotelbooking.user.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -53,6 +53,8 @@ class AppUserServiceImplTest {
     private ChatMessageRepository chatMessageRepository;
     @Mock
     private ConversationRepository conversationRepository;
+    @Mock
+    private NotificationRepository notificationRepository; // NEW
 
     @Captor
     private ArgumentCaptor<AppUser> userCaptor;
@@ -69,7 +71,7 @@ class AppUserServiceImplTest {
         testUser.setPassword("encoded");
         testUser.setEnabled(true);
         testUser.setRoles(Set.of(Role.GUEST));
-        testUser.setBookings(new ArrayList<>()); // ensure non-null empty list
+        testUser.setBookings(new ArrayList<>());
 
         dto = new AppUserRequestDto("newuser", "new@example.com", "rawPass");
     }
@@ -119,11 +121,10 @@ class AppUserServiceImplTest {
         when(userRepository.save(any(AppUser.class))).thenAnswer(inv -> inv.getArgument(0));
 
         AppUserRequestDto updateDto = new AppUserRequestDto("updated", "updated@ex.com", "newPass");
-        AppUser updated = userService.updateUser(1L, updateDto);
+        AppUserResponseDto updated = userService.updateUser(1L, updateDto);  // ← returns DTO
 
-        assertThat(updated.getUsername()).isEqualTo("updated");
-        assertThat(updated.getEmail()).isEqualTo("updated@ex.com");
-        assertThat(updated.getPassword()).isEqualTo("newEncoded");
+        assertThat(updated.username()).isEqualTo("updated");      // record getter
+        assertThat(updated.email()).isEqualTo("updated@ex.com");
     }
 
     @Test
@@ -131,7 +132,7 @@ class AppUserServiceImplTest {
         // 1. Add a mock booking with CANCELLED status (not active)
         Booking mockBooking = new Booking();
         mockBooking.setId(100L);
-        mockBooking.setStatus(Booking.BookingStatus.CANCELLED); // or CHECKED_OUT
+        mockBooking.setStatus(Booking.BookingStatus.CANCELLED);
         testUser.setBookings(List.of(mockBooking));
 
         // 2. Mock repository calls
@@ -144,6 +145,7 @@ class AppUserServiceImplTest {
         doNothing().when(chatMessageRepository).deleteBySenderId(anyLong());
         doNothing().when(conversationRepository).deleteByGuestId(anyLong());
         doNothing().when(refreshTokenRepository).deleteByUser(any());
+        doNothing().when(notificationRepository).deleteByUser(any()); // NEW
         when(conversationRepository.findAll()).thenReturn(new ArrayList<>());
 
         // 4. Act
@@ -156,6 +158,7 @@ class AppUserServiceImplTest {
         verify(chatMessageRepository, times(1)).deleteBySenderId(1L);
         verify(conversationRepository, times(1)).deleteByGuestId(1L);
         verify(refreshTokenRepository, times(1)).deleteByUser(testUser);
+        verify(notificationRepository, times(1)).deleteByUser(testUser); // NEW
     }
 
     @Test

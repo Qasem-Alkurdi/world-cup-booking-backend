@@ -38,32 +38,73 @@ class HotelCatalogControllerTest {
                 .build();
     }
 
+    private HotelCatalogResponseDto hotelDto(
+            Long id,
+            String name,
+            String description,
+            String city,
+            String country,
+            String primaryPhotoUrl,
+            BigDecimal averageRating,
+            Integer reviewCount,
+            BigDecimal minPrice,
+            Double distanceKm
+    ) {
+        return new HotelCatalogResponseDto(
+                name,
+                id,
+                description,
+                city,
+                country,
+                primaryPhotoUrl,
+                averageRating,
+                reviewCount,
+                minPrice,
+                distanceKm,
+                true,   // hasGym
+                true,   // hasWifi
+                true,   // hasParking
+                true,   // hasBreakfast
+                true,   // hasAirConditioning
+                true,   // hasHeating
+                false,  // hasPool
+                false,  // hasSpa
+                true,   // hasElevator
+                true,   // hasRestaurant
+                true,   // hasRoomService
+                true,   // hasLaundry
+                false,  // hasAirportShuttle
+                true,   // hasAccessibleFacilities
+                false   // petFriendly
+        );
+    }
+
     @Test
     @DisplayName("GET /catalog/hotels -> should return catalog response with paged hotels")
     void search_ShouldReturnCatalogResponse() throws Exception {
-        HotelCatalogResponseDto dto1 = new HotelCatalogResponseDto(
+        HotelCatalogResponseDto dto1 = hotelDto(
                 1L,
                 "Royal Hotel",
                 "Nice hotel",
                 "Nablus",
                 "Palestine",
                 "url1",
-                BigDecimal.valueOf(300),
                 BigDecimal.valueOf(4.5),
                 120,
+                BigDecimal.valueOf(300),
                 1.2
         );
 
-        HotelCatalogResponseDto dto2 = new HotelCatalogResponseDto(
+        HotelCatalogResponseDto dto2 = hotelDto(
                 2L,
                 "Sea View",
                 "Beach hotel",
                 "Gaza",
                 "Palestine",
                 "url2",
-                BigDecimal.valueOf(450),
                 BigDecimal.valueOf(4.2),
                 80,
+                BigDecimal.valueOf(450),
                 3.8
         );
 
@@ -95,12 +136,14 @@ class HotelCatalogControllerTest {
                 .andExpect(jsonPath("$.hotels.content[0].id").value(1))
                 .andExpect(jsonPath("$.hotels.content[0].name").value("Royal Hotel"))
                 .andExpect(jsonPath("$.hotels.content[0].primaryPhotoUrl").value("url1"))
-                .andExpect(jsonPath("$.hotels.content[0].startingPrice").value(300))
+                .andExpect(jsonPath("$.hotels.content[0].minPrice").value(300))
                 .andExpect(jsonPath("$.hotels.content[0].averageRating").value(4.5))
                 .andExpect(jsonPath("$.hotels.content[0].reviewCount").value(120))
                 .andExpect(jsonPath("$.hotels.content[0].distanceKm").value(1.2))
                 .andExpect(jsonPath("$.hotels.content[1].id").value(2))
-                .andExpect(jsonPath("$.hotels.totalElements").value(2));
+                .andExpect(jsonPath("$.hotels.totalElements").value(2))
+                .andExpect(jsonPath("$.hotels.size").value(20))
+                .andExpect(jsonPath("$.hotels.number").value(0));
 
         verify(service, times(1)).search(any(), any());
     }
@@ -126,29 +169,33 @@ class HotelCatalogControllerTest {
                         .param("maxDistanceKm", "10")
                         .param("page", "0")
                         .param("size", "10")
-                        .param("sort", "city,desc"))
+                        .param("sort", "city,desc")
+                        .accept(APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.searchMode").value("NORMAL"))
                 .andExpect(jsonPath("$.fallbackApplied").value(false))
+                .andExpect(jsonPath("$.message").value("Catalog retrieved successfully"))
                 .andExpect(jsonPath("$.hotels.content.length()").value(0))
-                .andExpect(jsonPath("$.hotels.totalElements").value(0));
+                .andExpect(jsonPath("$.hotels.totalElements").value(0))
+                .andExpect(jsonPath("$.hotels.size").value(10))
+                .andExpect(jsonPath("$.hotels.number").value(0));
 
         verify(service, times(1)).search(any(), any());
     }
 
     @Test
-    @DisplayName("GET /catalog/hotels -> should return 5 km radius mode when matchId only is provided")
+    @DisplayName("GET /catalog/hotels -> should return match radius mode when matchId only is provided")
     void search_WithMatchIdOnly_ShouldReturn5KmMode() throws Exception {
-        HotelCatalogResponseDto dto = new HotelCatalogResponseDto(
+        HotelCatalogResponseDto dto = hotelDto(
                 1L,
                 "Nearby Hotel",
                 "Close to stadium",
                 "Nablus",
                 "Palestine",
                 "url1",
-                null,
                 BigDecimal.valueOf(4.3),
                 40,
+                null,
                 2.1
         );
 
@@ -169,8 +216,10 @@ class HotelCatalogControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.searchMode").value("MATCH_RADIUS_5KM"))
                 .andExpect(jsonPath("$.fallbackApplied").value(false))
+                .andExpect(jsonPath("$.message").value("Showing hotels within 5 km of the match stadium"))
                 .andExpect(jsonPath("$.hotels.content.length()").value(1))
-                .andExpect(jsonPath("$.hotels.content[0].name").value("Nearby Hotel"));
+                .andExpect(jsonPath("$.hotels.content[0].name").value("Nearby Hotel"))
+                .andExpect(jsonPath("$.hotels.totalElements").value(1));
 
         verify(service, times(1)).search(any(), any());
     }
@@ -178,16 +227,16 @@ class HotelCatalogControllerTest {
     @Test
     @DisplayName("GET /catalog/hotels -> should return 15 km radius mode when search expands from 5 km")
     void search_WhenRadiusExpandedTo15Km_ShouldReturn15KmResponse() throws Exception {
-        HotelCatalogResponseDto dto = new HotelCatalogResponseDto(
+        HotelCatalogResponseDto dto = hotelDto(
                 2L,
                 "City Hotel",
                 "Hotel found after expanding radius",
                 "Ciudad de Mexico",
                 "Mexico",
                 "url2",
-                null,
                 BigDecimal.valueOf(4.0),
                 22,
+                null,
                 6.7
         );
 
@@ -208,8 +257,10 @@ class HotelCatalogControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.searchMode").value("MATCH_RADIUS_15KM"))
                 .andExpect(jsonPath("$.fallbackApplied").value(true))
+                .andExpect(jsonPath("$.message").value("No hotels found in the smaller radius. Expanded search to 15 km around the match stadium"))
                 .andExpect(jsonPath("$.hotels.content.length()").value(1))
-                .andExpect(jsonPath("$.hotels.content[0].name").value("City Hotel"));
+                .andExpect(jsonPath("$.hotels.content[0].name").value("City Hotel"))
+                .andExpect(jsonPath("$.hotels.totalElements").value(1));
 
         verify(service, times(1)).search(any(), any());
     }
@@ -217,16 +268,16 @@ class HotelCatalogControllerTest {
     @Test
     @DisplayName("GET /catalog/hotels -> should return 30 km radius mode when search expands again")
     void search_WhenRadiusExpandedTo30Km_ShouldReturn30KmResponse() throws Exception {
-        HotelCatalogResponseDto dto = new HotelCatalogResponseDto(
+        HotelCatalogResponseDto dto = hotelDto(
                 3L,
                 "Farther Hotel",
                 "Hotel found after expanding to 30 km",
                 "Apodaca",
                 "Mexico",
                 "url3",
-                null,
                 BigDecimal.valueOf(4.1),
                 18,
+                null,
                 22.4
         );
 
@@ -247,8 +298,10 @@ class HotelCatalogControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.searchMode").value("MATCH_RADIUS_30KM"))
                 .andExpect(jsonPath("$.fallbackApplied").value(true))
+                .andExpect(jsonPath("$.message").value("No hotels found in the smaller radius. Expanded search to 30 km around the match stadium"))
                 .andExpect(jsonPath("$.hotels.content.length()").value(1))
-                .andExpect(jsonPath("$.hotels.content[0].name").value("Farther Hotel"));
+                .andExpect(jsonPath("$.hotels.content[0].name").value("Farther Hotel"))
+                .andExpect(jsonPath("$.hotels.totalElements").value(1));
 
         verify(service, times(1)).search(any(), any());
     }
@@ -256,16 +309,16 @@ class HotelCatalogControllerTest {
     @Test
     @DisplayName("GET /catalog/hotels -> should return stadium 5 km mode when stadiumId only is provided")
     void search_WithStadiumIdOnly_ShouldReturnStadium5KmMode() throws Exception {
-        HotelCatalogResponseDto dto = new HotelCatalogResponseDto(
+        HotelCatalogResponseDto dto = hotelDto(
                 4L,
                 "Stadium Nearby Hotel",
                 "Close to selected stadium",
                 "Seattle",
                 "United States",
                 "url4",
-                null,
                 BigDecimal.valueOf(4.6),
                 55,
+                null,
                 1.1
         );
 
@@ -286,8 +339,10 @@ class HotelCatalogControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.searchMode").value("STADIUM_RADIUS_5KM"))
                 .andExpect(jsonPath("$.fallbackApplied").value(false))
+                .andExpect(jsonPath("$.message").value("Showing hotels within 5 km of the selected stadium"))
                 .andExpect(jsonPath("$.hotels.content.length()").value(1))
-                .andExpect(jsonPath("$.hotels.content[0].name").value("Stadium Nearby Hotel"));
+                .andExpect(jsonPath("$.hotels.content[0].name").value("Stadium Nearby Hotel"))
+                .andExpect(jsonPath("$.hotels.totalElements").value(1));
 
         verify(service, times(1)).search(any(), any());
     }

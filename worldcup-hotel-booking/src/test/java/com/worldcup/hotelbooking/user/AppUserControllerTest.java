@@ -1,10 +1,9 @@
-package com.worldcup.hotelbooking.user.user;
+package com.worldcup.hotelbooking.user;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.worldcup.hotelbooking.booking.booking.BookingResponseDto;
 import com.worldcup.hotelbooking.security.JwtTokenService;
 import com.worldcup.hotelbooking.security.RateLimitService;
-import com.worldcup.hotelbooking.user.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,28 +24,25 @@ import java.util.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
 @AutoConfigureMockMvc(addFilters = false)
 @TestPropertySource(properties = "app.storage.upload-dir=./test-uploads")
 class AppUserControllerTest {
 
+    private final ObjectMapper objectMapper = new ObjectMapper();
     @Autowired
     private MockMvc mockMvc;
 
+    // REMOVED @MockitoBean StorageProperties — let the real bean read the property
     @MockitoBean
     private AppUserService appUserService;
-
-    // REMOVED @MockitoBean StorageProperties — let the real bean read the property
-
     @MockitoBean
     private RateLimitService rateLimitService;
-
     @MockitoBean
     private JwtTokenService jwtTokenService;
-
-    private final ObjectMapper objectMapper = new ObjectMapper();
     private AppUser sampleUser;
 
     @BeforeEach

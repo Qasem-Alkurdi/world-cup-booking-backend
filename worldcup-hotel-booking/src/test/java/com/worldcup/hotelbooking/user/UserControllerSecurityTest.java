@@ -1,10 +1,7 @@
-package com.worldcup.hotelbooking.user.user;
+package com.worldcup.hotelbooking.user;
 
 import com.worldcup.hotelbooking.auth.LoginRequest;
 import com.worldcup.hotelbooking.auth.LoginResponse;
-import com.worldcup.hotelbooking.user.AppUser;
-import com.worldcup.hotelbooking.user.AppUserRepository;
-import com.worldcup.hotelbooking.user.Role;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

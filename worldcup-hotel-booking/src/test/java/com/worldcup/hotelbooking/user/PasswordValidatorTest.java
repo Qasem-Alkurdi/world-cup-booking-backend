@@ -1,7 +1,5 @@
-package com.worldcup.hotelbooking.user.user;
+package com.worldcup.hotelbooking.user;
 
-import com.worldcup.hotelbooking.user.PasswordValidationException;
-import com.worldcup.hotelbooking.user.PasswordValidator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
