@@ -20,9 +20,9 @@ public class RateLimitService {
         Bandwidth limit;
 
         if (key.contains("/bookings") || key.contains("/payments")) {
-            limit = Bandwidth.simple(5, Duration.ofMinutes(1)); // stricter limit
+            limit = Bandwidth.simple(30, Duration.ofMinutes(1)); // increased from 5
         } else {
-            limit = Bandwidth.simple(20, Duration.ofMinutes(1)); // looser limit
+            limit = Bandwidth.simple(60, Duration.ofMinutes(1)); // increased from 20
         }
 
         return Bucket.builder()
