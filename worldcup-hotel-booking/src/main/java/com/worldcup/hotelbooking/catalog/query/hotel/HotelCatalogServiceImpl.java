@@ -84,13 +84,14 @@ public class HotelCatalogServiceImpl implements HotelCatalogService {
         }
 
         SearchExecutionContext context = resolveSearchExecutionContext(criteria);
-        Page<HotelCatalogResponseDto> result = executeSearch(pageable, context.criteria());
+        SearchInternalResult result = executeSearch(pageable, context.criteria());
 
         return new HotelCatalogSearchResponseDto(
-                result,
+                result.page(),
                 HotelCatalogSearchMode.NORMAL,
                 false,
-                "Catalog retrieved successfully"
+                "Catalog retrieved successfully",
+                result.maxPrice()
         );
     }
 
@@ -100,7 +101,7 @@ public class HotelCatalogServiceImpl implements HotelCatalogService {
     ) {
         SearchExecutionContext resolvedContext = resolveSearchExecutionContext(copyCriteria(originalCriteria));
 
-        Page<HotelCatalogResponseDto> lastNonEmptyResult = Page.empty(pageable);
+        SearchInternalResult lastNonEmptyResult = null;
         double lastRadiusTried = DEFAULT_RADIUS_STEPS_KM.get(DEFAULT_RADIUS_STEPS_KM.size() - 1);
 
         for (Double radiusKm : DEFAULT_RADIUS_STEPS_KM) {
@@ -108,33 +109,35 @@ public class HotelCatalogServiceImpl implements HotelCatalogService {
             radiusCriteria.setMinDistanceKm(null);
             radiusCriteria.setMaxDistanceKm(radiusKm);
 
-            Page<HotelCatalogResponseDto> radiusResult = executeSearch(pageable, radiusCriteria);
+            SearchInternalResult result = executeSearch(pageable, radiusCriteria);
             lastRadiusTried = radiusKm;
 
-            if (!radiusResult.isEmpty()) {
-                lastNonEmptyResult = radiusResult;
+            if (!result.page().isEmpty()) {
+                lastNonEmptyResult = result;
             }
 
-            if (radiusResult.getTotalElements() >= MIN_RESULTS_FOR_DEFAULT_RADIUS) {
+            if (result.page().getTotalElements() >= MIN_RESULTS_FOR_DEFAULT_RADIUS) {
                 return new HotelCatalogSearchResponseDto(
-                        radiusResult,
+                        result.page(),
                         resolveRadiusSearchMode(originalCriteria, radiusKm),
                         radiusKm > 5.0,
-                        buildEnoughResultsMessage(originalCriteria, radiusKm, radiusResult.getTotalElements())
+                        buildEnoughResultsMessage(originalCriteria, radiusKm, result.page().getTotalElements()),
+                        result.maxPrice()
                 );
             }
         }
 
-        if (!lastNonEmptyResult.isEmpty()) {
+        if (lastNonEmptyResult != null && !lastNonEmptyResult.page().isEmpty()) {
             return new HotelCatalogSearchResponseDto(
-                    lastNonEmptyResult,
+                    lastNonEmptyResult.page(),
                     resolveRadiusSearchMode(originalCriteria, lastRadiusTried),
                     true,
                     buildExpandedButLimitedResultsMessage(
                             originalCriteria,
                             lastRadiusTried,
-                            lastNonEmptyResult.getTotalElements()
-                    )
+                            lastNonEmptyResult.page().getTotalElements()
+                    ),
+                    lastNonEmptyResult.maxPrice()
             );
         }
 
@@ -142,7 +145,8 @@ public class HotelCatalogServiceImpl implements HotelCatalogService {
                 Page.empty(pageable),
                 HotelCatalogSearchMode.NORMAL,
                 true,
-                buildNoResultsMessage(originalCriteria, lastRadiusTried)
+                buildNoResultsMessage(originalCriteria, lastRadiusTried),
+                null
         );
     }
 
@@ -233,7 +237,7 @@ public class HotelCatalogServiceImpl implements HotelCatalogService {
         return new SearchExecutionContext(workingCriteria, resolvedStadium);
     }
 
-    private Page<HotelCatalogResponseDto> executeSearch(Pageable pageable, HotelCatalogCriteria criteria) {
+    private SearchInternalResult executeSearch(Pageable pageable, HotelCatalogCriteria criteria) {
         validateSortFields(pageable);
         validateDistanceCriteria(criteria);
         validateSortDependencies(criteria, pageable);
@@ -258,7 +262,7 @@ public class HotelCatalogServiceImpl implements HotelCatalogService {
         return searchWithComputedProcessing(pageable, criteria, spec);
     }
 
-    private Page<HotelCatalogResponseDto> searchOnlyWithDatabase(
+    private SearchInternalResult searchOnlyWithDatabase(
             Pageable pageable,
             Specification<Hotel> spec,
             HotelCatalogCriteria criteria
@@ -277,11 +281,20 @@ public class HotelCatalogServiceImpl implements HotelCatalogService {
                         null
                 ))
                 .toList();
+        
+        // Note: For database-only search, we don't calculate the global max price efficiently across all pages.
+        // We'll return 2000 as a fallback or calculate it if needed. 
+        // But since most searches use coordinates, they'll fall into searchWithComputedProcessing.
+        BigDecimal maxPrice = content.stream()
+                .map(HotelCatalogResponseDto::getMinPrice)
+                .filter(Objects::nonNull)
+                .max(BigDecimal::compareTo)
+                .orElse(BigDecimal.valueOf(2000));
 
-        return new PageImpl<>(content, pageable, result.getTotalElements());
+        return new SearchInternalResult(new PageImpl<>(content, pageable, result.getTotalElements()), maxPrice);
     }
 
-    private Page<HotelCatalogResponseDto> searchWithComputedProcessing(
+    private SearchInternalResult searchWithComputedProcessing(
             Pageable pageable,
             HotelCatalogCriteria criteria,
             Specification<Hotel> spec
@@ -295,13 +308,22 @@ public class HotelCatalogServiceImpl implements HotelCatalogService {
         Page<Hotel> limitedResult = hotelRepository.findAll(spec, limitedPageable);
         List<Hotel> hotels = limitedResult.getContent();
 
-        List<HotelComputedView> computedViews = hotels.stream()
+        List<HotelComputedView> allMatchingViews = hotels.stream()
                 .filter(hotel -> !shouldApplyAvailabilityFiltering(criteria) || hasAnyAvailableRoom(hotel, criteria))
                 .map(hotel -> toComputedView(hotel, criteria, pageable))
+                .toList();
+
+        BigDecimal maxPrice = allMatchingViews.stream()
+                .map(HotelComputedView::minPrice)
+                .filter(Objects::nonNull)
+                .max(BigDecimal::compareTo)
+                .orElse(BigDecimal.valueOf(2000));
+
+        List<HotelComputedView> filteredViews = allMatchingViews.stream()
                 .filter(view -> matchesPriceRange(view, criteria))
                 .toList();
 
-        List<HotelComputedView> sortedViews = new ArrayList<>(computedViews);
+        List<HotelComputedView> sortedViews = new ArrayList<>(filteredViews);
         sortedViews.sort(buildComparator(pageable));
 
         List<HotelComputedView> pagedViews = slicePage(sortedViews, pageable);
@@ -319,7 +341,7 @@ public class HotelCatalogServiceImpl implements HotelCatalogService {
                 ))
                 .toList();
 
-        return new PageImpl<>(content, pageable, sortedViews.size());
+        return new SearchInternalResult(new PageImpl<>(content, pageable, sortedViews.size()), maxPrice);
     }
 
     private Specification<Hotel> buildSpecification(HotelCatalogCriteria criteria) {
@@ -839,6 +861,11 @@ public class HotelCatalogServiceImpl implements HotelCatalogService {
 
         return copy;
     }
+
+    private record SearchInternalResult(
+            Page<HotelCatalogResponseDto> page,
+            BigDecimal maxPrice
+    ) {}
 
     private record HotelComputedView(
             Hotel hotel,

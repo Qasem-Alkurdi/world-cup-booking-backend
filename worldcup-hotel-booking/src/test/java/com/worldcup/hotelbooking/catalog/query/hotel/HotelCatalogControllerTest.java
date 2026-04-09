@@ -116,7 +116,8 @@ class HotelCatalogControllerTest {
                 ),
                 HotelCatalogSearchMode.NORMAL,
                 false,
-                "Catalog retrieved successfully"
+                "Catalog retrieved successfully",
+                BigDecimal.valueOf(450)
         );
 
         when(service.search(any(), any())).thenReturn(response);
@@ -132,6 +133,7 @@ class HotelCatalogControllerTest {
                 .andExpect(jsonPath("$.searchMode").value("NORMAL"))
                 .andExpect(jsonPath("$.fallbackApplied").value(false))
                 .andExpect(jsonPath("$.message").value("Catalog retrieved successfully"))
+                .andExpect(jsonPath("$.maxTotalPriceFound").value(450))
                 .andExpect(jsonPath("$.hotels.content.length()").value(2))
                 .andExpect(jsonPath("$.hotels.content[0].id").value(1))
                 .andExpect(jsonPath("$.hotels.content[0].name").value("Royal Hotel"))
@@ -155,7 +157,8 @@ class HotelCatalogControllerTest {
                 new PageImpl<>(List.of(), PageRequest.of(0, 10), 0),
                 HotelCatalogSearchMode.NORMAL,
                 false,
-                "Catalog retrieved successfully"
+                "Catalog retrieved successfully",
+                null
         );
 
         when(service.search(any(), any())).thenReturn(response);
@@ -175,6 +178,7 @@ class HotelCatalogControllerTest {
                 .andExpect(jsonPath("$.searchMode").value("NORMAL"))
                 .andExpect(jsonPath("$.fallbackApplied").value(false))
                 .andExpect(jsonPath("$.message").value("Catalog retrieved successfully"))
+                .andExpect(jsonPath("$.maxTotalPriceFound").isEmpty())
                 .andExpect(jsonPath("$.hotels.content.length()").value(0))
                 .andExpect(jsonPath("$.hotels.totalElements").value(0))
                 .andExpect(jsonPath("$.hotels.size").value(10))
@@ -203,7 +207,8 @@ class HotelCatalogControllerTest {
                 new PageImpl<>(List.of(dto), PageRequest.of(0, 10), 1),
                 HotelCatalogSearchMode.MATCH_RADIUS_5KM,
                 false,
-                "Showing hotels within 5 km of the match stadium"
+                "Showing hotels within 5 km of the match stadium",
+                null
         );
 
         when(service.search(any(), any())).thenReturn(response);
@@ -217,6 +222,7 @@ class HotelCatalogControllerTest {
                 .andExpect(jsonPath("$.searchMode").value("MATCH_RADIUS_5KM"))
                 .andExpect(jsonPath("$.fallbackApplied").value(false))
                 .andExpect(jsonPath("$.message").value("Showing hotels within 5 km of the match stadium"))
+                .andExpect(jsonPath("$.maxTotalPriceFound").isEmpty())
                 .andExpect(jsonPath("$.hotels.content.length()").value(1))
                 .andExpect(jsonPath("$.hotels.content[0].name").value("Nearby Hotel"))
                 .andExpect(jsonPath("$.hotels.totalElements").value(1));
@@ -244,7 +250,8 @@ class HotelCatalogControllerTest {
                 new PageImpl<>(List.of(dto), PageRequest.of(0, 10), 1),
                 HotelCatalogSearchMode.MATCH_RADIUS_15KM,
                 true,
-                "No hotels found in the smaller radius. Expanded search to 15 km around the match stadium"
+                "No hotels found in the smaller radius. Expanded search to 15 km around the match stadium",
+                null
         );
 
         when(service.search(any(), any())).thenReturn(response);
@@ -258,6 +265,7 @@ class HotelCatalogControllerTest {
                 .andExpect(jsonPath("$.searchMode").value("MATCH_RADIUS_15KM"))
                 .andExpect(jsonPath("$.fallbackApplied").value(true))
                 .andExpect(jsonPath("$.message").value("No hotels found in the smaller radius. Expanded search to 15 km around the match stadium"))
+                .andExpect(jsonPath("$.maxTotalPriceFound").isEmpty())
                 .andExpect(jsonPath("$.hotels.content.length()").value(1))
                 .andExpect(jsonPath("$.hotels.content[0].name").value("City Hotel"))
                 .andExpect(jsonPath("$.hotels.totalElements").value(1));
@@ -285,7 +293,8 @@ class HotelCatalogControllerTest {
                 new PageImpl<>(List.of(dto), PageRequest.of(0, 10), 1),
                 HotelCatalogSearchMode.MATCH_RADIUS_30KM,
                 true,
-                "No hotels found in the smaller radius. Expanded search to 30 km around the match stadium"
+                "No hotels found in the smaller radius. Expanded search to 30 km around the match stadium",
+                null
         );
 
         when(service.search(any(), any())).thenReturn(response);
@@ -299,6 +308,7 @@ class HotelCatalogControllerTest {
                 .andExpect(jsonPath("$.searchMode").value("MATCH_RADIUS_30KM"))
                 .andExpect(jsonPath("$.fallbackApplied").value(true))
                 .andExpect(jsonPath("$.message").value("No hotels found in the smaller radius. Expanded search to 30 km around the match stadium"))
+                .andExpect(jsonPath("$.maxTotalPriceFound").isEmpty())
                 .andExpect(jsonPath("$.hotels.content.length()").value(1))
                 .andExpect(jsonPath("$.hotels.content[0].name").value("Farther Hotel"))
                 .andExpect(jsonPath("$.hotels.totalElements").value(1));
@@ -326,7 +336,8 @@ class HotelCatalogControllerTest {
                 new PageImpl<>(List.of(dto), PageRequest.of(0, 10), 1),
                 HotelCatalogSearchMode.STADIUM_RADIUS_5KM,
                 false,
-                "Showing hotels within 5 km of the selected stadium"
+                "Showing hotels within 5 km of the selected stadium",
+                null
         );
 
         when(service.search(any(), any())).thenReturn(response);
@@ -340,6 +351,7 @@ class HotelCatalogControllerTest {
                 .andExpect(jsonPath("$.searchMode").value("STADIUM_RADIUS_5KM"))
                 .andExpect(jsonPath("$.fallbackApplied").value(false))
                 .andExpect(jsonPath("$.message").value("Showing hotels within 5 km of the selected stadium"))
+                .andExpect(jsonPath("$.maxTotalPriceFound").isEmpty())
                 .andExpect(jsonPath("$.hotels.content.length()").value(1))
                 .andExpect(jsonPath("$.hotels.content[0].name").value("Stadium Nearby Hotel"))
                 .andExpect(jsonPath("$.hotels.totalElements").value(1));
