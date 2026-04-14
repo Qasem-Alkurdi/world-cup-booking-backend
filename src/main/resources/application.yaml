@@ -1,0 +1,97 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://${MYSQL_HOST}:5432/worldcup_hotel_booking_no_spelling_mistakes
+    username: ${SPRING_DATASOURCE_USERNAME:qasem_alkurdi}
+    password: ${SPRING_DATASOURCE_PASSWORD:197019742005}
+    driver-class-name: org.postgresql.Driver
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 5MB
+  application:
+    name: worldcup-hotel-booking
+  profiles:
+    active: local,seed
+  jpa:
+    hibernate:
+      ddl-auto: ${SPRING_JPA_HIBERNATE_DDL_AUTO:update}
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        show_sql: true
+        format_sql: true
+    open-in-view: false
+  flyway:
+    baseline-on-migrate: true
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
+            scope: profile, email
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+        provider:
+          google:
+            issuer-uri: https://accounts.google.com
+
+  # Cache provider — Caffeine for local/dev, override per profile if needed
+  cache:
+    type: caffeine
+    cache-names:
+      - hotelList
+      - hotelById
+      - myHotels
+      - hotelPhotos
+      - roomTypesByHotel
+      - roomTypeById
+      - roomTypePhotos
+      - bookingById
+      - bookingByReference
+      - guestHistory
+      - hotelUpcoming
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+  api-docs:
+    path: /api-docs
+
+logging:
+  level:
+    org.springdoc: DEBUG
+
+
+app:
+  frontend-url: http://localhost:3000
+  storage:
+    upload-dir: ./uploads
+    public-base-url: http://localhost:8080/uploads
+    max-file-size-bytes: 5242880
+
+  # TTL values in minutes — shared with the whole team via git
+  # Change a number here, it applies everywhere without touching code
+  cache:
+    ttl:
+      hotel-list: 10
+      hotel-by-id: 10
+      my-hotels: 10
+      hotel-photos: 10
+      room-types-by-hotel: 10
+      room-type-by-id: 10
+      room-type-photos: 10
+      booking-by-id: 5
+      booking-by-reference: 5
+      guest-history: 5
+      hotel-upcoming: 5
+  password:
+    min-length: 12
+
+security:
+  jwt:
+    secret: ${JWT_SECRET:defaultSecretKeyWithAtLeast32CharactersBase64Encoded}
+    issuer: worldcup-hotel-booking
+    access-token-minutes: 60
+    refresh-token-days: 7

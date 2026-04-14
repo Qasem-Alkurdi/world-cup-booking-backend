@@ -1,0 +1,33 @@
+spring:
+  application:
+    name: worldcup-hotel-booking
+  datasource:
+    url: jdbc:postgresql://localhost:5432/worldcup_test
+    username: qasem_alkurdi
+    password: 197019742005
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        show_sql: true
+        format_sql: true
+    open-in-view: false
+  flyway:
+    enabled: false
+
+security:
+  jwt:
+    secret: mySuperSecretKeyThatIsAtLeast32CharactersLongForHS256Algorithm
+    access-token-minutes: 15
+    refresh-token-days: 7
+    issuer: worldcup-hotel-booking
+
+app:
+  storage:
+    upload-dir: ./test-uploads
+
+logging:
+  level:
+    org.springframework.security: DEBUG
