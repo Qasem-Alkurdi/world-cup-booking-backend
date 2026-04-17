@@ -1,12 +1,12 @@
 package com.worldcup.hotelbooking.user;
 
-import com.worldcup.hotelbooking.booking.core.Booking;
-import com.worldcup.hotelbooking.booking.core.BookingResponseDto;
 import com.worldcup.hotelbooking.chat.ChatMessageRepository;
 import com.worldcup.hotelbooking.chat.ConversationRepository;
 import com.worldcup.hotelbooking.notification.NotificationRepository;
 import com.worldcup.hotelbooking.notification.NotificationService;
 import com.worldcup.hotelbooking.payment.PaymentRepository;
+import com.worldcup.hotelbooking.reservation.booking.Booking;
+import com.worldcup.hotelbooking.reservation.booking.BookingResponseDto;
 import com.worldcup.hotelbooking.review.ReviewRepository;
 import com.worldcup.hotelbooking.security.RefreshTokenRepository;
 import org.junit.jupiter.api.BeforeEach;

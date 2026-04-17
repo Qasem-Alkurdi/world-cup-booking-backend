@@ -35,7 +35,7 @@ public class AppUserMapper {
                 user.getBookings() == null ? null :
                         user.getBookings()
                         .stream()
-                        .map(com.worldcup.hotelbooking.booking.core.BookingMapper::toDto)
+                        .map(com.worldcup.hotelbooking.reservation.booking.BookingMapper::toDto)
                         .toList()
         );
     }

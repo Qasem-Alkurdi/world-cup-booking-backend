@@ -1,6 +1,6 @@
 package com.worldcup.hotelbooking.user;
 
-import com.worldcup.hotelbooking.booking.core.BookingResponseDto;
+import com.worldcup.hotelbooking.reservation.booking.BookingResponseDto;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 

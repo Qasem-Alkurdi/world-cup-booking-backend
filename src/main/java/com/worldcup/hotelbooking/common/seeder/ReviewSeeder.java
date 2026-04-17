@@ -1,9 +1,9 @@
 package com.worldcup.hotelbooking.common.seeder;
 
-import com.worldcup.hotelbooking.booking.core.Booking;
-import com.worldcup.hotelbooking.booking.core.BookingRepository;
 import com.worldcup.hotelbooking.catalog.hotel.Hotel;
 import com.worldcup.hotelbooking.catalog.hotel.HotelRepository;
+import com.worldcup.hotelbooking.reservation.booking.Booking;
+import com.worldcup.hotelbooking.reservation.booking.BookingRepository;
 import com.worldcup.hotelbooking.review.Review;
 import com.worldcup.hotelbooking.review.ReviewRepository;
 import lombok.RequiredArgsConstructor;

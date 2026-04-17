@@ -1,7 +1,7 @@
 package com.worldcup.hotelbooking.user;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.worldcup.hotelbooking.booking.core.BookingResponseDto;
+import com.worldcup.hotelbooking.reservation.booking.BookingResponseDto;
 
 import java.util.List;
 import java.util.Set;

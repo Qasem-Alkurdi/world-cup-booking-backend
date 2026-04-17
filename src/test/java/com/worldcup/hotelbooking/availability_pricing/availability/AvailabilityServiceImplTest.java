@@ -1,12 +1,12 @@
 package com.worldcup.hotelbooking.availability_pricing.availability;
 
-import com.worldcup.hotelbooking.booking.bookingroom.BookingRoom;
-import com.worldcup.hotelbooking.booking.bookingroom.BookingRoomRepository;
-import com.worldcup.hotelbooking.booking.core.Booking;
 import com.worldcup.hotelbooking.catalog.hotel.Hotel;
 import com.worldcup.hotelbooking.catalog.roomtype.RoomType;
 import com.worldcup.hotelbooking.catalog.roomtype.RoomTypeRepository;
 import com.worldcup.hotelbooking.catalog.roomtype.exception.RoomTypeNotFoundException;
+import com.worldcup.hotelbooking.reservation.booking.Booking;
+import com.worldcup.hotelbooking.reservation.bookingroom.BookingRoom;
+import com.worldcup.hotelbooking.reservation.bookingroom.BookingRoomRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

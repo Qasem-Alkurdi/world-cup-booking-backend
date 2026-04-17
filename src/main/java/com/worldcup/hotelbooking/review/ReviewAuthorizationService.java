@@ -1,7 +1,7 @@
 package com.worldcup.hotelbooking.review;
 
-import com.worldcup.hotelbooking.booking.core.Booking;
-import com.worldcup.hotelbooking.booking.core.BookingRepository;
+import com.worldcup.hotelbooking.reservation.booking.Booking;
+import com.worldcup.hotelbooking.reservation.booking.BookingRepository;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

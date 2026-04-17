@@ -1,7 +1,7 @@
 package com.worldcup.hotelbooking.user;
 
 import com.fasterxml.jackson.annotation.JsonManagedReference;
-import com.worldcup.hotelbooking.booking.core.Booking;
+import com.worldcup.hotelbooking.reservation.booking.Booking;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;

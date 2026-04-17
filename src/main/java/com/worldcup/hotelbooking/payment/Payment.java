@@ -1,6 +1,6 @@
 package com.worldcup.hotelbooking.payment;
 
-import com.worldcup.hotelbooking.booking.core.Booking;
+import com.worldcup.hotelbooking.reservation.booking.Booking;
 import jakarta.persistence.*;
 import lombok.Data;
 

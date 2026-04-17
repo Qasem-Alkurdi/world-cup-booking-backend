@@ -1,7 +1,6 @@
 package com.worldcup.hotelbooking.catalog.query.roomtype;
 
 import com.worldcup.hotelbooking.availability_pricing.pricing.EnhancedPricingServiceImpl;
-import com.worldcup.hotelbooking.booking.core.Booking;
 import com.worldcup.hotelbooking.catalog.query.roomtype.dto.RoomTypeQueryResponseDto;
 import com.worldcup.hotelbooking.catalog.query.roomtype.mapper.RoomTypeQueryMapper;
 import com.worldcup.hotelbooking.catalog.roomtype.RoomType;
@@ -9,9 +8,9 @@ import com.worldcup.hotelbooking.catalog.roomtype.RoomTypeService;
 import com.worldcup.hotelbooking.catalog.roomtype.dto.RoomTypeAvailabilityCriteria;
 import com.worldcup.hotelbooking.catalog.roomtypephoto.RoomTypePhoto;
 import com.worldcup.hotelbooking.catalog.roomtypephoto.RoomTypePhotoRepository;
+import com.worldcup.hotelbooking.reservation.booking.Booking;
 import com.worldcup.hotelbooking.tournament.match.Match;
 import com.worldcup.hotelbooking.tournament.match.MatchRepository;
-
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 

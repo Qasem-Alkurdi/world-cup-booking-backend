@@ -1,10 +1,10 @@
 package com.worldcup.hotelbooking.payment;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.worldcup.hotelbooking.booking.core.Booking;
-import com.worldcup.hotelbooking.booking.core.BookingServiceImpl;
 import com.worldcup.hotelbooking.catalog.storage.StaticResourceConfig;
 import com.worldcup.hotelbooking.catalog.storage.StorageProperties;
+import com.worldcup.hotelbooking.reservation.booking.Booking;
+import com.worldcup.hotelbooking.reservation.booking.BookingServiceImpl;
 import com.worldcup.hotelbooking.security.JwtTokenService;
 import com.worldcup.hotelbooking.security.RateLimitService;
 import org.junit.jupiter.api.DisplayName;

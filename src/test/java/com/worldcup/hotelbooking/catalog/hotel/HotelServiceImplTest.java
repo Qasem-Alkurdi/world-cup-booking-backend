@@ -1,9 +1,9 @@
 package com.worldcup.hotelbooking.catalog.hotel;
 
-import com.worldcup.hotelbooking.booking.core.BookingRepository;
 import com.worldcup.hotelbooking.catalog.hotel.dto.UpdateHotelPatchRequest;
 import com.worldcup.hotelbooking.catalog.hotel.exception.DeleteConflictException;
 import com.worldcup.hotelbooking.catalog.hotel.exception.HotelNotFoundException;
+import com.worldcup.hotelbooking.reservation.booking.BookingRepository;
 import com.worldcup.hotelbooking.user.AppUser;
 import com.worldcup.hotelbooking.user.AppUserNotFoundException;
 import com.worldcup.hotelbooking.user.AppUserRepository;
@@ -18,9 +18,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.List;
 import java.util.Optional;
 
-import static com.worldcup.hotelbooking.booking.core.Booking.BookingStatus.CONFIRMED;
-import static com.worldcup.hotelbooking.booking.core.Booking.BookingStatus.PENDING;
 import static com.worldcup.hotelbooking.catalog.hotel.HotelStatus.APPROVED;
+import static com.worldcup.hotelbooking.reservation.booking.Booking.BookingStatus.CONFIRMED;
+import static com.worldcup.hotelbooking.reservation.booking.Booking.BookingStatus.PENDING;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;

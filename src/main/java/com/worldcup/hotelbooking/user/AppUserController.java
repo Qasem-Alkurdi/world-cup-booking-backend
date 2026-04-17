@@ -1,6 +1,6 @@
 package com.worldcup.hotelbooking.user;
 
-import com.worldcup.hotelbooking.booking.core.BookingResponseDto;
+import com.worldcup.hotelbooking.reservation.booking.BookingResponseDto;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;

@@ -1,8 +1,8 @@
 package com.worldcup.hotelbooking.payment;
 
-import com.worldcup.hotelbooking.booking.core.BookingNotFoundException;
-import com.worldcup.hotelbooking.booking.core.BookingRepository;
 import com.worldcup.hotelbooking.catalog.hotel.HotelRepository;
+import com.worldcup.hotelbooking.reservation.booking.BookingNotFoundException;
+import com.worldcup.hotelbooking.reservation.booking.BookingRepository;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
