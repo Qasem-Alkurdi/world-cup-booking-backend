@@ -1,6 +1,6 @@
 package com.worldcup.hotelbooking.booking.cancellation;
 
-import com.worldcup.hotelbooking.booking.booking.Booking;
+import com.worldcup.hotelbooking.booking.core.Booking;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;

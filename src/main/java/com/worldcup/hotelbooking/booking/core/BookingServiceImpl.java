@@ -1,4 +1,4 @@
-package com.worldcup.hotelbooking.booking.booking;
+package com.worldcup.hotelbooking.booking.core;
 
 import com.worldcup.hotelbooking.availability_pricing.availability.AvailabilityServiceImpl;
 import com.worldcup.hotelbooking.availability_pricing.pricing.EnhancedPricingServiceImpl;

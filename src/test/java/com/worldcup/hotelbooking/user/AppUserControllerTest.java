@@ -1,7 +1,7 @@
 package com.worldcup.hotelbooking.user;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.worldcup.hotelbooking.booking.booking.BookingResponseDto;
+import com.worldcup.hotelbooking.booking.core.BookingResponseDto;
 import com.worldcup.hotelbooking.security.JwtTokenService;
 import com.worldcup.hotelbooking.security.RateLimitService;
 import org.junit.jupiter.api.BeforeEach;

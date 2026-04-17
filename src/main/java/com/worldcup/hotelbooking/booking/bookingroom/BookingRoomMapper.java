@@ -1,6 +1,6 @@
 package com.worldcup.hotelbooking.booking.bookingroom;
 
-import com.worldcup.hotelbooking.booking.booking.Booking;
+import com.worldcup.hotelbooking.booking.core.Booking;
 import com.worldcup.hotelbooking.catalog.roomtype.RoomType;
 
 public class BookingRoomMapper {

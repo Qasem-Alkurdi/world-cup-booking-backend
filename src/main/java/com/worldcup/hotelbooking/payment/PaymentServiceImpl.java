@@ -1,7 +1,7 @@
 package com.worldcup.hotelbooking.payment;
 
-import com.worldcup.hotelbooking.booking.booking.Booking;
-import com.worldcup.hotelbooking.booking.booking.BookingRepository;
+import com.worldcup.hotelbooking.booking.core.Booking;
+import com.worldcup.hotelbooking.booking.core.BookingRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.cache.annotation.CacheEvict;

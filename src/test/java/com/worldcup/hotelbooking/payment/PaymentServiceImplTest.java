@@ -1,7 +1,7 @@
 package com.worldcup.hotelbooking.payment;
 
-import com.worldcup.hotelbooking.booking.booking.Booking;
-import com.worldcup.hotelbooking.booking.booking.BookingRepository;
+import com.worldcup.hotelbooking.booking.core.Booking;
+import com.worldcup.hotelbooking.booking.core.BookingRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

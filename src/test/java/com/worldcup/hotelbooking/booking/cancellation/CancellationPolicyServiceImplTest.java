@@ -1,6 +1,6 @@
 package com.worldcup.hotelbooking.booking.cancellation;
 
-import com.worldcup.hotelbooking.booking.booking.Booking;
+import com.worldcup.hotelbooking.booking.core.Booking;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;

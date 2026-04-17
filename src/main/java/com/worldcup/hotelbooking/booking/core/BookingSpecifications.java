@@ -1,4 +1,4 @@
-package com.worldcup.hotelbooking.booking.booking;
+package com.worldcup.hotelbooking.booking.core;
 
 import jakarta.persistence.criteria.JoinType;
 import org.springframework.data.jpa.domain.Specification;

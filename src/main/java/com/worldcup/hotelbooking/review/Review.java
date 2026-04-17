@@ -1,6 +1,6 @@
 package com.worldcup.hotelbooking.review;
 
-import com.worldcup.hotelbooking.booking.booking.Booking;
+import com.worldcup.hotelbooking.booking.core.Booking;
 import com.worldcup.hotelbooking.catalog.hotel.Hotel;
 import com.worldcup.hotelbooking.user.AppUser;
 import jakarta.persistence.*;

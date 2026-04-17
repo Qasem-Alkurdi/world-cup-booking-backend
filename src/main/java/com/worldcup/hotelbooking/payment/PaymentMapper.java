@@ -1,6 +1,6 @@
 package com.worldcup.hotelbooking.payment;
 
-import com.worldcup.hotelbooking.booking.booking.Booking;
+import com.worldcup.hotelbooking.booking.core.Booking;
 
 public class PaymentMapper {
     public static PaymentIntentResponseDto toPaymentIntentDto(Payment payment) {

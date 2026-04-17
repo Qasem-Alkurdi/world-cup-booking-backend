@@ -1,8 +1,8 @@
 package com.worldcup.hotelbooking.user;
 
-import com.worldcup.hotelbooking.booking.booking.Booking;
-import com.worldcup.hotelbooking.booking.booking.BookingMapper;
-import com.worldcup.hotelbooking.booking.booking.BookingResponseDto;
+import com.worldcup.hotelbooking.booking.core.Booking;
+import com.worldcup.hotelbooking.booking.core.BookingMapper;
+import com.worldcup.hotelbooking.booking.core.BookingResponseDto;
 import com.worldcup.hotelbooking.chat.ChatMessageRepository;
 import com.worldcup.hotelbooking.chat.Conversation;
 import com.worldcup.hotelbooking.chat.ConversationRepository;

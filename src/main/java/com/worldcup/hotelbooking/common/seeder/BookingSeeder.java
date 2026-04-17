@@ -1,8 +1,8 @@
 package com.worldcup.hotelbooking.common.seeder;
 
-import com.worldcup.hotelbooking.booking.booking.Booking;
-import com.worldcup.hotelbooking.booking.booking.BookingRepository;
 import com.worldcup.hotelbooking.booking.bookingroom.BookingRoom;
+import com.worldcup.hotelbooking.booking.core.Booking;
+import com.worldcup.hotelbooking.booking.core.BookingRepository;
 import com.worldcup.hotelbooking.catalog.hotel.Hotel;
 import com.worldcup.hotelbooking.catalog.hotel.HotelRepository;
 import com.worldcup.hotelbooking.catalog.roomtype.RoomType;

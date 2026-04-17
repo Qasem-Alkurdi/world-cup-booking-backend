@@ -1,4 +1,4 @@
-package com.worldcup.hotelbooking.booking.booking;
+package com.worldcup.hotelbooking.booking.core;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

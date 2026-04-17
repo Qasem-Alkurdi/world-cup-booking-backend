@@ -1,6 +1,6 @@
 package com.worldcup.hotelbooking.payment;
 
-import com.worldcup.hotelbooking.booking.booking.BookingServiceImpl;
+import com.worldcup.hotelbooking.booking.core.BookingServiceImpl;
 import com.worldcup.hotelbooking.common.response.PagedResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;

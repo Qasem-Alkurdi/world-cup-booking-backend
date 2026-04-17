@@ -1,4 +1,4 @@
-package com.worldcup.hotelbooking.booking.booking;
+package com.worldcup.hotelbooking.booking.core;
 
 import com.worldcup.hotelbooking.catalog.hotel.HotelRepository;
 import com.worldcup.hotelbooking.chat.ConversationRepository;

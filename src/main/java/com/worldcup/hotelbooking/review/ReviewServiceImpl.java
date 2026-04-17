@@ -1,7 +1,7 @@
 package com.worldcup.hotelbooking.review;
 
-import com.worldcup.hotelbooking.booking.booking.Booking;
-import com.worldcup.hotelbooking.booking.booking.BookingRepository;
+import com.worldcup.hotelbooking.booking.core.Booking;
+import com.worldcup.hotelbooking.booking.core.BookingRepository;
 import com.worldcup.hotelbooking.catalog.hotel.Hotel;
 import com.worldcup.hotelbooking.catalog.hotel.HotelRepository;
 import com.worldcup.hotelbooking.catalog.hotel.exception.HotelNotFoundException;
@@ -22,7 +22,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
 
-import static com.worldcup.hotelbooking.booking.booking.Booking.BookingStatus.CHECKED_OUT;
+import static com.worldcup.hotelbooking.booking.core.Booking.BookingStatus.CHECKED_OUT;
 import static com.worldcup.hotelbooking.catalog.hotel.HotelStatus.APPROVED;
 
 @Service

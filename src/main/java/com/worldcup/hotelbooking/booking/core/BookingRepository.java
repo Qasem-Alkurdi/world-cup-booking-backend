@@ -1,4 +1,4 @@
-package com.worldcup.hotelbooking.booking.booking;
+package com.worldcup.hotelbooking.booking.core;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
