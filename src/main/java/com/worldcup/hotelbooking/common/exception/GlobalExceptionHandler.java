@@ -1,0 +1,576 @@
+package com.worldcup.hotelbooking.common.exception;
+
+import com.nimbusds.jose.jwk.source.RateLimitReachedException;
+import com.worldcup.hotelbooking.auth.InvalidCredentialsException;
+import com.worldcup.hotelbooking.auth.InvalidRefreshTokenException;
+import com.worldcup.hotelbooking.catalog.hotel.exception.DeleteConflictException;
+import com.worldcup.hotelbooking.catalog.hotel.exception.HotelNotFoundException;
+import com.worldcup.hotelbooking.catalog.hotelphoto.exception.HotelPhotoNotFoundException;
+import com.worldcup.hotelbooking.catalog.hotelphoto.exception.InvalidPhotoOrderException;
+import com.worldcup.hotelbooking.catalog.query.hotel.exception.CheckOutBeforeCheckIn;
+import com.worldcup.hotelbooking.catalog.query.hotel.exception.CheckOutDateAreRequired;
+import com.worldcup.hotelbooking.catalog.roomtype.exception.RoomTypeAlreadyExistsException;
+import com.worldcup.hotelbooking.catalog.roomtype.exception.RoomTypeNotFoundException;
+import com.worldcup.hotelbooking.catalog.roomtypephoto.exception.RoomTypePhotoNotFoundException;
+import com.worldcup.hotelbooking.catalog.storage.exception.InvalidPhotoFileException;
+import com.worldcup.hotelbooking.catalog.storage.exception.StorageOperationException;
+import com.worldcup.hotelbooking.chat.ConversationNotFoundException;
+import com.worldcup.hotelbooking.payment.PaymentException;
+import com.worldcup.hotelbooking.reservation.booking.BookingNotFoundException;
+import com.worldcup.hotelbooking.reservation.booking.ModificationNotAllowedException;
+import com.worldcup.hotelbooking.reservation.bookingroom.BookingRoomNotFoundException;
+import com.worldcup.hotelbooking.reservation.cancellation.CancellationNotAllowedException;
+import com.worldcup.hotelbooking.review.exception.ReviewAlreadyExistsException;
+import com.worldcup.hotelbooking.review.exception.ReviewNotFoundException;
+import com.worldcup.hotelbooking.review.exception.ReviewOwnershipException;
+import com.worldcup.hotelbooking.tournament.match.MatchNotFoundException;
+import com.worldcup.hotelbooking.tournament.stadium.StadiumNotFoundException;
+import com.worldcup.hotelbooking.user.AppUserNotFoundException;
+import com.worldcup.hotelbooking.user.PasswordValidationException;
+import com.worldcup.hotelbooking.user.UserDeletionException;
+import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.ControllerAdvice;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+
+import java.time.Instant;
+
+@ControllerAdvice
+public class GlobalExceptionHandler {
+
+    //For Booking and Payment
+    @ExceptionHandler(PaymentException.class)
+    public ResponseEntity<ApiError> handlePaymentNotFound(PaymentException ex, HttpServletRequest request) {
+        ApiError body = new ApiError(
+                Instant.now().toString(),
+                404,
+                "Not Found",
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body);
+    }
+
+
+    @ExceptionHandler(BookingNotFoundException.class)
+    public ResponseEntity<ApiError> handleBookingNotFound(BookingNotFoundException ex, HttpServletRequest request) {
+        ApiError body = new ApiError(
+                Instant.now().toString(),
+                404,
+                "Not Found",
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body);
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ApiError> handleIllegalArgument(IllegalArgumentException ex, HttpServletRequest request) {
+        ApiError body = new ApiError(
+                Instant.now().toString(),
+                400,
+                "Bad Request",
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
+    }
+
+    @ExceptionHandler(BookingRoomNotFoundException.class)
+    public ResponseEntity<ApiError> handleBookingRoomNotFound(BookingRoomNotFoundException ex, HttpServletRequest request) {
+        ApiError body = new ApiError(
+                Instant.now().toString(),
+                404,
+                "Not Found",
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body);
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ApiError> handleValidationException(
+            MethodArgumentNotValidException ex,
+            HttpServletRequest request
+    ) {
+        String errorMessage = ex.getBindingResult().getFieldErrors().stream()
+                .map(error -> error.getField() + ": " + error.getDefaultMessage())
+                .reduce((msg1, msg2) -> msg1 + "; " + msg2)
+                .orElse("Validation failed");
+
+        ApiError body = new ApiError(
+                Instant.now().toString(),
+                400,
+                "Bad Request",
+                errorMessage,
+                request.getRequestURI()
+        );
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
+    }
+
+    @ExceptionHandler(ModificationNotAllowedException.class)
+    public ResponseEntity<ApiError> handleModificationNotAllowed(ModificationNotAllowedException ex, HttpServletRequest request) {
+        ApiError body = new ApiError(
+                Instant.now().toString(),
+                403,
+                "Forbidden",
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(body);
+    }
+
+    @ExceptionHandler(CancellationNotAllowedException.class)
+    public ResponseEntity<ApiError> handleCancellationNotAllowed(CancellationNotAllowedException ex, HttpServletRequest request) {
+        ApiError body = new ApiError(
+                Instant.now().toString(),
+                403,
+                "Forbidden",
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(body);
+    }
+
+    @ExceptionHandler(RateLimitReachedException.class)
+    public ResponseEntity<ApiError> handleRateLimitReached(RateLimitReachedException ex, HttpServletRequest request) {
+        ApiError body = new ApiError(
+                Instant.now().toString(),
+                429,
+                "Too Many Requests",
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(body);
+    }
+
+    @ExceptionHandler(ConversationNotFoundException.class)
+    public ResponseEntity<ApiError> handleConversationNotFound(ConversationNotFoundException ex, HttpServletRequest request) {
+        ApiError body = new ApiError(
+                Instant.now().toString(),
+                404,
+                "Not Found",
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body);
+    }
+
+
+// catalog start
+
+    // hotel start
+    // 404
+    @ExceptionHandler(HotelNotFoundException.class)
+    public ResponseEntity<ApiError> handleHotelNotFound(HotelNotFoundException ex, HttpServletRequest request) {
+        ApiError body = new ApiError(
+                Instant.now().toString(),
+                404,
+                "Not Found",
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body);
+    }
+
+    // 409
+    @ExceptionHandler(DeleteConflictException.class)
+    public ResponseEntity<ApiError> handleDeleteConflict(DeleteConflictException ex, HttpServletRequest request) {
+        ApiError body = new ApiError(
+                Instant.now().toString(),
+                409,
+                "Conflict",
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(body);
+    }
+    // hotel end
+
+    //roomType start
+    @ExceptionHandler(RoomTypeNotFoundException.class)
+    public ResponseEntity<ApiError> handleRoomTypeNotFound(
+            RoomTypeNotFoundException ex,
+            HttpServletRequest request
+    ) {
+        ApiError body = new ApiError(
+                Instant.now().toString(),
+                404,
+                "Not Found",
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body);
+    }
+
+    @ExceptionHandler(RoomTypeAlreadyExistsException.class)
+    public ResponseEntity<ApiError> handleRoomTypeAlreadyExists(
+            RoomTypeAlreadyExistsException ex,
+            HttpServletRequest request
+    ) {
+        ApiError body = new ApiError(
+                Instant.now().toString(),
+                409,
+                "Conflict",
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(body);
+    }
+
+    //search start
+    @ExceptionHandler(CheckOutBeforeCheckIn.class)
+    public ResponseEntity<ApiError> handleCheckOutBeforeCheckIn(
+            CheckOutBeforeCheckIn ex,
+            HttpServletRequest request
+    ) {
+        ApiError body = new ApiError(
+                Instant.now().toString(),
+                400,
+                "Bad Request",
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
+    }
+
+    @ExceptionHandler(CheckOutDateAreRequired.class)
+    public ResponseEntity<ApiError> handleCheckOutDateAreRequired(
+            CheckOutDateAreRequired ex,
+            HttpServletRequest request
+    ) {
+        ApiError body = new ApiError(
+                Instant.now().toString(),
+                400,
+                "Bad Request",
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
+    }
+
+
+    //search end
+    //photo start
+    @ExceptionHandler(InvalidPhotoFileException.class)
+    public ResponseEntity<ApiError> handleInvalidPhotoFileException(
+            InvalidPhotoFileException ex,
+            HttpServletRequest request
+    ) {
+        ApiError body = new ApiError(
+                Instant.now().toString(),
+                400,
+                "Bad Request",
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
+    }
+
+    @ExceptionHandler(StorageOperationException.class)
+    public ResponseEntity<ApiError> handleStorageOperationException(
+            StorageOperationException ex,
+            HttpServletRequest request
+    ) {
+        ApiError body = new ApiError(
+                Instant.now().toString(),
+                500,
+                "Internal Server Error",
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(body);
+    }
+
+    @ExceptionHandler(HotelPhotoNotFoundException.class)
+    public ResponseEntity<ApiError> handleHotelPhotoNotFound(
+            HotelPhotoNotFoundException ex,
+            HttpServletRequest request
+    ) {
+        ApiError body = new ApiError(
+                Instant.now().toString(),
+                HttpStatus.NOT_FOUND.value(),
+                HttpStatus.NOT_FOUND.getReasonPhrase(),
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body);
+    }
+
+    @ExceptionHandler(RoomTypePhotoNotFoundException.class)
+    public ResponseEntity<ApiError> handleRoomTypePhotoNotFound(
+            RoomTypePhotoNotFoundException ex,
+            HttpServletRequest request
+    ) {
+        ApiError body = new ApiError(
+                Instant.now().toString(),
+                HttpStatus.NOT_FOUND.value(),
+                HttpStatus.NOT_FOUND.getReasonPhrase(),
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body);
+    }
+
+    @ExceptionHandler(InvalidPhotoOrderException.class)
+    public ResponseEntity<ApiError> handleInvalidPhotoOrderException(
+            InvalidPhotoOrderException ex,
+            HttpServletRequest request
+    ) {
+        ApiError body = new ApiError(
+                Instant.now().toString(),
+                HttpStatus.BAD_REQUEST.value(),
+                HttpStatus.BAD_REQUEST.getReasonPhrase(),
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ApiError> handleMaxSizeException(
+            MaxUploadSizeExceededException ex,
+            HttpServletRequest request
+    ) {
+        ApiError error = new ApiError(
+                Instant.now().toString(),
+                413,
+                "Payload Too Large",
+                "File size exceeds the maximum allowed size",
+                request.getRequestURI()
+        );
+
+        return ResponseEntity.status(413).body(error);
+    }
+//photo end
+
+
+    // catalog end
+    // Review start
+    @ExceptionHandler(ReviewNotFoundException.class)
+    public ResponseEntity<ApiError> handleReviewNotFound(
+            ReviewNotFoundException ex,
+            HttpServletRequest request
+    ) {
+        ApiError body = new ApiError(
+                Instant.now().toString(),
+                404,
+                "Not Found",
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body);
+    }
+
+    @ExceptionHandler(ReviewAlreadyExistsException.class)
+    public ResponseEntity<ApiError> handleReviewAlreadyExists(
+            ReviewAlreadyExistsException ex,
+            HttpServletRequest request
+    ) {
+        ApiError body = new ApiError(
+                Instant.now().toString(),
+                409,
+                "Conflict",
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(body);
+    }
+
+    @ExceptionHandler(ReviewOwnershipException.class)
+    public ResponseEntity<ApiError> handleReviewOwnership(
+            ReviewOwnershipException ex,
+            HttpServletRequest request
+    ) {
+        ApiError body = new ApiError(
+                Instant.now().toString(),
+                403,
+                "Forbidden",
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(body);
+    }
+
+    @ExceptionHandler(jakarta.validation.ConstraintViolationException.class)
+    public ResponseEntity<ApiError> handleConstraintViolation(
+            jakarta.validation.ConstraintViolationException ex,
+            HttpServletRequest request
+    ) {
+        String message = ex.getConstraintViolations().stream()
+                .map(v -> v.getPropertyPath() + ": " + v.getMessage())
+                .reduce((a, b) -> a + "; " + b)
+                .orElse("Validation error");
+
+        ApiError body = new ApiError(
+                Instant.now().toString(),
+                400,
+                "Bad Request",
+                message,
+                request.getRequestURI()
+        );
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
+    }
+    // Review end
+
+    //user start
+    @ExceptionHandler(AppUserNotFoundException.class)
+    public ResponseEntity<ApiError> handleAppUserNotFound(AppUserNotFoundException ex, HttpServletRequest request) {
+        ApiError body = new ApiError(
+                Instant.now().toString(),
+                404,
+                "Not Found",
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body);
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ApiError> handleDataIntegrityViolation(
+            DataIntegrityViolationException ex,
+            HttpServletRequest request) {
+
+        String message = "Duplicate entry detected.";
+
+        String exMessage = ex.getMessage() != null ? ex.getMessage().toLowerCase() : "";
+
+        // 🔥 Extract root cause (the important fix)
+        Throwable root = ex.getRootCause();
+        String rootMessage = root != null && root.getMessage() != null
+                ? root.getMessage().toLowerCase()
+                : "";
+
+        // Prefer rootMessage, fallback to exMessage if needed
+        String checkMessage = !rootMessage.isEmpty() ? rootMessage : exMessage;
+
+        if (checkMessage.contains("username")) {
+            message = "Username already taken. Please choose a different username.";
+        } else if (checkMessage.contains("email")) {
+            message = "Email already registered. Please use a different email address.";
+        }
+
+        ApiError body = new ApiError(
+                Instant.now().toString(),
+                409,
+                "Conflict",
+                message,
+                request.getRequestURI()
+        );
+
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(body);
+    }
+
+
+    @ExceptionHandler(InvalidCredentialsException.class)
+    public ResponseEntity<ApiError> handleInvalidCredentials(InvalidCredentialsException ex, HttpServletRequest request) {
+        ApiError body = new ApiError(
+                Instant.now().toString(),
+                401,
+                "Unauthorized",
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(body);
+    }
+
+    @ExceptionHandler(InvalidRefreshTokenException.class)
+    public ResponseEntity<ApiError> handleInvalidRefreshToken(InvalidRefreshTokenException ex, HttpServletRequest request) {
+        ApiError body = new ApiError(
+                Instant.now().toString(),
+                401,
+                "Unauthorized",
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(body);
+    }
+
+    @ExceptionHandler(UserDeletionException.class)
+    public ResponseEntity<ApiError> handleUserDeletion(UserDeletionException ex, HttpServletRequest request) {
+        ApiError error = new ApiError(
+                Instant.now().toString(),
+                HttpStatus.CONFLICT.value(),
+                "Conflict",
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(error);
+    }
+    //user end
+
+
+    //stadium start
+    @ExceptionHandler(StadiumNotFoundException.class)
+    public ResponseEntity<ApiError> handleStadiumNotFound(StadiumNotFoundException ex, HttpServletRequest request) {
+        ApiError body = new ApiError(
+                Instant.now().toString(),
+                404,
+                "Not Found",
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body);
+    }
+
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<ApiError> handleIllegalState(IllegalStateException ex, HttpServletRequest request) {
+        ApiError body = new ApiError(
+                Instant.now().toString(),
+                409,
+                "Conflict",
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(body);
+    }
+    //stadium end
+    //Match start
+
+    @ExceptionHandler(MatchNotFoundException.class)
+    public ResponseEntity<ApiError> handleMatchNotFound(MatchNotFoundException ex, HttpServletRequest request) {
+        ApiError body = new ApiError(
+                Instant.now().toString(),
+                404,
+                "Not Found",
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body);
+    }
+
+    //match end
+
+    // Password validation errors start
+    @ExceptionHandler(PasswordValidationException.class)
+    public ResponseEntity<ApiError> handlePasswordValidationException(
+            PasswordValidationException ex,
+            HttpServletRequest request
+    ) {
+        // If your exception has a list of issues
+        String errors = String.join("; ", ex.getErrors());
+
+        ApiError body = new ApiError(
+                Instant.now().toString(),
+                400, // Bad Request
+                "Bad Request",
+                errors.isEmpty() ? "Password validation failed" : errors,
+                request.getRequestURI()
+        );
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
+    }
+    // Password validation errors end
+}

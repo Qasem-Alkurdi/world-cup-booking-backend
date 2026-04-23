@@ -1,0 +1,36 @@
+package com.worldcup.hotelbooking.review;
+
+import com.worldcup.hotelbooking.reservation.booking.Booking;
+import com.worldcup.hotelbooking.reservation.booking.BookingRepository;
+import org.springframework.security.core.Authentication;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+@Transactional(readOnly = true)
+public class ReviewAuthorizationService {
+
+    private final ReviewRepository reviewRepository;
+    private final BookingRepository bookingRepository;
+
+    public ReviewAuthorizationService(ReviewRepository reviewRepository,
+                                      BookingRepository bookingRepository) {
+        this.reviewRepository = reviewRepository;
+        this.bookingRepository = bookingRepository;
+    }
+
+    public boolean canCreateReview(Long bookingId, Authentication authentication) {
+        String username = authentication.getName();
+
+        Booking booking = bookingRepository.findById(bookingId).orElse(null);
+        if (booking == null || booking.getAppUser() == null) {
+            return false;
+        }
+
+        return username.equals(booking.getAppUser().getUsername());
+    }
+
+    public boolean canManageReview(Long reviewId, Authentication authentication) {
+        return reviewRepository.existsManageableReview(reviewId, authentication.getName());
+    }
+}

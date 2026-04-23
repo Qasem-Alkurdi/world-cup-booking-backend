@@ -1,0 +1,25 @@
+target/
+.idea/
+.mvn/
+uploads/
+.env
+*.log
+.DS_Store
+
+# Spring configs
+application-local.yml
+application-dev.yml
+application-test-local.yml
+
+# IDE files
+*.iml
+*.iws
+*.ipr
+.vscode/
+
+# NetBeans / STS
+.nb-gradle/
+.project
+.classpath
+.settings
+HELP.md
