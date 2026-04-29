@@ -25,11 +25,19 @@ public class AvailabilityServiceImpl {
     // @GetMapping("/availability/room-type/{id} ?checkIn=2026-06-10 &checkOut=2026-06-12"")
     @Transactional
     public boolean checkRoomTypeAvailability(Long roomTypeId, LocalDate checkIn, LocalDate checkOut) {
+        if(checkIn.isAfter(checkOut))
+            throw new IllegalArgumentException("Check in Date can not be after check date ");
+        if(checkIn.isBefore(LocalDate.now()))
+            throw new IllegalArgumentException("you can not enter past date ");
         return roomTypeRepository.findById(roomTypeId).orElseThrow(() -> new RoomTypeNotFoundException(roomTypeId)).getTotalRooms() - bookingRoomRepository.countBookedRooms(roomTypeId, checkIn, checkOut) > 0;
     }
 
     @Transactional
     public int getAvailableRooms(Long roomTypeId, LocalDate checkIn, LocalDate checkOut) {
+        if(checkIn.isAfter(checkOut))
+            throw new IllegalArgumentException("Check in Date can not be after check date ");
+        if(checkIn.isBefore(LocalDate.now()))
+            throw new IllegalArgumentException("you can not enter past date ");
         return roomTypeRepository.findById(roomTypeId).orElseThrow(() -> new RoomTypeNotFoundException(roomTypeId)).getTotalRooms() - bookingRoomRepository.countBookedRooms(roomTypeId, checkIn, checkOut);
     }
 
@@ -48,6 +56,10 @@ public class AvailabilityServiceImpl {
     public boolean checkAvailability(Long roomTypeId, java.time.LocalDate checkIn, java.time.LocalDate checkOut, int rooms) {
         if (checkOut.isBefore(checkIn))
             throw new IllegalArgumentException("The check in  date can not be after the check out date");
+        if(checkIn.isAfter(checkOut))
+            throw new IllegalArgumentException("Check in Date can not be after check date ");
+        if(checkIn.isBefore(LocalDate.now()))
+            throw new IllegalArgumentException("you can not enter past date ");
         int bookedRooms = bookingRoomRepository.countBookedRooms(roomTypeId, checkIn, checkOut);
         int availableRooms =
                 roomTypeRepository.findById(roomTypeId)
@@ -63,6 +75,10 @@ public class AvailabilityServiceImpl {
     public boolean checkAvailabilityOfHotel(Hotel hotel, LocalDate checkIn, LocalDate checkout) {
         if (checkout.isBefore(checkIn))
             throw new IllegalArgumentException("The check in  date can not be after the check out date");
+        if(checkIn.isAfter(checkout))
+            throw new IllegalArgumentException("Check in Date can not be after check date ");
+        if(checkIn.isBefore(LocalDate.now()))
+            throw new IllegalArgumentException("you can not enter past date ");
         boolean b = false;
         for (RoomType roomType : hotel.getRoomTypes()) {
             if (checkAvailability(roomType.getId(), checkIn, checkout, 1))

@@ -55,8 +55,8 @@ public class PricingServiceImpl {
         double timeMultiplier = calculateTimeMultiplier(match);
 
         // Combine all multipliers
-        double totalMultiplier = distanceMultiplier * matchMultiplier *
-                demandMultiplier * timeMultiplier;
+        double totalMultiplier = distanceMultiplier + matchMultiplier +
+                demandMultiplier + timeMultiplier;
 
         // Calculate final price
         BigDecimal finalPrice = basePrice.multiply(BigDecimal.valueOf(totalMultiplier))

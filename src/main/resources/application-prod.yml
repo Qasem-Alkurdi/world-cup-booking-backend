@@ -6,3 +6,7 @@ app:
     max-file-size-bytes: ${APP_STORAGE_MAX_FILE_SIZE_BYTES:5242880}
     bucket-name: ${APP_STORAGE_BUCKET_NAME:}
     region: ${APP_STORAGE_REGION:}
+logging:
+  level:
+    org.springframework.web: DEBUG
+    com.worldcup.hotelbooking: DEBUG
