@@ -2,6 +2,7 @@ package com.worldcup.hotelbooking.catalog.storage;
 
 import com.worldcup.hotelbooking.catalog.storage.exception.InvalidPhotoFileException;
 import com.worldcup.hotelbooking.catalog.storage.exception.StorageOperationException;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
@@ -16,13 +17,14 @@ import java.util.Set;
 import java.util.UUID;
 
 @Service
+@ConditionalOnProperty(name = "app.storage.type", havingValue = "local", matchIfMissing = true)
 public class LocalPhotoStorageService implements PhotoStorageService {
 
     private static final Set<String> ALLOWED_CONTENT_TYPES = Set.of(
             "image/jpeg",
             "image/png",
-            "image/webp"
-            , "image/jpg"
+            "image/webp",
+            "image/jpg"
     );
 
     private final StorageProperties storageProperties;

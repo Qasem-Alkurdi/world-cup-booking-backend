@@ -1,8 +1,9 @@
 spring:
   datasource:
     url: jdbc:postgresql://${MYSQL_HOST}:5432/worldcup_hotel_booking_no_spelling_mistakes
-    username: ${SPRING_DATASOURCE_USERNAME:qasem_alkurdi}
-    password: ${SPRING_DATASOURCE_PASSWORD:197019742005}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:12345}
+
     driver-class-name: org.postgresql.Driver
   servlet:
     multipart:

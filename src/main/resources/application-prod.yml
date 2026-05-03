@@ -1,0 +1,12 @@
+app:
+  storage:
+    type: ${APP_STORAGE_TYPE:local}
+    upload-dir: ${APP_STORAGE_UPLOAD_DIR:uploads}
+    public-base-url: ${APP_STORAGE_PUBLIC_BASE_URL:http://localhost:8080/uploads}
+    max-file-size-bytes: ${APP_STORAGE_MAX_FILE_SIZE_BYTES:5242880}
+    bucket-name: ${APP_STORAGE_BUCKET_NAME:}
+    region: ${APP_STORAGE_REGION:}
+logging:
+  level:
+    org.springframework.web: DEBUG
+    com.worldcup.hotelbooking: DEBUG
