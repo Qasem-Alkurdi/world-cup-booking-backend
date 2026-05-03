@@ -22,6 +22,7 @@ import static com.worldcup.hotelbooking.catalog.hotel.HotelStatus.APPROVED;
 @Service
 @Transactional
 public class RoomTypeServiceImpl implements RoomTypeService {
+
     private final AvailabilityServiceImpl availabilityService;
     private final RoomTypeRepository roomTypeRepository;
     private final HotelRepository hotelRepository;
@@ -43,7 +44,6 @@ public class RoomTypeServiceImpl implements RoomTypeService {
     }
 
     private RoomType getRoomTypeOrThrow(Long hotelId, Long roomTypeId) {
-        // يضمن أن الـ roomType تابع لفندق غير محذوف
         return roomTypeRepository
                 .findByIdAndHotelIdAndHotelNotDeleted(roomTypeId, hotelId)
                 .orElseThrow(() -> new RoomTypeNotFoundException(hotelId, roomTypeId));
@@ -51,42 +51,30 @@ public class RoomTypeServiceImpl implements RoomTypeService {
 
     /* -------------------- CRUD -------------------- */
 
-    /**
-     * Returns all room types for a hotel.
-     * Cached by hotelId — evicted when any room type under that hotel is created,
-     * replaced, or deleted.
-     */
     @Cacheable(value = "roomTypesByHotel", key = "#hotelId")
     @Transactional(readOnly = true)
     @Override
     public List<RoomType> findByHotel(Long hotelId) {
-        // يضمن الفندق موجود وغير محذوف + approved
         getApprovedActiveHotel(hotelId);
-
         return roomTypeRepository.findByHotelIdAndHotelNotDeleted(hotelId);
     }
 
-    /**
-     * Returns a single room type.
-     * Cached by composite key hotelId + roomTypeId.
-     * Evicted when that specific room type is replaced or deleted.
-     */
     @Cacheable(value = "roomTypeById", key = "#hotelId + '_' + #roomTypeId")
     @Transactional(readOnly = true)
     @Override
     public RoomType findById(Long hotelId, Long roomTypeId) {
-        // يضمن الفندق موجود وغير محذوف + approved
         getApprovedActiveHotel(hotelId);
-
         return getRoomTypeOrThrow(hotelId, roomTypeId);
     }
 
+    /* ================= FIXED HERE ================= */
+
     @Caching(evict = {
-            @CacheEvict(value = "hotelById", key = "#id"),
+            @CacheEvict(value = "hotelById", key = "#hotelId"),
             @CacheEvict(value = "hotelList", allEntries = true),
             @CacheEvict(value = "myHotels", allEntries = true),
-            @CacheEvict(value = "hotelPhotos", key = "#id"),
-            @CacheEvict(value = "roomTypesByHotel", key = "#id"),
+            @CacheEvict(value = "hotelPhotos", key = "#hotelId"),
+            @CacheEvict(value = "roomTypesByHotel", key = "#hotelId"),
             @CacheEvict(value = "roomTypeById", allEntries = true),
             @CacheEvict(value = "roomTypePhotos", allEntries = true)
     })
@@ -94,7 +82,6 @@ public class RoomTypeServiceImpl implements RoomTypeService {
     public RoomType create(Long hotelId, RoomType roomType) {
         Hotel hotel = getApprovedActiveHotel(hotelId);
 
-        // name uniqueness per hotel (case-insensitive)
         if (roomTypeRepository.existsByHotelIdAndNameIgnoreCaseAndHotelNotDeleted(hotelId, roomType.getName())) {
             throw new RoomTypeAlreadyExistsException(hotelId, roomType.getName());
         }
@@ -106,22 +93,21 @@ public class RoomTypeServiceImpl implements RoomTypeService {
     }
 
     @Caching(evict = {
-            @CacheEvict(value = "hotelById", key = "#id"),
+            @CacheEvict(value = "hotelById", key = "#hotelId"),
             @CacheEvict(value = "hotelList", allEntries = true),
             @CacheEvict(value = "myHotels", allEntries = true),
-            @CacheEvict(value = "hotelPhotos", key = "#id"),
-            @CacheEvict(value = "roomTypesByHotel", key = "#id"),
+            @CacheEvict(value = "hotelPhotos", key = "#hotelId"),
+            @CacheEvict(value = "roomTypesByHotel", key = "#hotelId"),
             @CacheEvict(value = "roomTypeById", allEntries = true),
             @CacheEvict(value = "roomTypePhotos", allEntries = true)
     })
     @Transactional
     @Override
     public RoomType replace(Long hotelId, Long roomTypeId, ReplaceRoomTypeRequestDto dto) {
-        Hotel hotel = getApprovedActiveHotel(hotelId);
 
+        Hotel hotel = getApprovedActiveHotel(hotelId);
         RoomType current = getRoomTypeOrThrow(hotelId, roomTypeId);
 
-        // لو الاسم تغير، افحص uniqueness
         String newName = dto.name();
         if (newName != null && !newName.equalsIgnoreCase(current.getName())) {
             if (roomTypeRepository.existsByHotelIdAndNameIgnoreCaseAndHotelNotDeleted(hotelId, newName)) {
@@ -129,37 +115,34 @@ public class RoomTypeServiceImpl implements RoomTypeService {
             }
         }
 
-        // replace all updatable fields (explicit, safe)
         RoomTypeMapper.applyReplace(current, dto);
-
-        // تأكيد التابع للفندق (اختياري إذا current أصلاً تابع له، لكنه OK كـ guard)
         current.setHotel(hotel);
 
         return roomTypeRepository.save(current);
     }
 
-
     @Caching(evict = {
-            @CacheEvict(value = "hotelById", key = "#id"),
+            @CacheEvict(value = "hotelById", key = "#hotelId"),
             @CacheEvict(value = "hotelList", allEntries = true),
             @CacheEvict(value = "myHotels", allEntries = true),
-            @CacheEvict(value = "hotelPhotos", key = "#id"),
-            @CacheEvict(value = "roomTypesByHotel", key = "#id"),
+            @CacheEvict(value = "hotelPhotos", key = "#hotelId"),
+            @CacheEvict(value = "roomTypesByHotel", key = "#hotelId"),
             @CacheEvict(value = "roomTypeById", allEntries = true),
             @CacheEvict(value = "roomTypePhotos", allEntries = true)
     })
     @Override
     public void delete(Long hotelId, Long roomTypeId) {
-        // يضمن الفندق موجود وغير محذوف + approved
         getApprovedActiveHotel(hotelId);
-
         RoomType current = getRoomTypeOrThrow(hotelId, roomTypeId);
         roomTypeRepository.delete(current);
     }
 
+    /* -------------------- Availability -------------------- */
+
     @Transactional(readOnly = true)
     @Override
     public List<RoomType> findAvailableByHotel(Long hotelId, RoomTypeAvailabilityCriteria criteria) {
+
         getApprovedActiveHotel(hotelId);
 
         List<RoomType> roomTypes = roomTypeRepository.findByHotelIdAndHotelNotDeleted(hotelId);
@@ -181,9 +164,6 @@ public class RoomTypeServiceImpl implements RoomTypeService {
     }
 
     private boolean hasAvailabilityCriteria(RoomTypeAvailabilityCriteria criteria) {
-        // numberOfRooms alone should NOT trigger filtering —
-        // it is sent by default from the frontend sidebar.
-        // Only dates or capacity (adults/children) should trigger the filter path.
         return criteria.getCheckInDate() != null
                 || criteria.getCheckOutDate() != null
                 || criteria.getAdults() != null
@@ -204,15 +184,15 @@ public class RoomTypeServiceImpl implements RoomTypeService {
         }
 
         if (criteria.getAdults() != null && criteria.getAdults() < 0) {
-            throw new IllegalArgumentException("adults must be greater than or equal to 0");
+            throw new IllegalArgumentException("adults must be >= 0");
         }
 
         if (criteria.getChildren() != null && criteria.getChildren() < 0) {
-            throw new IllegalArgumentException("children must be greater than or equal to 0");
+            throw new IllegalArgumentException("children must be >= 0");
         }
 
         if (criteria.getNumberOfRooms() != null && criteria.getNumberOfRooms() <= 0) {
-            throw new IllegalArgumentException("numberOfRooms must be greater than 0");
+            throw new IllegalArgumentException("numberOfRooms must be > 0");
         }
     }
 
@@ -225,6 +205,7 @@ public class RoomTypeServiceImpl implements RoomTypeService {
     }
 
     private boolean matchesAvailability(RoomType roomType, RoomTypeAvailabilityCriteria criteria) {
+
         if (criteria.getCheckInDate() == null || criteria.getCheckOutDate() == null) {
             return true;
         }

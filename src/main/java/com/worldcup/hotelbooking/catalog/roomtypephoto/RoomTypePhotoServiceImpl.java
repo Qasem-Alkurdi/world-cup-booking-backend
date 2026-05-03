@@ -69,11 +69,11 @@ public class RoomTypePhotoServiceImpl implements RoomTypePhotoService {
     }
 
     @Caching(evict = {
-            @CacheEvict(value = "hotelById", key = "#id"),
+            @CacheEvict(value = "hotelById", key = "#hotelId"),
             @CacheEvict(value = "hotelList", allEntries = true),
             @CacheEvict(value = "myHotels", allEntries = true),
-            @CacheEvict(value = "hotelPhotos", key = "#id"),
-            @CacheEvict(value = "roomTypesByHotel", key = "#id"),
+            @CacheEvict(value = "hotelPhotos", key = "#hotelId"),
+            @CacheEvict(value = "roomTypesByHotel", key = "#hotelId"),
             @CacheEvict(value = "roomTypeById", allEntries = true),
             @CacheEvict(value = "roomTypePhotos", allEntries = true)
     })
@@ -113,12 +113,6 @@ public class RoomTypePhotoServiceImpl implements RoomTypePhotoService {
         return saved;
     }
 
-
-    /**
-     * Returns the ordered photo list for a room type.
-     * Cached by composite key hotelId + roomTypeId — evicted by any mutation to this
-     * room type's photos.
-     */
     @Override
     @Cacheable(value = "roomTypePhotos", key = "#hotelId + '_' + #roomTypeId")
     @Transactional(readOnly = true)
@@ -130,11 +124,11 @@ public class RoomTypePhotoServiceImpl implements RoomTypePhotoService {
     }
 
     @Caching(evict = {
-            @CacheEvict(value = "hotelById", key = "#id"),
+            @CacheEvict(value = "hotelById", key = "#hotelId"),
             @CacheEvict(value = "hotelList", allEntries = true),
             @CacheEvict(value = "myHotels", allEntries = true),
-            @CacheEvict(value = "hotelPhotos", key = "#id"),
-            @CacheEvict(value = "roomTypesByHotel", key = "#id"),
+            @CacheEvict(value = "hotelPhotos", key = "#hotelId"),
+            @CacheEvict(value = "roomTypesByHotel", key = "#hotelId"),
             @CacheEvict(value = "roomTypeById", allEntries = true),
             @CacheEvict(value = "roomTypePhotos", allEntries = true)
     })
@@ -168,11 +162,11 @@ public class RoomTypePhotoServiceImpl implements RoomTypePhotoService {
     }
 
     @Caching(evict = {
-            @CacheEvict(value = "hotelById", key = "#id"),
+            @CacheEvict(value = "hotelById", key = "#hotelId"),
             @CacheEvict(value = "hotelList", allEntries = true),
             @CacheEvict(value = "myHotels", allEntries = true),
-            @CacheEvict(value = "hotelPhotos", key = "#id"),
-            @CacheEvict(value = "roomTypesByHotel", key = "#id"),
+            @CacheEvict(value = "hotelPhotos", key = "#hotelId"),
+            @CacheEvict(value = "roomTypesByHotel", key = "#hotelId"),
             @CacheEvict(value = "roomTypeById", allEntries = true),
             @CacheEvict(value = "roomTypePhotos", allEntries = true)
     })
@@ -192,11 +186,6 @@ public class RoomTypePhotoServiceImpl implements RoomTypePhotoService {
         }
     }
 
-    /**
-     * Reordering changes display sequence only — the primary photo does not change,
-     * so roomTypeById and roomTypesByHotel are NOT affected.
-     * Only the ordered photo list (roomTypePhotos) needs eviction.
-     */
     @Override
     @CacheEvict(value = "roomTypePhotos", key = "#hotelId + '_' + #roomTypeId")
     public void reorderPhotos(Long hotelId, Long roomTypeId, List<Long> photoIds) {

@@ -57,18 +57,12 @@ public class HotelPhotoServiceImpl implements HotelPhotoService {
         }
     }
 
-    /**
-     * Adding a photo changes the ordered list and may assign a new primary.
-     * Evict hotelPhotos so listPhotos returns fresh data, and evict hotelList /
-     * hotelById because the catalog search embeds the primary photo URL.
-     */
-
     @Caching(evict = {
-            @CacheEvict(value = "hotelById", key = "#id"),
+            @CacheEvict(value = "hotelById", key = "#hotelId"),
             @CacheEvict(value = "hotelList", allEntries = true),
             @CacheEvict(value = "myHotels", allEntries = true),
-            @CacheEvict(value = "hotelPhotos", key = "#id"),
-            @CacheEvict(value = "roomTypesByHotel", key = "#id"),
+            @CacheEvict(value = "hotelPhotos", key = "#hotelId"),
+            @CacheEvict(value = "roomTypesByHotel", key = "#hotelId"),
             @CacheEvict(value = "roomTypeById", allEntries = true),
             @CacheEvict(value = "roomTypePhotos", allEntries = true)
     })
@@ -77,9 +71,11 @@ public class HotelPhotoServiceImpl implements HotelPhotoService {
         Hotel hotel = getActiveApprovedHotel(hotelId);
         validateSortOrder(sortOrder);
 
-        List<HotelPhoto> existingPhotos = hotelPhotoRepository.findByHotelIdOrderBySortOrderAscCreatedAtAsc(hotelId);
+        List<HotelPhoto> existingPhotos =
+                hotelPhotoRepository.findByHotelIdOrderBySortOrderAscCreatedAtAsc(hotelId);
 
         int finalSortOrder;
+
         if (sortOrder == null) {
             finalSortOrder = existingPhotos.size() + 1;
         } else {
@@ -106,10 +102,6 @@ public class HotelPhotoServiceImpl implements HotelPhotoService {
         return saved;
     }
 
-    /**
-     * Returns the ordered photo list for a hotel.
-     * Cached by hotelId — evicted by any mutation that changes the list or order.
-     */
     @Override
     @Cacheable(value = "hotelPhotos", key = "#hotelId")
     @Transactional(readOnly = true)
@@ -120,11 +112,11 @@ public class HotelPhotoServiceImpl implements HotelPhotoService {
 
     @Override
     @Caching(evict = {
-            @CacheEvict(value = "hotelById", key = "#id"),
+            @CacheEvict(value = "hotelById", key = "#hotelId"),
             @CacheEvict(value = "hotelList", allEntries = true),
             @CacheEvict(value = "myHotels", allEntries = true),
-            @CacheEvict(value = "hotelPhotos", key = "#id"),
-            @CacheEvict(value = "roomTypesByHotel", key = "#id"),
+            @CacheEvict(value = "hotelPhotos", key = "#hotelId"),
+            @CacheEvict(value = "roomTypesByHotel", key = "#hotelId"),
             @CacheEvict(value = "roomTypeById", allEntries = true),
             @CacheEvict(value = "roomTypePhotos", allEntries = true)
     })
@@ -143,11 +135,14 @@ public class HotelPhotoServiceImpl implements HotelPhotoService {
         normalizeSortOrders(hotelId);
 
         if (wasPrimary) {
-            List<HotelPhoto> remaining = hotelPhotoRepository.findByHotelIdOrderBySortOrderAscCreatedAtAsc(hotelId);
+            List<HotelPhoto> remaining =
+                    hotelPhotoRepository.findByHotelIdOrderBySortOrderAscCreatedAtAsc(hotelId);
+
             if (!remaining.isEmpty()) {
                 for (HotelPhoto p : remaining) {
                     p.setPrimary(false);
                 }
+
                 remaining.get(0).setPrimary(true);
             }
         }
@@ -155,11 +150,11 @@ public class HotelPhotoServiceImpl implements HotelPhotoService {
 
     @Override
     @Caching(evict = {
-            @CacheEvict(value = "hotelById", key = "#id"),
+            @CacheEvict(value = "hotelById", key = "#hotelId"),
             @CacheEvict(value = "hotelList", allEntries = true),
             @CacheEvict(value = "myHotels", allEntries = true),
-            @CacheEvict(value = "hotelPhotos", key = "#id"),
-            @CacheEvict(value = "roomTypesByHotel", key = "#id"),
+            @CacheEvict(value = "hotelPhotos", key = "#hotelId"),
+            @CacheEvict(value = "roomTypesByHotel", key = "#hotelId"),
             @CacheEvict(value = "roomTypeById", allEntries = true),
             @CacheEvict(value = "roomTypePhotos", allEntries = true)
     })
@@ -169,24 +164,21 @@ public class HotelPhotoServiceImpl implements HotelPhotoService {
         HotelPhoto target = hotelPhotoRepository.findByIdAndHotelId(photoId, hotelId)
                 .orElseThrow(() -> new HotelPhotoNotFoundException(hotelId, photoId));
 
-        List<HotelPhoto> photos = hotelPhotoRepository.findByHotelIdOrderBySortOrderAscCreatedAtAsc(hotelId);
+        List<HotelPhoto> photos =
+                hotelPhotoRepository.findByHotelIdOrderBySortOrderAscCreatedAtAsc(hotelId);
 
         for (HotelPhoto photo : photos) {
             photo.setPrimary(photo.getId().equals(target.getId()));
         }
     }
 
-    /**
-     * Reordering changes the displayed sequence.
-     * The primary photo does not change here, so hotelList / hotelById do NOT need
-     * eviction — only the ordered list itself (hotelPhotos) is stale.
-     */
     @Override
     @CacheEvict(value = "hotelPhotos", key = "#hotelId")
     public void reorderPhotos(Long hotelId, List<Long> photoIds) {
         getActiveApprovedHotel(hotelId);
 
-        List<HotelPhoto> photos = hotelPhotoRepository.findByHotelIdOrderBySortOrderAscCreatedAtAsc(hotelId);
+        List<HotelPhoto> photos =
+                hotelPhotoRepository.findByHotelIdOrderBySortOrderAscCreatedAtAsc(hotelId);
 
         if (photos.size() != photoIds.size()) {
             throw new InvalidPhotoOrderException("All hotel photos must be included in reorder request");
