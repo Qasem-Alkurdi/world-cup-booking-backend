@@ -76,12 +76,13 @@ class AppUserControllerTest {
                 sampleUser.getEmail(),
                 sampleUser.getRoles(),
                 sampleUser.isEnabled(),
+                "http://avatar.com",
                 null
         );
         Page<AppUserResponseDto> page = new PageImpl<>(List.of(sampleDto), PageRequest.of(0, 20), 1);
 
-        // Mock the overloaded method with Pageable + String + String
-        when(appUserService.getAllUsers(any(Pageable.class), isNull(), isNull())).thenReturn(page);
+        // Mock the overloaded method with Pageable + String + String + Role
+        when(appUserService.getAllUsers(any(Pageable.class), isNull(), isNull(), isNull())).thenReturn(page);
 
         mockMvc.perform(get("/users")
                         .param("page", "0")
@@ -123,6 +124,7 @@ class AppUserControllerTest {
                 sampleUser.getEmail(),
                 sampleUser.getRoles(),
                 sampleUser.isEnabled(),
+                "http://avatar.com",
                 null  // bookings can be null or empty for search results
         );
 
@@ -175,5 +177,17 @@ class AppUserControllerTest {
         mockMvc.perform(get("/users/1/bookings"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray());
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void getUserStats_returnsStats() throws Exception {
+        Map<String, Long> stats = Map.of("total", 10L, "admins", 2L);
+        when(appUserService.getUserStats()).thenReturn(stats);
+
+        mockMvc.perform(get("/users/stats"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.total").value(10))
+                .andExpect(jsonPath("$.admins").value(2));
     }
 }

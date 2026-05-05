@@ -21,7 +21,6 @@ public interface AppUserRepository extends JpaRepository<AppUser, Long>, JpaSpec
     Page<AppUser> findAll(Pageable pageable);
 
     @Override
-    @EntityGraph(attributePaths = {"roles", "bookings"})
     Page<AppUser> findAll(Specification<AppUser> spec, Pageable pageable);
 
     @Override

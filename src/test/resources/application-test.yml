@@ -2,9 +2,9 @@ spring:
   application:
     name: worldcup-hotel-booking
   datasource:
-    url: jdbc:postgresql://localhost:5432/worldcup_test
-    username: qasem_alkurdi
-    password: 197019742005
+    url: jdbc:postgresql://localhost:5432/wc_test
+    username: postgres
+    password: google123google
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:

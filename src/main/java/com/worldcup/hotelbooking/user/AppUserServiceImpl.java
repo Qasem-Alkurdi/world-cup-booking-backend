@@ -10,6 +10,7 @@ import com.worldcup.hotelbooking.reservation.booking.Booking;
 import com.worldcup.hotelbooking.reservation.booking.BookingMapper;
 import com.worldcup.hotelbooking.reservation.booking.BookingResponseDto;
 import com.worldcup.hotelbooking.review.ReviewRepository;
+import com.worldcup.hotelbooking.user.UserSpecifications;
 import com.worldcup.hotelbooking.security.RefreshTokenRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -66,6 +67,7 @@ public class AppUserServiceImpl implements AppUserService {
         passwordValidator.validate(dto.password());
         AppUser user = AppUserMapper.toEntity(dto);
         user.setPassword(passwordEncoder.encode(dto.password()));
+        user.setProfilePictureUrl("https://i.pravatar.cc/150?u=" + user.getUsername());
 
         // Assign default role if none provided
         if (user.getRoles() == null || user.getRoles().isEmpty()) {
@@ -83,8 +85,30 @@ public class AppUserServiceImpl implements AppUserService {
     @Override
     @Transactional(readOnly = true)
     public AppUser getUserById(Long id) {
-        return appUserRepository.findById(id)
+        AppUser user = appUserRepository.findById(id)
                 .orElseThrow(() -> new AppUserNotFoundException("User not found with id: " + id));
+
+        // Auto-assign profile picture if missing (e.g. for manually created admin accounts)
+        if (user.getProfilePictureUrl() == null) {
+            user.setProfilePictureUrl("https://i.pravatar.cc/150?u=" + user.getUsername());
+            appUserRepository.save(user);
+        }
+
+        if (user.getBookings() != null) {
+            user.getBookings().size(); // Initialize lazy collection
+            user.getBookings().forEach(b -> {
+                if (b.getBookingRooms() != null) {
+                    b.getBookingRooms().size();
+                    b.getBookingRooms().forEach(br -> {
+                        if (br.getRoomType() != null) br.getRoomType().getName(); // Initialize lazy proxy
+                    });
+                }
+            });
+        }
+        if (user.getRoles() != null) {
+            user.getRoles().size(); // Initialize lazy collection
+        }
+        return user;
     }
 
     // 3. Get All Users (List version)
@@ -96,9 +120,15 @@ public class AppUserServiceImpl implements AppUserService {
 
     // 4. Get All Users with Pagination
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public Page<AppUserResponseDto> getAllUsers(Pageable pageable) {
         Page<AppUser> userPage = appUserRepository.findAll(pageable);
+        userPage.forEach(user -> {
+            if (user.getProfilePictureUrl() == null) {
+                user.setProfilePictureUrl("https://i.pravatar.cc/150?u=" + user.getUsername());
+                appUserRepository.save(user);
+            }
+        });
         return userPage.map(AppUserMapper::toDto);
     }
 
@@ -106,7 +136,24 @@ public class AppUserServiceImpl implements AppUserService {
     @Override
     @Transactional(readOnly = true)
     public Optional<AppUser> getUserByEmail(String email) {
-        return appUserRepository.findByEmail(email);
+        Optional<AppUser> userOpt = appUserRepository.findByEmail(email);
+        userOpt.ifPresent(user -> {
+            if (user.getBookings() != null) {
+                user.getBookings().size(); // Initialize lazy collection
+                user.getBookings().forEach(b -> {
+                    if (b.getBookingRooms() != null) {
+                        b.getBookingRooms().size();
+                        b.getBookingRooms().forEach(br -> {
+                            if (br.getRoomType() != null) br.getRoomType().getName(); // Initialize lazy proxy
+                        });
+                    }
+                });
+            }
+            if (user.getRoles() != null) {
+                user.getRoles().size(); // Initialize lazy collection
+            }
+        });
+        return userOpt;
     }
 
     // 6. Delete User
@@ -203,6 +250,7 @@ public class AppUserServiceImpl implements AppUserService {
     }
 
     // 11. Partial Update Helper
+    @Override
     public AppUser partialUpdateUser(Long id, java.util.Map<String, Object> updates) {
         AppUser existingUser = getUserById(id);
 
@@ -242,17 +290,55 @@ public class AppUserServiceImpl implements AppUserService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<AppUserResponseDto> getAllUsers(Pageable pageable, String username, String email) {
-        Specification<AppUser> spec = (root, query, cb) -> cb.conjunction();
+    public Page<AppUserResponseDto> getAllUsers(Pageable pageable, String username, String email, Role role) {
+        Specification<AppUser> spec = (root, query, cb) -> {
+            // Prevent duplicate rows from collection joins corrupting the count
+            if (query != null) query.distinct(true);
 
-        if (username != null && !username.isBlank()) {
-            spec = spec.and(UserSpecifications.usernameContains(username));
-        }
-        if (email != null && !email.isBlank()) {
-            spec = spec.and(UserSpecifications.emailContains(email));
-        }
+            Specification<AppUser> usernameSpec = UserSpecifications.usernameContains(username);
+            Specification<AppUser> emailSpec    = UserSpecifications.hasEmail(email);
+            Specification<AppUser> roleSpec     = UserSpecifications.hasRole(role);
+
+            jakarta.persistence.criteria.Predicate predicate = cb.conjunction(); // always-true base
+            if (usernameSpec != null) {
+                jakarta.persistence.criteria.Predicate p = usernameSpec.toPredicate(root, query, cb);
+                if (p != null) predicate = cb.and(predicate, p);
+            }
+            if (emailSpec != null) {
+                jakarta.persistence.criteria.Predicate p = emailSpec.toPredicate(root, query, cb);
+                if (p != null) predicate = cb.and(predicate, p);
+            }
+            if (roleSpec != null) {
+                jakarta.persistence.criteria.Predicate p = roleSpec.toPredicate(root, query, cb);
+                if (p != null) predicate = cb.and(predicate, p);
+            }
+            return predicate;
+        };
 
         Page<AppUser> userPage = appUserRepository.findAll(spec, pageable);
+        userPage.forEach(user -> {
+            // Force-initialize roles collection before transaction closes
+            user.getRoles().size();
+            if (user.getProfilePictureUrl() == null) {
+                user.setProfilePictureUrl("https://i.pravatar.cc/150?u=" + user.getUsername());
+            }
+        });
         return userPage.map(AppUserMapper::toDto);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public java.util.Map<String, Long> getUserStats() {
+        List<AppUser> allUsers = appUserRepository.findAll();
+        java.util.Map<String, Long> stats = new java.util.HashMap<>();
+        long total = allUsers.size();
+        long admins = allUsers.stream().filter(u -> u.getRoles().contains(Role.ADMIN)).count();
+        long managers = allUsers.stream().filter(u -> u.getRoles().contains(Role.MANAGER)).count();
+        long regular = total - admins - managers;
+        stats.put("total", total);
+        stats.put("admins", admins);
+        stats.put("managers", managers);
+        stats.put("regular", regular);
+        return stats;
     }
 }

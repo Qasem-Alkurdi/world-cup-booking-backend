@@ -27,7 +27,7 @@ public interface AppUserService {
 
     Page<AppUserResponseDto> getAllUsers(Pageable pageable);
 
-    Page<AppUserResponseDto> getAllUsers(Pageable pageable, String username, String email);
+    Page<AppUserResponseDto> getAllUsers(Pageable pageable, String username, String email, Role role);
 
     AppUser saveUser(AppUser user);
 
@@ -36,6 +36,8 @@ public interface AppUserService {
     AppUser partialUpdateUser(Long id, Map<String, Object> updates);
 
     AppUser updateUserRoles(Long id, Set<Role> roles);
+
+    Map<String, Long> getUserStats();
 
 
 }

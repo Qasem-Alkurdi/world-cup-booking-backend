@@ -32,6 +32,7 @@ public class AppUserMapper {
                 user.getEmail(),
                 user.getRoles(),
                 user.isEnabled(),
+                user.getProfilePictureUrl(),
                 user.getBookings() == null ? null :
                         user.getBookings()
                         .stream()
