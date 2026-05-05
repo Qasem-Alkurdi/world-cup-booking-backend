@@ -25,7 +25,6 @@ public class ProcessPaymentRequestDto {
     private String cardNumber;
     @NotBlank
     private String cardHolderName;
-    @FutureOrPresent
     private String expiryDate;
     private String cvv;
 }

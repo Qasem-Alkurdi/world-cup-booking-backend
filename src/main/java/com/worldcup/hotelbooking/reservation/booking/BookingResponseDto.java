@@ -32,6 +32,8 @@ public class BookingResponseDto {
 
     private Long id;
     private String bookingReference;
+    private String userName;
+    private String hotelName;
     private Booking.BookingStatus status;
     private int numberOfGuests;
     private int numberOfAdults;
@@ -44,10 +46,12 @@ public class BookingResponseDto {
     private List<BookingRoomResponseDto> rooms = new ArrayList<>();
 
 
-    public BookingResponseDto(Long Id, String bookingReference, Booking.BookingStatus status, int numberOfGuests, int numberOfAdults, int numberOfChildren, LocalDate checkInDate, LocalDate checkOutDate, LocalDateTime confirmationDeadLine, BigDecimal totalPrice, boolean additionalPaymentRequired,
+    public BookingResponseDto(Long Id, String bookingReference,String userName,String hotelName, Booking.BookingStatus status, int numberOfGuests, int numberOfAdults, int numberOfChildren, LocalDate checkInDate, LocalDate checkOutDate, LocalDateTime confirmationDeadLine, BigDecimal totalPrice, boolean additionalPaymentRequired,
                               List<BookingRoomResponseDto> rooms) {
         this.id = Id;
         this.bookingReference = bookingReference;
+        this.userName=userName;
+        this.hotelName=hotelName;
         this.status = status;
         this.numberOfGuests = numberOfGuests;
         this.numberOfAdults = numberOfAdults;

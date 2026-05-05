@@ -90,7 +90,7 @@ public class BookingServiceImpl implements BookingService {
     @Transactional(readOnly = true)
     public Page<Booking> getGuestHistory(Long userId, Pageable pageable) {
         Specification<Booking> spec =
-                Specification.where(BookingSpecifications.hasUser(userId));
+                Specification.where(BookingSpecifications.fetchAssociations()).and(BookingSpecifications.hasUser(userId));
         return bookingRepository.findAll(spec, pageable);
     }
 
@@ -102,7 +102,7 @@ public class BookingServiceImpl implements BookingService {
     @Transactional(readOnly = true)
     public Page<Booking> getHotelUpcomingBookings(Long hotelId, Pageable pageable) {
         Specification<Booking> spec =
-                Specification.where(BookingSpecifications.hasHotel(hotelId))
+                Specification.where(BookingSpecifications.fetchAssociations()).and(BookingSpecifications.hasHotel(hotelId))
                         .and(BookingSpecifications.isUpcoming())
                         .and(BookingSpecifications.hasStatus(Booking.BookingStatus.CONFIRMED));
         return bookingRepository.findAll(spec, pageable);
@@ -114,7 +114,9 @@ public class BookingServiceImpl implements BookingService {
     // near-zero hit rates. Leave it as a pass-through to the database.
     public Page<Booking> filterBookings(
             Long userId,
+            String userName, // <--- ADD THIS
             Long hotelId,
+            String hotelName,
             Booking.BookingStatus status,
             LocalDate fromDate,
             LocalDate toDate,
@@ -123,12 +125,14 @@ public class BookingServiceImpl implements BookingService {
             Pageable pageable
     ) {
         Specification<Booking> spec = Specification.where(
-                (root, query, cb) -> cb.conjunction());
+                BookingSpecifications.fetchAssociations());
 
         if (userId != null)
             spec = spec.and(BookingSpecifications.hasUser(userId));
-        if (hotelId != null)
-            spec = spec.and(BookingSpecifications.hasHotel(hotelId));
+        if (userName != null && !userName.isBlank()) spec = spec.and(BookingSpecifications.hasUserName(userName)); // <--- ADD THIS
+
+        if (hotelId != null) spec = spec.and(BookingSpecifications.hasHotel(hotelId));
+        if (hotelName != null && !hotelName.isBlank()) spec = spec.and(BookingSpecifications.hasHotelName(hotelName)); // <--- ADD THIS
 
         spec = spec.and(BookingSpecifications.hasStatus(status))
                 .and(BookingSpecifications.checkInAfter(fromDate))

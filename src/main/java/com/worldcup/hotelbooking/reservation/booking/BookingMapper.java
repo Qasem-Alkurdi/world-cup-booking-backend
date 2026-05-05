@@ -31,6 +31,8 @@ public class BookingMapper {
         BookingResponseDto dto = new BookingResponseDto(
                 booking.getId(),
                 booking.getBookingReference(),
+                booking.getAppUser().getUsername(),
+                booking.getHotel().getName(),
                 booking.getStatus(),
                 booking.getNumberOfGuests(),
                 booking.getNumberOfAdults(),

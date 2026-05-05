@@ -85,6 +85,7 @@ public class PaymentServiceImpl {
     public Payment processPayment(ProcessPaymentRequestDto request) {// in real app, we would not have the simulateSuccess field, it's just for testing different scenarios , because any one can send that process done from teh frontend and we want to make sure that we can test both success and failure scenarios and the right way is to sure from stripe or any other payment gateway that the payment is done and we can not trust the frontend to send us that information because it can be easily manipulated, so we need to have a way to simulate both scenarios for testing purposes
         logger.info("Processing payment for intent: {}", request.getPaymentIntentId());//I pass Dto becuase I need the simulateSuccess field to test both scenarios, in the real world we would only pass the payment
 
+    
         // 1. Find payment by intent ID
         Payment payment = paymentRepository.findByPaymentIntentId(request.getPaymentIntentId())
                 .orElseThrow(() -> new PaymentException("Payment intent not found"));
@@ -258,15 +259,7 @@ public class PaymentServiceImpl {
         // 5️⃣ Calculate total refund after this transaction
         BigDecimal totalRefunded = alreadyRefunded.add(refundAmount);
 
-        // 6️⃣ ⭐ VALIDATION: Prevent over-refunding
-        if (totalRefunded.compareTo(paidAmount) > 0) {
-            throw new PaymentException(
-                    String.format("Cannot refund more than paid amount. Paid: $%.2f, Already refunded: $%.2f, Requested: $%.2f",
-                            paidAmount, alreadyRefunded, refundAmount)
-            );
-        }
-
-        // 7️⃣ Process refund (mock gateway)
+        // 6️⃣ Process refund (mock gateway)
         boolean refundSuccess = mockRefundProcessing(payment, refundAmount);
 
         if (!refundSuccess) {
@@ -288,8 +281,7 @@ public class PaymentServiceImpl {
             payment.setStatus(Payment.PaymentStatus.PARTIALLY_REFUNDED);
 
         } else {
-            // This should NEVER happen due to validation above
-            // But keep as safety net
+            // Refund exceeds what was paid — manager cancellation bonus case
             payment.setStatus(Payment.PaymentStatus.OVER_REFUNDED);
         }
 

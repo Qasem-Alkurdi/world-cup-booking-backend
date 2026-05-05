@@ -270,7 +270,9 @@ public class BookingController {
     @PreAuthorize("hasRole('ADMIN')")
     public PagedResponse<BookingResponseDto> filterBookings(
             @RequestParam(required = false) Long userId,
+            @RequestParam(required = false) String userName,
             @RequestParam(required = false) Long hotelId,
+            @RequestParam(required = false) String hotelName,
             @RequestParam(required = false) Booking.BookingStatus status,
             @RequestParam(required = false) LocalDate fromDate,
             @RequestParam(required = false) LocalDate toDate,
@@ -280,7 +282,9 @@ public class BookingController {
             Pageable pageable
     ) {
         Page<Booking> page = bookingService.filterBookings(userId,
+                userName,
                 hotelId,
+                hotelName,
                 status,
                 fromDate,
                 toDate,
@@ -303,6 +307,8 @@ public class BookingController {
     public PagedResponse<BookingResponseDto> filterBookingsForManager(
             @PathVariable Long hotelId,
             @RequestParam(required = false) Long userId,
+
+            @RequestParam(required = false) String userName,
             @RequestParam(required = false) Booking.BookingStatus status,
             @RequestParam(required = false) LocalDate fromDate,
             @RequestParam(required = false) LocalDate toDate,
@@ -313,7 +319,9 @@ public class BookingController {
     ) {
         Page<Booking> page = bookingService.filterBookings(
                 userId,
+                userName,
                 hotelId,
+                null,
                 status,
                 fromDate,
                 toDate,
@@ -335,6 +343,7 @@ public class BookingController {
     public PagedResponse<BookingResponseDto> filterBookingsForGuest(
             Authentication authentication,
             @RequestParam(required = false) Long hotelId,
+            @RequestParam(required = false) String hotelName,
             @RequestParam(required = false) Booking.BookingStatus status,
             @RequestParam(required = false) LocalDate fromDate,
             @RequestParam(required = false) LocalDate toDate,
@@ -345,7 +354,9 @@ public class BookingController {
     ) {
         Page<Booking> page = bookingService.filterBookings(
                 extractUserId(authentication),
+                null,
                 hotelId,
+                hotelName,
                 status,
                 fromDate,
                 toDate,
@@ -362,6 +373,14 @@ public class BookingController {
 
     }
 
+
+    @PutMapping("/{id}/confirm")
+    @Operation(summary = "Confirm a pending booking", description = "Manually confirm a booking, transitioning it from PENDING to CONFIRMED. Intended for hotel managers to approve reservations.")
+    @PreAuthorize("hasRole('ADMIN') or (hasRole('MANAGER') and @bookingAuthorizationService.isHimTheHotelOwnerOfTheBooking(#id, authentication))")
+    public ResponseEntity<BookingResponseDto> confirmBooking(@PathVariable Long id) {
+        Booking confirmed = bookingService.confirmBooking(id);
+        return ResponseEntity.ok(BookingMapper.toDto(confirmed));
+    }
 
     @PutMapping("/{id}/checkin")
     @Operation(summary = "Check-in a booking", description = "Mark a specific booking as checked in. This endpoint is intended for hotel staff to update the status of a booking when the guest arrives.")

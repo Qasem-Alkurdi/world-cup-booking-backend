@@ -19,6 +19,29 @@ public class BookingSpecifications {
             return null;
         };
     }
+    public static Specification<Booking> fetchAssociations() {
+        return (root, query, cb) -> {
+            // Only apply fetch joins on the main (non-count) query
+            if (query.getResultType() != Long.class && query.getResultType() != long.class) {
+                root.fetch("appUser", JoinType.LEFT);
+                root.fetch("hotel", JoinType.LEFT);
+            }
+            return cb.conjunction();
+        };
+    }
+    public static Specification<Booking> hasUserName(String userName) {
+        return (root, query, cb) -> {
+            // Depending on how user name is stored, e.g., if it's on AppUser
+            return cb.like(cb.lower(root.get("appUser").get("username")), "%" + userName.toLowerCase() + "%");
+        };
+    }
+
+    public static Specification<Booking> hasHotelName(String hotelName) {
+        return (root, query, cb) -> {
+            return cb.like(cb.lower(root.get("hotel").get("name")), "%" + hotelName.toLowerCase() + "%");
+        };
+    }
+
 
     public static Specification<Booking> hasUser(Long userId) {
         return (root, query, cb) -> {

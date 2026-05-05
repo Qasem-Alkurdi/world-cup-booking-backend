@@ -6,6 +6,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 
+import java.util.Optional;
+
 @Service("bookingAuthorizationService")
 public class BookingAuthorizationService {
 
@@ -47,16 +49,9 @@ public class BookingAuthorizationService {
     }
 
     public boolean isHimTheHotelOwnerOfTheBooking(Long bookingId, Authentication authentication) {
-        Long authUserId = extractUserId(authentication);
-        if (authUserId == null) return false;
-
-        bookingRepository.findActiveBookingById(bookingId).orElseThrow(() -> new BookingNotFoundException("Booking not found with id: " + bookingId));
-        return bookingRepository.findActiveBookingById(bookingId)
-                .map(booking -> booking.getHotel() != null
-                        && booking.getHotel().getOwner() != null
-                        && booking.getHotel().getOwner().getId() != null
-                        && booking.getHotel().getOwner().getId().equals(authUserId))
-                .orElse(false);
+        Long userId = extractUserId(authentication);
+        Optional<Long> ownerId = bookingRepository.findHotelOwnerIdByBookingId(bookingId);
+        return ownerId.map(id -> id.equals(userId)).orElse(false);
     }
 
     // ─── By hotel ID ──────────────────────────────────────────────────────────
