@@ -259,15 +259,7 @@ public class PaymentServiceImpl {
         // 5️⃣ Calculate total refund after this transaction
         BigDecimal totalRefunded = alreadyRefunded.add(refundAmount);
 
-        // 6️⃣ ⭐ VALIDATION: Prevent over-refunding
-        if (totalRefunded.compareTo(paidAmount) > 0) {
-            throw new PaymentException(
-                    String.format("Cannot refund more than paid amount. Paid: $%.2f, Already refunded: $%.2f, Requested: $%.2f",
-                            paidAmount, alreadyRefunded, refundAmount)
-            );
-        }
-
-        // 7️⃣ Process refund (mock gateway)
+        // 6️⃣ Process refund (mock gateway)
         boolean refundSuccess = mockRefundProcessing(payment, refundAmount);
 
         if (!refundSuccess) {
@@ -289,8 +281,7 @@ public class PaymentServiceImpl {
             payment.setStatus(Payment.PaymentStatus.PARTIALLY_REFUNDED);
 
         } else {
-            // This should NEVER happen due to validation above
-            // But keep as safety net
+            // Refund exceeds what was paid — manager cancellation bonus case
             payment.setStatus(Payment.PaymentStatus.OVER_REFUNDED);
         }
 

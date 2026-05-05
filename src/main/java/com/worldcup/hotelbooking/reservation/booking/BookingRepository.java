@@ -33,12 +33,24 @@ public interface BookingRepository extends JpaRepository<Booking, Long>, JpaSpec
     Optional<Booking> findActiveBookingById(@Param("id") Long id);
 
     @Query("""
-            SELECT b FROM Booking b
-            LEFT JOIN FETCH b.bookingRooms br
-            LEFT JOIN FETCH br.roomType
-            WHERE b.id = :id
+            SELECT COUNT(b) > 0 FROM Booking b
+            WHERE b.id = :bookingId
+            AND b.active = true
+            AND b.hotel.owner.id = :ownerId
             """)
-    Optional<Booking> findByIdWithRooms(@Param("id") Long id);
+    boolean isActiveBookingOwnedByHotelOwner(@Param("bookingId") Long bookingId,
+                                             @Param("ownerId") Long ownerId);
+
+    @Query("""
+            SELECT COUNT(b) > 0 FROM Booking b
+            WHERE b.bookingReference = :reference
+            AND b.active = true
+            AND b.hotel.owner.id = :ownerId
+            """)
+    boolean isActiveBookingByReferenceOwnedByHotelOwner(@Param("reference") String reference,
+                                                         @Param("ownerId") Long ownerId);
+
+
 
     @Query("""
             SELECT b FROM Booking b
@@ -104,4 +116,7 @@ public interface BookingRepository extends JpaRepository<Booking, Long>, JpaSpec
             """)
     Optional<Booking> findInactiveSnapshotByOriginalReference(
             @Param("bookingReference") String bookingReference);
+
+    @Query("select h.owner.id from Booking b join b.hotel h where b.id = :id")
+    Optional<Long> findHotelOwnerIdByBookingId(@Param("id") Long id);
 }

@@ -363,6 +363,14 @@ public class BookingController {
     }
 
 
+    @PutMapping("/{id}/confirm")
+    @Operation(summary = "Confirm a pending booking", description = "Manually confirm a booking, transitioning it from PENDING to CONFIRMED. Intended for hotel managers to approve reservations.")
+    @PreAuthorize("hasRole('ADMIN') or (hasRole('MANAGER') and @bookingAuthorizationService.isHimTheHotelOwnerOfTheBooking(#id, authentication))")
+    public ResponseEntity<BookingResponseDto> confirmBooking(@PathVariable Long id) {
+        Booking confirmed = bookingService.confirmBooking(id);
+        return ResponseEntity.ok(BookingMapper.toDto(confirmed));
+    }
+
     @PutMapping("/{id}/checkin")
     @Operation(summary = "Check-in a booking", description = "Mark a specific booking as checked in. This endpoint is intended for hotel staff to update the status of a booking when the guest arrives.")
     @PreAuthorize("hasRole('ADMIN') or (hasRole('MANAGER') and @bookingAuthorizationService.isHimTheHotelOwnerOfTheBooking(#id, authentication))")
