@@ -55,6 +55,8 @@ public class AppUser {
 
     private boolean enabled = true;
 
+    private String profilePictureUrl;
+
 
     public void addBooking(Booking booking) {
         this.bookings.add(booking);

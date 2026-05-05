@@ -28,11 +28,16 @@ public class AppUserController {
 
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN') or #id == authentication.principal.claims['userId']")
+    @PreAuthorize("hasRole('ADMIN') or #id.toString() == authentication.principal.claims['userId'].toString()")
     @Operation(summary = "Get user by ID (user themselves or admin)")
-    public ResponseEntity<AppUserResponseDto> getUserById(@PathVariable Long id) {
-        AppUser user = appUserService.getUserById(id);
-        return ResponseEntity.ok(AppUserMapper.toDto(user));
+    public ResponseEntity<?> getUserById(@PathVariable Long id) {
+        try {
+            AppUser user = appUserService.getUserById(id);
+            return ResponseEntity.ok(AppUserMapper.toDto(user));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body("Error: " + e.getClass().getName() + " - " + e.getMessage());
+        }
     }
 
     @GetMapping
@@ -44,13 +49,14 @@ public class AppUserController {
             @RequestParam(defaultValue = "id") String sortBy,
             @RequestParam(defaultValue = "asc") String direction,
             @RequestParam(required = false) String username,
-            @RequestParam(required = false) String email) {
+            @RequestParam(required = false) String email,
+            @RequestParam(required = false) Role role) {
 
         Sort.Direction sortDirection = direction.equalsIgnoreCase("desc")
                 ? Sort.Direction.DESC : Sort.Direction.ASC;
         Pageable pageable = PageRequest.of(page, size, Sort.by(sortDirection, sortBy));
 
-        Page<AppUserResponseDto> responsePage = appUserService.getAllUsers(pageable, username, email);
+        Page<AppUserResponseDto> responsePage = appUserService.getAllUsers(pageable, username, email, role);
         return ResponseEntity.ok(responsePage);
     }
 
@@ -92,7 +98,7 @@ public class AppUserController {
     }
 
     @GetMapping("/{id}/bookings")
-    @PreAuthorize("hasRole('ADMIN') or #id == authentication.principal.claims['userId']")
+    @PreAuthorize("hasRole('ADMIN') or #id.toString() == authentication.principal.claims['userId'].toString()")
     @Operation(summary = "Get all bookings of a user (user themselves or admin)")
     public ResponseEntity<List<BookingResponseDto>> getUserBookings(@PathVariable Long id) {
         List<BookingResponseDto> bookings = appUserService.getUserBookings(id);
@@ -118,5 +124,12 @@ public class AppUserController {
 
         AppUser updated = appUserService.updateUserRoles(id, dto.roles());
         return ResponseEntity.ok(AppUserMapper.toDto(updated));
+    }
+
+    @GetMapping("/stats")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Get user statistics (Admin only)")
+    public ResponseEntity<Map<String, Long>> getUserStats() {
+        return ResponseEntity.ok(appUserService.getUserStats());
     }
 }

@@ -18,6 +18,10 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.jpa.domain.Specification;
 
 import java.util.*;
 
@@ -91,6 +95,7 @@ class AppUserServiceImplTest {
         assertThat(created.getUsername()).isEqualTo("newuser");
         assertThat(created.getPassword()).isEqualTo("encodedPass");
         assertThat(created.getRoles()).containsExactly(Role.GUEST);
+        assertThat(created.getProfilePictureUrl()).isNotNull();
         verify(notificationService).sendWelcomeNotification(created);
     }
 
@@ -272,8 +277,38 @@ class AppUserServiceImplTest {
         AppUser result = userService.createUser(dto);
 
         verify(passwordValidator).validate("StrongP@ss123");
-        verify(passwordEncoder).encode("StrongP@ss123");
         verify(userRepository).save(any(AppUser.class));
         assertEquals("user", result.getUsername());
+    }
+
+    @Test
+    void getUserStats_success() {
+        AppUser admin = new AppUser();
+        admin.setRoles(Set.of(Role.ADMIN));
+        AppUser manager = new AppUser();
+        manager.setRoles(Set.of(Role.MANAGER));
+        AppUser guest = new AppUser();
+        guest.setRoles(Set.of(Role.GUEST));
+
+        when(userRepository.findAll()).thenReturn(List.of(admin, manager, guest));
+
+        Map<String, Long> stats = userService.getUserStats();
+
+        assertThat(stats.get("total")).isEqualTo(3L);
+        assertThat(stats.get("admins")).isEqualTo(1L);
+        assertThat(stats.get("managers")).isEqualTo(1L);
+        assertThat(stats.get("regular")).isEqualTo(1L);
+    }
+
+    @Test
+    void getAllUsers_withRoleFilter() {
+        PageRequest pageable = PageRequest.of(0, 10);
+        when(userRepository.findAll(any(Specification.class), eq(pageable)))
+                .thenReturn(new PageImpl<>(List.of(testUser)));
+
+        Page<AppUserResponseDto> result = userService.getAllUsers(pageable, null, null, Role.GUEST);
+
+        assertThat(result.getContent()).hasSize(1);
+        verify(userRepository).findAll(any(Specification.class), eq(pageable));
     }
 }

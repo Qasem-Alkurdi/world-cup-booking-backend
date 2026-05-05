@@ -1,8 +1,8 @@
 spring:
   datasource:
     url: jdbc:postgresql://${MYSQL_HOST}:5432/worldcup_hotel_booking_no_spelling_mistakes
-    username: ${SPRING_DATASOURCE_USERNAME:qasem_alkurdi}
-    password: ${SPRING_DATASOURCE_PASSWORD:197019742005}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:google123google}
     driver-class-name: org.postgresql.Driver
   servlet:
     multipart:
@@ -65,7 +65,7 @@ logging:
 
 
 app:
-  frontend-url: http://localhost:3000
+  frontend-url: http://localhost:5173
   storage:
     upload-dir: ./uploads
     public-base-url: http://localhost:8080/uploads
