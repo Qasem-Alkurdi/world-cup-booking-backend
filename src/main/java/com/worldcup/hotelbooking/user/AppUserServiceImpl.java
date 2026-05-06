@@ -98,6 +98,16 @@ public class AppUserServiceImpl implements AppUserService {
                 .orElseThrow(() -> new AppUserNotFoundException("User not found with id: " + id));
     }
 
+    // 2b. Get User by ID as DTO (mapping done inside transaction to avoid LazyInitializationException)
+    @Override
+    @Transactional(readOnly = true)
+    public AppUserResponseDto getUserByIdAsDto(Long id) {
+        AppUser user = appUserRepository.findById(id)
+                .orElseThrow(() -> new AppUserNotFoundException("User not found with id: " + id));
+        // AppUserMapper.toDto accesses user.getBookings() (lazy) — must be inside an open transaction
+        return AppUserMapper.toDto(user);
+    }
+
     // 3. Get All Users (List version)
     @Override
     @Transactional(readOnly = true)

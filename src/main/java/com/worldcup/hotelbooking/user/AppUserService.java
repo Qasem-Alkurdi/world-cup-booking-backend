@@ -15,6 +15,8 @@ public interface AppUserService {
 
     AppUser getUserById(Long id);
 
+    AppUserResponseDto getUserByIdAsDto(Long id);
+
     List<AppUser> getAllUsers();
 
     Optional<AppUser> getUserByEmail(String email);

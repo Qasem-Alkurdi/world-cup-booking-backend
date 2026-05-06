@@ -1,5 +1,6 @@
 package com.worldcup.hotelbooking.user;
 
+import java.util.HashSet;
 import java.util.Set;
 
 public class AppUserMapper {
@@ -30,7 +31,7 @@ public class AppUserMapper {
                 user.getId(),
                 user.getUsername(),
                 user.getEmail(),
-                user.getRoles(),
+                new HashSet<>(user.getRoles()),
                 user.isEnabled(),
                 user.getProfilePictureUrl(),
                 user.getBookings() == null ? null :
@@ -46,7 +47,7 @@ public class AppUserMapper {
                 user.getId(),
                 user.getUsername(),
                 user.getEmail(),
-                user.getRoles(),
+                new HashSet<>(user.getRoles()),
                 user.isEnabled()
         );
     }

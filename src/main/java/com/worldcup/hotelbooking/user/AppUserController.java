@@ -28,11 +28,11 @@ public class AppUserController {
 
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN') or #id == authentication.principal.claims['userId']")
+    @PreAuthorize("hasRole('ADMIN') or #id.toString() == authentication.principal.claims['userId'].toString()")
     @Operation(summary = "Get user by ID (user themselves or admin)")
     public ResponseEntity<AppUserResponseDto> getUserById(@PathVariable Long id) {
-        AppUser user = appUserService.getUserById(id);
-        return ResponseEntity.ok(AppUserMapper.toDto(user));
+        // getUserByIdAsDto maps inside the @Transactional so lazy-loaded bookings are accessible
+        return ResponseEntity.ok(appUserService.getUserByIdAsDto(id));
     }
 
     @GetMapping
@@ -66,7 +66,7 @@ public class AppUserController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN') or #id == authentication.principal.claims['userId']")
+    @PreAuthorize("hasRole('ADMIN') or #id.toString() == authentication.principal.claims['userId'].toString()")
     @Operation(summary = "Update user fully (user themselves or admin)")
     public ResponseEntity<AppUserResponseDto> updateUser(@PathVariable Long id, @Valid @RequestBody AppUserRequestDto dto) {
         AppUserResponseDto updated = appUserService.updateUser(id, dto);
@@ -74,7 +74,7 @@ public class AppUserController {
     }
 
     @PatchMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN') or #id == authentication.principal.claims['userId']")
+    @PreAuthorize("hasRole('ADMIN') or #id.toString() == authentication.principal.claims['userId'].toString()")
     @Operation(summary = "Partial update of user fields (user themselves or admin)")
     public ResponseEntity<AppUserResponseDto> partialUpdateUser(
             @PathVariable Long id,
@@ -85,7 +85,7 @@ public class AppUserController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN') or #id == authentication.principal.claims['userId']")
+    @PreAuthorize("hasRole('ADMIN') or #id.toString() == authentication.principal.claims['userId'].toString()")
     @Operation(summary = "Delete user (user themselves or admin)")
     public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
         appUserService.deleteUser(id);
@@ -93,7 +93,7 @@ public class AppUserController {
     }
 
     @GetMapping("/{id}/bookings")
-    @PreAuthorize("hasRole('ADMIN') or #id == authentication.principal.claims['userId']")
+    @PreAuthorize("hasRole('ADMIN') or #id.toString() == authentication.principal.claims['userId'].toString()")
     @Operation(summary = "Get all bookings of a user (user themselves or admin)")
     public ResponseEntity<List<BookingResponseDto>> getUserBookings(@PathVariable Long id) {
         List<BookingResponseDto> bookings = appUserService.getUserBookings(id);
