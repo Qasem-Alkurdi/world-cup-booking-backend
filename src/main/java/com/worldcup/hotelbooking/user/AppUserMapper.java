@@ -35,9 +35,9 @@ public class AppUserMapper {
                 user.getProfilePictureUrl(),
                 user.getBookings() == null ? null :
                         user.getBookings()
-                        .stream()
-                        .map(com.worldcup.hotelbooking.reservation.booking.BookingMapper::toDto)
-                        .toList()
+                                .stream()
+                                .map(com.worldcup.hotelbooking.reservation.booking.BookingMapper::toDto)
+                                .toList()
         );
     }
 

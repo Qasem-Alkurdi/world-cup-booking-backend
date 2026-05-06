@@ -23,7 +23,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest
 @AutoConfigureMockMvc(addFilters = false)
-@TestPropertySource(properties = "storage.upload-dir=./test-uploads")
+@TestPropertySource(properties = "app.storage.upload-dir=./test-uploads")
 class RegistrationIntegrationTest {
 
     private final ObjectMapper objectMapper = new ObjectMapper();

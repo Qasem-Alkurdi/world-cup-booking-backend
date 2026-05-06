@@ -758,7 +758,9 @@ class BookingServiceImplTest {
 
         Page<Booking> result = bookingService.filterBookings(
                 1L,
+                null,
                 1L,
+                null,
                 Booking.BookingStatus.CONFIRMED,
                 LocalDate.now().minusDays(1),
                 LocalDate.now().plusDays(30),

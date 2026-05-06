@@ -28,16 +28,11 @@ public class AppUserController {
 
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN') or #id.toString() == authentication.principal.claims['userId'].toString()")
+    @PreAuthorize("hasRole('ADMIN') or #id == authentication.principal.claims['userId']")
     @Operation(summary = "Get user by ID (user themselves or admin)")
-    public ResponseEntity<?> getUserById(@PathVariable Long id) {
-        try {
-            AppUser user = appUserService.getUserById(id);
-            return ResponseEntity.ok(AppUserMapper.toDto(user));
-        } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.status(500).body("Error: " + e.getClass().getName() + " - " + e.getMessage());
-        }
+    public ResponseEntity<AppUserResponseDto> getUserById(@PathVariable Long id) {
+        AppUser user = appUserService.getUserById(id);
+        return ResponseEntity.ok(AppUserMapper.toDto(user));
     }
 
     @GetMapping
@@ -98,7 +93,7 @@ public class AppUserController {
     }
 
     @GetMapping("/{id}/bookings")
-    @PreAuthorize("hasRole('ADMIN') or #id.toString() == authentication.principal.claims['userId'].toString()")
+    @PreAuthorize("hasRole('ADMIN') or #id == authentication.principal.claims['userId']")
     @Operation(summary = "Get all bookings of a user (user themselves or admin)")
     public ResponseEntity<List<BookingResponseDto>> getUserBookings(@PathVariable Long id) {
         List<BookingResponseDto> bookings = appUserService.getUserBookings(id);
@@ -124,6 +119,17 @@ public class AppUserController {
 
         AppUser updated = appUserService.updateUserRoles(id, dto.roles());
         return ResponseEntity.ok(AppUserMapper.toDto(updated));
+    }
+
+    @PostMapping("/{id}/profile-picture")
+    @PreAuthorize("hasRole('ADMIN') or #id.toString() == authentication.principal.claims['userId'].toString()")
+    @Operation(summary = "Upload profile picture")
+    public ResponseEntity<AppUserResponseDto> uploadProfilePicture(
+            @PathVariable Long id,
+            @RequestParam("file") org.springframework.web.multipart.MultipartFile file) {
+
+        AppUser updatedUser = appUserService.uploadProfilePicture(id, file);
+        return ResponseEntity.ok(AppUserMapper.toDto(updatedUser));
     }
 
     @GetMapping("/stats")

@@ -11,13 +11,17 @@ public class UserSpecifications {
                         : cb.like(cb.lower(root.get("username")), "%" + username.toLowerCase() + "%");
     }
 
-    public static Specification<AppUser> hasEmail(String email) {
-        return (root, query, cb) -> email == null ? null :
-                cb.like(cb.lower(root.get("email")), "%" + email.toLowerCase() + "%");
+    public static Specification<AppUser> emailLike(String email) {
+        return (root, query, cb) ->
+                email == null || email.isBlank()
+                        ? null
+                        : cb.like(cb.lower(root.get("email")), "%" + email.toLowerCase() + "%");
     }
 
     public static Specification<AppUser> hasRole(Role role) {
-        return (root, query, cb) -> role == null ? null :
-                cb.isMember(role, root.get("roles"));
+        return (root, query, cb) ->
+                role == null
+                        ? null
+                        : cb.isMember(role, root.get("roles"));
     }
 }

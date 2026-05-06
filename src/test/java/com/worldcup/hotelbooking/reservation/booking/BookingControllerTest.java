@@ -393,7 +393,9 @@ class BookingControllerTest {
 
         given(bookingService.filterBookings(
                 eq(1L),
+                isNull(),
                 eq(1L),
+                isNull(),
                 eq(Booking.BookingStatus.CONFIRMED),
                 eq(LocalDate.of(2026, 7, 1)),
                 eq(LocalDate.of(2026, 7, 10)),
@@ -417,7 +419,9 @@ class BookingControllerTest {
 
         verify(bookingService, times(1)).filterBookings(
                 eq(1L),
+                isNull(),
                 eq(1L),
+                isNull(),
                 eq(Booking.BookingStatus.CONFIRMED),
                 eq(LocalDate.of(2026, 7, 1)),
                 eq(LocalDate.of(2026, 7, 10)),

@@ -54,7 +54,6 @@ public class AppUser {
 
 
     private boolean enabled = true;
-
     private String profilePictureUrl;
 
 

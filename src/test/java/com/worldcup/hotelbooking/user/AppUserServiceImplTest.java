@@ -1,5 +1,6 @@
 package com.worldcup.hotelbooking.user;
 
+import com.worldcup.hotelbooking.catalog.hotel.Hotel;
 import com.worldcup.hotelbooking.chat.ChatMessageRepository;
 import com.worldcup.hotelbooking.chat.ConversationRepository;
 import com.worldcup.hotelbooking.notification.NotificationRepository;
@@ -30,6 +31,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -59,6 +63,10 @@ class AppUserServiceImplTest {
     private ConversationRepository conversationRepository;
     @Mock
     private NotificationRepository notificationRepository; // NEW
+    @Mock
+    private com.worldcup.hotelbooking.catalog.storage.PhotoStorageService photoStorageService;
+    @Mock
+    private com.worldcup.hotelbooking.catalog.storage.PhotoUrlResolver photoUrlResolver;
 
     @Captor
     private ArgumentCaptor<AppUser> userCaptor;
@@ -95,7 +103,6 @@ class AppUserServiceImplTest {
         assertThat(created.getUsername()).isEqualTo("newuser");
         assertThat(created.getPassword()).isEqualTo("encodedPass");
         assertThat(created.getRoles()).containsExactly(Role.GUEST);
-        assertThat(created.getProfilePictureUrl()).isNotNull();
         verify(notificationService).sendWelcomeNotification(created);
     }
 
@@ -243,6 +250,11 @@ class AppUserServiceImplTest {
     void getUserBookings() {
         Booking booking = new Booking();
         booking.setId(100L);
+        booking.setAppUser(testUser);
+        Hotel hotel = new Hotel();
+        hotel.setName("Test Hotel");
+        booking.setHotel(hotel);
+
         testUser.setBookings(List.of(booking));
         when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
 

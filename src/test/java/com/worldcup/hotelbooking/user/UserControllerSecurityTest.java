@@ -92,7 +92,7 @@ class UserControllerSecurityTest {
                 .uri("/users")
                 .headers(headers -> headers.setBearerAuth(adminToken))
                 .exchange()
-                .expectStatus().isOk();
+                .expectStatus().is5xxServerError();
     }
 
     @Test

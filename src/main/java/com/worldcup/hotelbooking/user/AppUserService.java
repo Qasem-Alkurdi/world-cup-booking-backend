@@ -27,6 +27,8 @@ public interface AppUserService {
 
     Page<AppUserResponseDto> getAllUsers(Pageable pageable);
 
+    Page<AppUserResponseDto> getAllUsers(Pageable pageable, String username, String email);
+
     Page<AppUserResponseDto> getAllUsers(Pageable pageable, String username, String email, Role role);
 
     AppUser saveUser(AppUser user);
@@ -37,7 +39,7 @@ public interface AppUserService {
 
     AppUser updateUserRoles(Long id, Set<Role> roles);
 
+    AppUser uploadProfilePicture(Long id, org.springframework.web.multipart.MultipartFile file);
+
     Map<String, Long> getUserStats();
-
-
 }

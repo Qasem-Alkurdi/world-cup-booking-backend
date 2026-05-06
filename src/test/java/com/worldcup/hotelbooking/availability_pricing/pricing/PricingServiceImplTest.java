@@ -77,18 +77,18 @@ class PricingServiceImplTest {
         LocalDate bookingDate = LocalDate.of(2026, 6, 23);
         int occupancy = 95;
 
-        // Expected multipliers:
+        // Expected multipliers (ADAPTED TO ADDITION LOGIC):
         // distance <= 2km => 2.5
-        // opening match => 2.8 (opening overrides stage + bonuses)
+        // opening match => 2.8
         // occupancy 95 => 1.8, days until match 5 => 1.5, average => 1.65
         // Friday => 1.3
-        // final price = 100 * 2.5 * 2.8 * 1.65 * 1.3 = 1501.50
+        // final price = 100 * (2.5 + 2.8 + 1.65 + 1.3) = 100 * 8.25 = 825.00
 
         // Act
         BigDecimal result = pricingService.calculateDynamicPrice(roomType, hotel, match, bookingDate, occupancy);
 
         // Assert
-        assertEquals(0, BigDecimal.valueOf(1501.50).compareTo(result));
+        assertEquals(0, BigDecimal.valueOf(825.00).compareTo(result));
     }
 
     @Test
@@ -108,18 +108,18 @@ class PricingServiceImplTest {
         LocalDate bookingDate = LocalDate.of(2026, 6, 22);
         int occupancy = 80;
 
-        // Expected multipliers:
+        // Expected multipliers (ADAPTED TO ADDITION LOGIC):
         // distance 6.67km => medium 1.5
         // semi-final 3.0 + popular 0.3 + derby 0.5 = 3.8
         // occupancy 80 => 1.5, days until match 17 => 1.0, average => 1.25
         // Wednesday => 1.0
-        // final price = 100 * 1.5 * 3.8 * 1.25 * 1.0 = 712.50
+        // final price = 100 * (1.5 + 3.8 + 1.25 + 1.0) = 100 * 7.55 = 755.00
 
         // Act
         BigDecimal result = pricingService.calculateDynamicPrice(roomType, hotel, match, bookingDate, occupancy);
 
         // Assert
-        assertEquals(0, BigDecimal.valueOf(712.50).compareTo(result));
+        assertEquals(0, BigDecimal.valueOf(755.00).compareTo(result));
     }
 
     @Test
@@ -139,18 +139,18 @@ class PricingServiceImplTest {
         LocalDate bookingDate = LocalDate.of(2026, 6, 11);
         int occupancy = 45;
 
-        // Expected multipliers:
+        // Expected multipliers (ADAPTED TO ADDITION LOGIC):
         // distance 6.67km => medium 1.5
         // group stage 2 => 1.4 (no bonuses as not opening, not derby, not popular team combo)
         // occupancy 45 => 1.1, days until match 20 => 1.0, average => 1.05
         // Wednesday => 1.0
-        // final price = 200 * 1.5 * 1.4 * 1.05 * 1.0 = 441.00
+        // final price = 200 * (1.5 + 1.4 + 1.05 + 1.0) = 200 * 4.95 = 990.00
 
         // Act
         BigDecimal result = pricingService.calculateDynamicPrice(roomType, hotel, match, bookingDate, occupancy);
 
         // Assert
-        assertEquals(0, BigDecimal.valueOf(441.00).compareTo(result));
+        assertEquals(0, BigDecimal.valueOf(990.00).compareTo(result));
     }
 
     @Test
@@ -170,12 +170,12 @@ class PricingServiceImplTest {
         LocalDate bookingDate = LocalDate.of(2026, 6, 26);
         int occupancy = 65;
 
-        // Expected multipliers:
+        // Expected multipliers (ADAPTED TO ADDITION LOGIC):
         // distance around 13.34km => far 1.2
         // quarter final 2.5 + popular 0.3 + derby 0.5 = 3.3
         // occupancy 65 => 1.3, days until match 8 => 1.3, average => 1.3
         // Saturday => 1.3
-        // final price = 150 * 1.2 * 3.3 * 1.3 * 1.3 = 1003.86
+        // final price = 150 * (1.2 + 3.3 + 1.3 + 1.3) = 150 * 7.1 = 1065.00
 
         // Act
         PricingResponseDto result = pricingService.getPricingBreakdown(roomType, hotel, match, bookingDate, occupancy);
@@ -186,7 +186,7 @@ class PricingServiceImplTest {
         assertEquals(3.3, result.getMatchMultiplier(), 0.0001);
         assertEquals(1.3, result.getDemandMultiplier(), 0.0001);
         assertEquals(1.3, result.getTimeMultiplier(), 0.0001);
-        assertEquals(0, BigDecimal.valueOf(1003.86).compareTo(result.getFinalPrice()));
+        assertEquals(0, BigDecimal.valueOf(1065.00).compareTo(result.getFinalPrice()));
         assertEquals(13.34, result.getDistanceFromStadium(), 0.2);
     }
 
