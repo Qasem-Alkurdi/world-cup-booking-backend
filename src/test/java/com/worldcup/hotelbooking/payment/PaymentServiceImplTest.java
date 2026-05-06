@@ -334,7 +334,7 @@ class PaymentServiceImplTest {
     }
 
     @Test
-    void refundPayment_refundMoreThanPaid_expectedPaymentException() {
+    void refundPayment_refundMoreThanPaid_expectedOverRefundedStatus() {
         payment.setStatus(Payment.PaymentStatus.COMPLETED);
         payment.setPaidAmount(BigDecimal.valueOf(500));
         payment.setRefundAmount(BigDecimal.valueOf(100));
@@ -346,12 +346,13 @@ class PaymentServiceImplTest {
                 .build();
 
         when(paymentRepository.findById(10L)).thenReturn(Optional.of(payment));
+        when(paymentRepository.save(any(Payment.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        PaymentException ex = assertThrows(PaymentException.class,
-                () -> paymentService.refundPayment(request));
+        Payment result = paymentService.refundPayment(request);
 
-        assertTrue(ex.getMessage().contains("Cannot refund more than paid amount"));
-        verify(paymentRepository, never()).save(any());
+        assertEquals(Payment.PaymentStatus.OVER_REFUNDED, result.getStatus());
+        assertEquals(0, BigDecimal.valueOf(550).compareTo(result.getRefundAmount()));
+        verify(paymentRepository).save(payment);
     }
 
     @Test

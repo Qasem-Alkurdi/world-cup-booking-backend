@@ -100,6 +100,10 @@ class PaymentControllerTest {
         return ProcessPaymentRequestDto.builder()
                 .paymentIntentId("pi_test_123")
                 .simulateSuccess(simulateSuccess)
+                .cardNumber("1234567890123456")
+                .cardHolderName("John Doe")
+                .expiryDate("12/26")
+                .cvv("123")
                 .build();
     }
 

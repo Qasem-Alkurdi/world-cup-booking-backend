@@ -1,5 +1,6 @@
 package com.worldcup.hotelbooking.user;
 
+import com.worldcup.hotelbooking.catalog.hotel.Hotel;
 import com.worldcup.hotelbooking.chat.ChatMessageRepository;
 import com.worldcup.hotelbooking.chat.ConversationRepository;
 import com.worldcup.hotelbooking.notification.NotificationRepository;
@@ -243,6 +244,11 @@ class AppUserServiceImplTest {
     void getUserBookings() {
         Booking booking = new Booking();
         booking.setId(100L);
+        booking.setAppUser(testUser);
+        Hotel hotel = new Hotel();
+        hotel.setName("Test Hotel");
+        booking.setHotel(hotel);
+
         testUser.setBookings(List.of(booking));
         when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
 
