@@ -10,6 +10,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @Tag(name = "Chat", description = "Real-time messaging between guests and hotel managers")
 public class ChatController {
@@ -67,6 +69,32 @@ public class ChatController {
 
         Long guestId = extractUserId(authentication);
         return ResponseEntity.ok(chatService.guestSendMessage(hotelId, guestId, request.content()));
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // MANAGER ENDPOINTS  —  /hotels/{hotelId}/conversations  &  /conversations/{conversationId}
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /**
+     * GET /hotels/{hotelId}/conversations
+     * <p>
+     * Manager inbox — all guest conversations for a hotel, sorted by most recent message.
+     * Includes unread count and last message preview for each conversation.
+     */
+    @GetMapping("/hotels/{hotelId}/conversations")
+    @PreAuthorize("""
+            hasRole('ADMIN')
+            or(hasRole('MANAGER') and @bookingAuthorizationService.isHimTheHotelOwnerOfTheBookingUsingTheHotelId(#hotelId, authentication))
+            """)
+    @Operation(
+            summary = "Hotel chat inbox (manager)",
+            description = "Returns all guest conversations for the hotel, sorted by most recent message."
+    )
+    public ResponseEntity<List<ConversationSummaryResponse>> getHotelInbox(
+            @PathVariable Long hotelId,
+            Authentication authentication) {
+        Long managerId = extractUserId(authentication);
+        return ResponseEntity.ok(chatService.getHotelInbox(hotelId, managerId));
     }
 
     // ─────────────────────────────────────────────────────────────────────────
