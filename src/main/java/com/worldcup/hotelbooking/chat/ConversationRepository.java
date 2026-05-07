@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface ConversationRepository extends JpaRepository<Conversation, Long> {
@@ -18,6 +19,19 @@ public interface ConversationRepository extends JpaRepository<Conversation, Long
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("DELETE FROM Conversation c WHERE c.guest.id = :guestId")
     void deleteByGuestId(@Param("guestId") Long guestId);
+
+    /**
+     * All conversations for a hotel, newest-message-first.
+     * Used for the manager's inbox.
+     */
+    @Query("""
+            SELECT c FROM Conversation c
+            WHERE c.hotel.id = :hotelId
+            ORDER BY (
+                SELECT MAX(m.sentAt) FROM ChatMessage m WHERE m.conversation.id = c.id
+            ) DESC NULLS LAST
+            """)
+    List<Conversation> findByHotelIdOrderByLastMessage(@Param("hotelId") Long hotelId);
 
     /**
      * Verify that a user is a participant of a conversation —

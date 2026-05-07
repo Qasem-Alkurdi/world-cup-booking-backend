@@ -1,6 +1,8 @@
 package com.worldcup.hotelbooking.chat;
 
 
+import java.util.List;
+
 public interface ChatService {
 
     // ── GUEST flows ──────────────────────────────────────────────────────────
@@ -32,4 +34,12 @@ public interface ChatService {
      * Persists and pushes via WebSocket.
      */
     ChatMessageResponse managerSendMessage(Long conversationId, Long managerId, String content);
+
+    // ── MANAGER inbox ──────────────────────────────────────────────────────────
+
+    /**
+     * Returns all guest conversations for a hotel, sorted by most recent message.
+     * Includes unread count and last message preview for each conversation.
+     */
+    List<ConversationSummaryResponse> getHotelInbox(Long hotelId, Long managerId);
 }

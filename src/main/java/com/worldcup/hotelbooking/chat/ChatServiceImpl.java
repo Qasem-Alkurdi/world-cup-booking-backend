@@ -83,7 +83,7 @@ public class ChatServiceImpl implements ChatService {
                     return conversationRepository.save(new Conversation(guest, hotel));
                 });
 
-        return saveAndPublish(conversation, guest, appUserRepository.findById(guestId).get().getRoles().stream().findFirst().get(), content);
+        return saveAndPublish(conversation, guest, Role.GUEST, content);
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -114,6 +114,41 @@ public class ChatServiceImpl implements ChatService {
                 .orElseThrow(() -> new AppUserNotFoundException("User not found with id: " + managerId));
 
         return saveAndPublish(conversation, manager, Role.MANAGER, content);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // MANAGER: hotel inbox — all guest conversations for a hotel
+    // ─────────────────────────────────────────────────────────────────────────
+
+    @Override
+    public List<ConversationSummaryResponse> getHotelInbox(Long hotelId, Long managerId) {
+        return conversationRepository.findByHotelIdOrderByLastMessage(hotelId).stream()
+                .map(c -> {
+                    long unread = chatMessageRepository.countUnreadForUser(c.getId(), managerId);
+                    return chatMessageRepository
+                            .findTopByConversationIdOrderBySentAtDesc(c.getId())
+                            .map(last -> new ConversationSummaryResponse(
+                                    c.getId(),
+                                    c.getGuest().getId(),
+                                    c.getGuest().getUsername(),
+                                    c.getHotel().getName(),
+                                    unread,
+                                    last.getContent(),
+                                    last.getSentAt(),
+                                    last.getSenderRole().name()
+                            ))
+                            .orElseGet(() -> new ConversationSummaryResponse(
+                                    c.getId(),
+                                    c.getGuest().getId(),
+                                    c.getGuest().getUsername(),
+                                    c.getHotel().getName(),
+                                    unread,
+                                    null,
+                                    c.getCreatedAt(),
+                                    null
+                            ));
+                })
+                .toList();
     }
 
     // ─────────────────────────────────────────────────────────────────────────
