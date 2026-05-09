@@ -18,4 +18,6 @@ public interface HotelService {
     void deleteById(Long id);
 
     List<Hotel> getMyHotels(Long ownerId);
+
+    Hotel findByIdWithRoomTypes(Long id);
 }

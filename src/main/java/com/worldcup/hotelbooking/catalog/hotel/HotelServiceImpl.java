@@ -232,4 +232,11 @@ public class HotelServiceImpl implements HotelService {
                 .orElseThrow(() -> new AppUserNotFoundException("User not found with id: " + ownerId));
         return repository.findByOwnerAndStatusAndIsDeletedFalse(owner, PENDING_APPROVAL);
     }
+
+    @Transactional(readOnly = true)
+    @Override
+    public Hotel findByIdWithRoomTypes(Long id) {
+        return repository.findByIdWithRoomTypes(id, APPROVED)
+                .orElseThrow(() -> new HotelNotFoundException(id));
+    }
 }

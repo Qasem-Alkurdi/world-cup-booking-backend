@@ -5,6 +5,9 @@ import com.worldcup.hotelbooking.catalog.hotel.dto.HotelResponseDto;
 import com.worldcup.hotelbooking.catalog.hotel.dto.ReplaceHotelRequestDto;
 import com.worldcup.hotelbooking.catalog.hotel.dto.UpdateHotelPatchRequest;
 import com.worldcup.hotelbooking.catalog.hotel.mapper.HotelMapper;
+
+import com.worldcup.hotelbooking.catalog.print.dto.HotelCatalogCompositeResponseDto;
+import com.worldcup.hotelbooking.catalog.print.mapper.HotelCatalogCompositeMapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -196,5 +199,11 @@ public class HotelController {
             @PathVariable Long ownerId
     ) {
         return service.getMyHotels(ownerId).stream().map(HotelMapper::toResponse).toList();
+    }
+
+    @GetMapping("/{id}/structure")
+    public HotelCatalogCompositeResponseDto getHotelCatalog(@PathVariable Long id) {
+        Hotel hotel = service.findByIdWithRoomTypes(id);
+        return HotelCatalogCompositeMapper.toCompositeResponse(hotel);
     }
 }

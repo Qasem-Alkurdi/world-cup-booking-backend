@@ -31,4 +31,16 @@ public interface HotelRepository extends JpaRepository<Hotel, Long>, JpaSpecific
     Double calculateDistanceInMeters(@Param("hotelId") Long hotelId,
                                      @Param("stadiumId") Long stadiumId);
 
+    @Query("""
+                select h
+                from Hotel h
+                left join fetch h.roomTypes
+                where h.id = :id
+                  and h.status = :status
+                  and h.isDeleted = false
+            """)
+    Optional<Hotel> findByIdWithRoomTypes(
+            @Param("id") Long id,
+            @Param("status") HotelStatus status
+    );
 }

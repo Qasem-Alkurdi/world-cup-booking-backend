@@ -113,6 +113,10 @@ public class SecurityConfig {
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/catalog/hotels/**").permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/hotels").permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/hotels/*").permitAll()
+                        .requestMatchers(
+                                org.springframework.http.HttpMethod.GET,
+                                "/hotels/*/structure"
+                        ).permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/hotels/*/room-types").permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/hotels/*/room-types/*").permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/hotels/*/photos").permitAll()
